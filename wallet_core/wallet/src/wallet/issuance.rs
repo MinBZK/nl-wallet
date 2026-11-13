@@ -1158,7 +1158,10 @@ mod tests {
     use uuid::NoContext;
     use uuid::Timestamp;
     use uuid::Uuid;
+    use wallet_account::messages::errors::AccountError;
     use wallet_account::messages::errors::AccountRevokedData;
+    use wallet_account::messages::errors::IncorrectPinData;
+    use wallet_account::messages::errors::PinTimeoutData;
     use wallet_account::messages::errors::RevocationReason;
     use wallet_account::messages::instructions::DiscloseRecoveryCodeResult;
     use wallet_account::messages::instructions::Instruction;
@@ -1168,6 +1171,8 @@ mod tests {
     use super::super::test::TestWalletMockStorage;
     use super::super::test::WalletDeviceVendor;
     use super::*;
+    use crate::account_provider::AccountProviderError;
+    use crate::account_provider::AccountProviderResponseError;
     use crate::attestation::AttributeValue;
     use crate::pin::key::Pin;
     use crate::storage::ChangePinData;
@@ -2227,11 +2232,6 @@ mod tests {
 
         wallet
             .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
             .times(1)
             .returning(|_| Ok(vec![]));
@@ -2242,19 +2242,7 @@ mod tests {
             .withf(|_, _| true)
             .returning(|_, _| Ok(()));
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<InstructionData>()
-            .returning(|| {
-                Ok(Some(InstructionData {
-                    instruction_sequence_number: 0,
-                }))
-            });
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<InstructionData>()
-            .returning(|_| Ok(()));
+        setup_mock_instruction_storage(&mut wallet);
 
         wallet
             .mut_storage()
@@ -2326,6 +2314,27 @@ mod tests {
         assert_matches!(err, IssuanceError::PidAlreadyPresent);
     }
 
+    fn setup_mock_instruction_storage(wallet: &mut TestWalletMockStorage) {
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
+    }
+
     /// Have the Wallet Provider accept the disclosure of the recovery code, returning `transfer_session_id`.
     fn setup_mock_recovery_code_instructions(wallet: &mut TestWalletMockStorage, transfer_session_id: Option<Uuid>) {
         Arc::get_mut(&mut wallet.account_provider_client)
@@ -2361,24 +2370,7 @@ mod tests {
             },
         }));
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<InstructionData>()
-            .returning(|| {
-                Ok(Some(InstructionData {
-                    instruction_sequence_number: 0,
-                }))
-            });
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<InstructionData>()
-            .returning(|_| Ok(()));
+        setup_mock_instruction_storage(&mut wallet);
 
         // Without previews, the stored attestations to renew are looked up by the kinds of the issued credentials.
         let expected_credential_kinds = HashSet::from([
@@ -2525,24 +2517,7 @@ mod tests {
                     .collect())
             });
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<InstructionData>()
-            .returning(|| {
-                Ok(Some(InstructionData {
-                    instruction_sequence_number: 0,
-                }))
-            });
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<InstructionData>()
-            .returning(|_| Ok(()));
+        setup_mock_instruction_storage(&mut wallet);
 
         // During PID renewal, a transfer session id returned by the Wallet Provider should be ignored.
         if purpose.is_some() {
@@ -2932,11 +2907,6 @@ mod tests {
             IssuerRegistration::new_mock(),
         );
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
         // Only the stored PID should be looked up, to compare its recovery code.
         wallet
             .mut_storage()
@@ -2944,19 +2914,7 @@ mod tests {
             .times(1)
             .returning(move |_| Ok(vec![stored_copy.clone()]));
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<InstructionData>()
-            .returning(|| {
-                Ok(Some(InstructionData {
-                    instruction_sequence_number: 0,
-                }))
-            });
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<InstructionData>()
-            .returning(|_| Ok(()));
+        setup_mock_instruction_storage(&mut wallet);
 
         // Accepting PID issuance, or issuing the PID for review, should result in an error, without the issued
         // credentials being stored (no expectation for `insert_credentials()`) or the recovery code being disclosed.
@@ -2999,37 +2957,20 @@ mod tests {
             },
         }));
 
-        // Have the storage return an error on query.
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
             .times(1)
             .returning(|_| Ok(vec![]));
 
+        // Have the storage return an error on query.
         wallet
             .mut_storage()
             .expect_insert_credentials()
             .withf(|_, _| true)
             .returning(|_, _| Err(StorageError::AlreadyOpened));
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<InstructionData>()
-            .returning(|| {
-                Ok(Some(InstructionData {
-                    instruction_sequence_number: 0,
-                }))
-            });
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<InstructionData>()
-            .returning(|_| Ok(()));
+        setup_mock_instruction_storage(&mut wallet);
 
         setup_mock_recovery_code_instructions(&mut wallet, None);
 
@@ -3065,24 +3006,7 @@ mod tests {
             },
         }));
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
-
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<InstructionData>()
-            .returning(|| {
-                Ok(Some(InstructionData {
-                    instruction_sequence_number: 0,
-                }))
-            });
-
-        wallet
-            .mut_storage()
-            .expect_upsert_data::<InstructionData>()
-            .returning(|_| Ok(()));
+        setup_mock_instruction_storage(&mut wallet);
 
         // Have the storage contain no PID, and return an error when looking up the stored attestations that the issued
         // credentials renew.
@@ -3122,6 +3046,335 @@ mod tests {
         assert!(wallet.session.is_none());
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
+    }
+
+    /// Let the Wallet Provider respond to `DiscloseRecoveryCode` instructions with the provided `responses`, in which
+    /// `Ok` contains the ID of the transfer session to return.
+    fn setup_mock_disclose_recovery_code(
+        wallet: &mut TestWalletMockStorage,
+        responses: impl IntoIterator<Item = Result<Option<Uuid>, AccountError>>,
+    ) {
+        let responses = responses.into_iter().collect_vec();
+        let count = responses.len();
+        let mut responses = responses.into_iter();
+
+        let account_provider_client = Arc::get_mut(&mut wallet.account_provider_client).unwrap();
+
+        account_provider_client
+            .expect_instruction_challenge()
+            .times(count)
+            .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
+
+        account_provider_client.expect_instruction().times(count).returning(
+            move |_, _: Instruction<DiscloseRecoveryCode>| {
+                responses
+                    .next()
+                    .unwrap()
+                    .map(|transfer_session_id| create_wp_result(DiscloseRecoveryCodeResult { transfer_session_id }))
+                    .map_err(|error| AccountProviderError::Response(AccountProviderResponseError::Account(error, None)))
+            },
+        );
+    }
+
+    fn setup_mock_storage_for_finalize(wallet: &mut TestWalletMockStorage) {
+        wallet
+            .mut_storage()
+            .expect_insert_credentials()
+            .times(1)
+            .returning(|_, _| Ok(()));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations()
+            .returning(|| Ok(vec![]));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_recent_wallet_events()
+            .returning(|| Ok(vec![]));
+    }
+
+    /// Returns a registered and unlocked wallet holding an SD-JWT PID that was issued for review without previews, in a
+    /// PID issuance session for `pid_purpose` or in a generic issuance session if not.
+    async fn wallet_with_received_pid(pid_purpose: Option<PidIssuancePurpose>) -> TestWalletMockStorage {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        let (sd_jwt, sd_jwt_issued_metadata, _) = sd_jwt_pid();
+        let (issuance_session, _) = mock_issuance_session([(sd_jwt, sd_jwt_issued_metadata)], Some(NonZeroU8::MAX));
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::new(
+            pid_purpose,
+            SessionState::Issuance {
+                preview_attestations: None,
+                protocol_state: issuance_session,
+            },
+        )));
+
+        setup_mock_instruction_storage(&mut wallet);
+
+        // Have the storage contain no attestations, so neither a stored PID nor attestations to renew.
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .returning(|_| Ok(vec![]));
+
+        wallet
+            .issue_credentials_for_review(PIN.clone())
+            .await
+            .expect("issuing credentials for review should succeed");
+
+        wallet
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn test_issuance_error_preview_mode_mismatch(#[values(true, false)] with_previews: bool) {
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<ChangePinData>()
+            .returning(|| Ok(None));
+
+        // The issuer should not be contacted (no expectation for `accept()`).
+        let (sd_jwt, sd_jwt_issued_metadata, _) = sd_jwt_pid();
+        let (issuance_session, attestations) = mock_issuance_session([(sd_jwt, sd_jwt_issued_metadata)], None);
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
+            session_state: SessionState::Issuance {
+                preview_attestations: with_previews.then_some(attestations),
+                protocol_state: issuance_session,
+            },
+        }));
+
+        // Issuing a session with previews for review, or accepting a session without previews, should fail.
+        let error = if with_previews {
+            wallet
+                .issue_credentials_for_review(PIN.clone())
+                .await
+                .expect_err("issuing credentials for review should fail")
+        } else {
+            wallet
+                .accept_issuance(PIN.clone())
+                .await
+                .expect_err("accepting issuance should fail")
+        };
+
+        assert_matches!(error, IssuanceError::SessionState);
+
+        // The session should be left intact.
+        assert_matches!(
+            &wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state: SessionState::Issuance { preview_attestations, .. },
+            })) if preview_attestations.is_some() == with_previews
+        );
+    }
+
+    #[tokio::test]
+    async fn test_commit_issued_credentials_error_received_pid() {
+        let mut wallet = wallet_with_received_pid(Some(PidIssuancePurpose::Enrollment)).await;
+
+        // Committing a received PID as generic credentials should fail, without storing anything (no expectation for
+        // `insert_credentials()`).
+        let error = wallet
+            .commit_issued_credentials()
+            .await
+            .expect_err("committing issued credentials should fail");
+
+        assert_matches!(error, IssuanceError::SessionState);
+
+        // The received PID should be kept.
+        assert_matches!(
+            &wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Pid {
+                session_state: SessionState::Received { .. },
+                ..
+            }))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_commit_issued_pid_error_received_credentials() {
+        let mut wallet = wallet_with_received_pid(None).await;
+
+        // Committing generic credentials as a PID should fail, without disclosing anything to the Wallet Provider (no
+        // expectation for instructions) or storing anything.
+        let error = wallet
+            .commit_issued_pid(PIN.clone())
+            .await
+            .expect_err("committing issued PID should fail");
+
+        assert_matches!(error, IssuanceError::SessionState);
+
+        // The received credentials should be kept.
+        assert_matches!(
+            &wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state: SessionState::Received { .. },
+            }))
+        );
+    }
+
+    #[rstest]
+    #[case::enrollment(PidIssuancePurpose::Enrollment, true)]
+    #[case::renewal(PidIssuancePurpose::Renewal, false)]
+    #[tokio::test]
+    async fn test_commit_issued_pid(#[case] purpose: PidIssuancePurpose, #[case] expect_transfer: bool) {
+        let mut wallet = wallet_with_received_pid(Some(purpose)).await;
+
+        // Have the Wallet Provider return a transfer session upon disclosure of the recovery code.
+        let transfer_session_id = Uuid::new_v4();
+        setup_mock_disclose_recovery_code(&mut wallet, [Ok(Some(transfer_session_id))]);
+
+        // The transfer session should only be stored during enrollment.
+        wallet
+            .mut_storage()
+            .expect_insert_data::<TransferData>()
+            .withf(move |data| data.transfer_session_id == transfer_session_id.into())
+            .times(usize::from(expect_transfer))
+            .returning(|_| Ok(()));
+
+        setup_mock_storage_for_finalize(&mut wallet);
+
+        let result = wallet
+            .commit_issued_pid(PIN.clone())
+            .await
+            .expect("committing issued PID should succeed");
+
+        assert_eq!(
+            result.transfer_session_id,
+            expect_transfer.then_some(transfer_session_id.into())
+        );
+        assert!(wallet.session.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_commit_issued_pid_error_incorrect_pin_retry() {
+        let mut wallet = wallet_with_received_pid(Some(PidIssuancePurpose::Renewal)).await;
+
+        // Have the Wallet Provider reject the first disclosure because of an incorrect PIN and accept the second.
+        setup_mock_disclose_recovery_code(
+            &mut wallet,
+            [
+                Err(AccountError::IncorrectPin(IncorrectPinData {
+                    attempts_left_in_round: 2,
+                    is_final_round: false,
+                })),
+                Ok(None),
+            ],
+        );
+
+        // The PID should only be stored once.
+        setup_mock_storage_for_finalize(&mut wallet);
+
+        let error = wallet
+            .commit_issued_pid(PIN.clone())
+            .await
+            .expect_err("committing issued PID should fail");
+
+        assert_matches!(error, IssuanceError::Instruction(InstructionError::IncorrectPin { .. }));
+
+        // The received PID should be kept, so that committing it can be retried.
+        assert_matches!(
+            &wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Pid {
+                session_state: SessionState::Received { .. },
+                ..
+            }))
+        );
+
+        wallet
+            .commit_issued_pid(PIN.clone())
+            .await
+            .expect("committing issued PID again should succeed");
+
+        assert!(wallet.session.is_none());
+    }
+
+    #[rstest]
+    #[case::timeout(AccountError::PinTimeout(PinTimeoutData { time_left_in_ms: 10_000 }))]
+    #[case::blocked(AccountError::AccountBlocked)]
+    #[tokio::test]
+    async fn test_commit_issued_pid_error_reset(#[case] account_error: AccountError) {
+        let mut wallet = wallet_with_received_pid(Some(PidIssuancePurpose::Enrollment)).await;
+
+        // Have the storage support resetting the wallet.
+        wallet.mut_storage().checkpoint();
+        wallet.mut_storage().expect_clear().return_const(());
+        wallet
+            .mut_storage()
+            .expect_state()
+            .returning(|| Ok(StorageState::Uninitialized));
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<RegistrationData>()
+            .return_once(|| Ok(None));
+        setup_mock_instruction_storage(&mut wallet);
+
+        // Have the Wallet Provider reject the disclosure. Nothing should be stored (no expectations).
+        setup_mock_disclose_recovery_code(&mut wallet, [Err(account_error)]);
+
+        let error = wallet
+            .commit_issued_pid(PIN.clone())
+            .await
+            .expect_err("committing issued PID should fail");
+
+        assert_matches!(
+            error,
+            IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
+        );
+
+        // The wallet should be reset, which removes the received PID.
+        assert!(wallet.session.is_none());
+        assert!(!wallet.has_registration());
+        assert!(wallet.is_locked());
+    }
+
+    #[tokio::test]
+    async fn test_commit_issued_pid_error_revoked() {
+        let mut wallet = wallet_with_received_pid(Some(PidIssuancePurpose::Enrollment)).await;
+
+        let revocation_data = AccountRevokedData {
+            revocation_reason: RevocationReason::AdminRequest,
+            can_register_new_account: true,
+        };
+        setup_mock_disclose_recovery_code(&mut wallet, [Err(AccountError::AccountRevoked(revocation_data))]);
+
+        // The revocation should be stored, but not the PID (no expectation for `insert_credentials()`).
+        wallet
+            .mut_storage()
+            .expect_insert_data::<AccountRevokedData>()
+            .times(1)
+            .returning(|_| Ok(()));
+
+        let error = wallet
+            .commit_issued_pid(PIN.clone())
+            .await
+            .expect_err("committing issued PID should fail");
+
+        assert_matches!(error, IssuanceError::Instruction(InstructionError::AccountRevoked(data)) if data == revocation_data);
+
+        // The received PID should not be kept, while the wallet remains registered.
+        assert!(wallet.session.is_none());
+        assert!(wallet.has_registration());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_session_received_pid() {
+        let mut wallet = wallet_with_received_pid(Some(PidIssuancePurpose::Enrollment)).await;
+
+        wallet
+            .mut_storage()
+            .expect_delete_data::<PersistedIssuanceSessionData<MockAuthorizationSessionData>>()
+            .return_once(|| Ok(()));
+
+        // Cancelling should neither disclose the recovery code (no expectations for instructions) nor store the PID (no
+        // expectation for `insert_credentials()`).
+        wallet
+            .cancel_session()
+            .await
+            .expect("cancelling the session should succeed");
+
+        assert!(wallet.session.is_none());
     }
 
     #[test]
