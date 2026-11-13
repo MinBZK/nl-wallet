@@ -4728,7 +4728,6 @@ dependencies = [
  "jwk-simple",
  "p256 0.14.0",
  "rand_core 0.10.1",
- "rsa 0.10.0",
  "rstest",
  "serde",
  "serde_json",
