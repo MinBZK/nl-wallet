@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use http_utils::reqwest::default_reqwest_client_builder;
 use reqwest::Client;
 use reqwest::header;
@@ -43,11 +41,6 @@ pub async fn fake_pid_auth(authorization_url: Url, bsn: String) -> Url {
     debug!("login_url: {}", &login_url);
 
     // Login to the PID issuer using the BSN.
-    let mut params = login_url
-        .query_pairs()
-        .map(|(k, v)| (k.into_owned(), v.into_owned()))
-        .collect::<HashMap<_, _>>();
-    params.insert("bsn".into(), bsn);
-    let login_response = client.post(login_url).form(&params).send().await.unwrap();
+    let login_response = client.post(login_url).form(&[("bsn", bsn)]).send().await.unwrap();
     extract_redirect_url(&login_response)
 }
