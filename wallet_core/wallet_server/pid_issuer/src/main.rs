@@ -4,8 +4,6 @@ use std::sync::Arc;
 use anyhow::Result;
 use health_checkers::hsm::HsmChecker;
 use hsm::service::Pkcs11Hsm;
-use pid_issuer::pid::attributes::Person;
-use pid_issuer::pid::attributes::Persons;
 use pid_issuer::pid::auth_code_flow::LoginAuthorizationCodeFlow;
 use pid_issuer::pid::login_page::LoginPage;
 use pid_issuer::pid::login_page::build_login_csp;
@@ -34,15 +32,12 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    // Load persons and login subjects, use all persons if login subjects is empty
-    let persons: Vec<Person> =
-        serde_json::from_str(&tokio::fs::read_to_string(&settings.person_attributes_path).await?)?;
+    // Use all persons if login subjects is empty
+    let persons = settings.person_attributes.into_contents();
     let mut login_subjects = settings.login_subjects;
     if login_subjects.is_empty() {
-        // Use Vec<Person> to keep order of persons
-        login_subjects = persons.iter().map(|p| p.bsn.clone()).collect::<Vec<_>>();
+        login_subjects = persons.bsns().cloned().collect();
     }
-    let persons = Persons::try_from(persons)?;
 
     // The login page sets its own CSP, whose `form-action` must allow the wallet redirect target.
     // Build it while the redirect URIs are in scope and leak it for the 'static lifetime the

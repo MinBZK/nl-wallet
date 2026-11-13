@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use chrono::NaiveDate;
@@ -39,8 +37,15 @@ use crate::pid::rulebook::country_code::RulebookNationalities;
 use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use crate::pid::rulebook::sex::RulebookSex;
 
-#[derive(Deserialize, derive_more::AsRef)]
-pub struct Persons(HashMap<String, Person>);
+#[derive(Debug, Deserialize, derive_more::AsRef)]
+#[serde(try_from = "Vec<Person>")]
+pub struct Persons(IndexMap<String, Person>);
+
+impl Persons {
+    pub fn bsns(&self) -> impl Iterator<Item = &String> {
+        self.0.keys()
+    }
+}
 
 #[derive(Debug, thiserror::Error)]
 #[error("duplicate bsn: {0}")]
@@ -48,7 +53,7 @@ pub struct DuplicateBsnError(String);
 
 impl From<Person> for Persons {
     fn from(person: Person) -> Self {
-        Self(HashMap::from([(person.bsn.clone(), person)]))
+        Self(IndexMap::from([(person.bsn.clone(), person)]))
     }
 }
 
@@ -56,7 +61,7 @@ impl TryFrom<Vec<Person>> for Persons {
     type Error = DuplicateBsnError;
 
     fn try_from(persons: Vec<Person>) -> Result<Self, Self::Error> {
-        let mut map = HashMap::with_capacity(persons.len());
+        let mut map = IndexMap::with_capacity(persons.len());
         for person in persons {
             if let Some(person) = map.insert(person.bsn.clone(), person) {
                 return Err(DuplicateBsnError(person.bsn));
@@ -67,7 +72,7 @@ impl TryFrom<Vec<Person>> for Persons {
 }
 
 /// Person attributes are modeled after PID rulebook
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Person {
     pub bsn: String,
     pub family_name: String,
@@ -80,7 +85,7 @@ pub struct Person {
     pub sex: Option<RulebookSex>,
 }
 
-#[derive(Clone, Deserialize, Validate)]
+#[derive(Debug, Clone, Deserialize, Validate)]
 #[validate(custom = validate_birth_place)]
 pub struct BirthPlace {
     pub country: Option<RulebookCountryCode>,
@@ -98,7 +103,7 @@ fn validate_birth_place(birth_place: &BirthPlace) -> Result<(), serde_valid::val
     }
 }
 
-#[derive(Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Address {
     pub country: Option<RulebookCountryCode>,
     pub state: Option<String>,

@@ -8,8 +8,10 @@ use config::File;
 use derive_more::Debug;
 use issuer_common::settings::AuthorizingIssuerSettings;
 use issuer_common::settings::IssuerSettingsValidationError;
+use issuer_common::settings::JsonFile;
 use openid4vc::server_state::SessionStoreTimeouts;
 use serde::Deserialize;
+use serde_with::TryFromInto;
 use serde_with::serde_as;
 use server_utils::settings::NL_WALLET_CLIENT_ID;
 use server_utils::settings::SecretKey;
@@ -17,10 +19,11 @@ use server_utils::settings::ServerSettings;
 use server_utils::settings::Settings;
 use utils::path::prefix_local_path;
 
+use crate::pid::attributes::Persons;
 use crate::pid::rulebook::country_code::IsoCountryCode;
 
 #[serde_as]
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Deserialize)]
 pub struct PidIssuerSettings {
     #[debug(skip)]
     pub recovery_code: SecretKey,
@@ -30,7 +33,9 @@ pub struct PidIssuerSettings {
     pub issuing_authority: String,
 
     /// Path to the Person attributes
-    pub person_attributes_path: PathBuf,
+    #[serde(rename = "person_attributes_path")]
+    #[serde_as(as = "TryFromInto<PathBuf>")]
+    pub person_attributes: JsonFile<Persons>,
 
     /// Configure the BSNs to be shown in the login page.
     /// If empty, it will show all BSNs from the person attributes file.
