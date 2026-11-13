@@ -15,12 +15,12 @@ rustup component add llvm-tools-preview # needed by cargo-llvm-cov
 cargo --version
 rustc --version
 
-cargo install cargo-audit --features=fix --locked --version 0.23.0
-cargo install cargo-expand --locked --version 1.0.127
-cargo install cargo-llvm-cov --locked --version 0.9.1
-cargo install cargo-hack --locked --version 0.6.46
-cargo install cargo-nextest --locked --version 0.9.151
-cargo install flutter_rust_bridge_codegen --locked --version 2.12.0
-cargo install lcov2xml --locked --version 1.0.10
-cargo install sea-orm-cli --locked --version 1.1.19 --no-default-features \
+cargo install cargo-audit --features=fix --version 0.23.0
+cargo install cargo-expand --version 1.0.127
+cargo install cargo-llvm-cov --version 0.9.1
+cargo install cargo-hack --version 0.6.46
+cargo install cargo-nextest --version 0.9.151
+cargo install flutter_rust_bridge_codegen --version 2.12.0
+cargo install lcov2xml --version 1.0.10
+cargo install sea-orm-cli --version 1.1.19 --no-default-features \
     --features sqlx-postgres,runtime-tokio-rustls,cli,codegen

@@ -229,7 +229,7 @@ cargo build \
   --manifest-path wallet_core/Cargo.toml \
   --package verification_server \
   --bin verification_server \
-  --locked --release
+  --release
 ```
 
 The above command creates `wallet_core/target/release/verification_server`,

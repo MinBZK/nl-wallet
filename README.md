@@ -249,9 +249,9 @@ Make sure `rustc`, and `cargo` are on your path and run the following commands
 to install a few additional utilities we use:
 
 ```shell
-cargo install --locked cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest
-cargo install --locked --version 2.12.0 flutter_rust_bridge_codegen
-cargo install --locked --version 1.1.19 sea-orm-cli
+cargo install cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest
+cargo install --version 2.12.0 flutter_rust_bridge_codegen
+cargo install --version 1.1.19 sea-orm-cli
 cargo install --list
 ```
 

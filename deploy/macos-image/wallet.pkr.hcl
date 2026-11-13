@@ -80,8 +80,8 @@ build {
       "set -eux",
       "rustup toolchain install 1.100.0 --profile minimal --component clippy",
       "rustup default 1.100.0",
-      "cargo install cargo-expand --locked --version 1.0.127",
-      "cargo install lcov2xml --locked --version 1.0.10",
+      "cargo install cargo-expand --version 1.0.127",
+      "cargo install lcov2xml --version 1.0.10",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]
   }
