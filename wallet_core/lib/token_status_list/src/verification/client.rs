@@ -3,6 +3,7 @@ use url::Url;
 use crate::status_list_token::StatusListFormat;
 use crate::status_list_token::StatusListToken;
 use crate::status_list_token::StatusListTokenParseError;
+use crate::verification::reqwest::MAX_STATUS_LIST_TOKEN_SIZE;
 
 #[derive(Debug, thiserror::Error)]
 pub enum StatusListClientError {
@@ -11,6 +12,9 @@ pub enum StatusListClientError {
 
     #[error("status list response has unexpected content type: {0}")]
     UnexpectedContentType(String),
+
+    #[error("status list response exceeds maximum size of {MAX_STATUS_LIST_TOKEN_SIZE} bytes")]
+    TooLarge,
 
     #[error("could not parse status list response: {0}")]
     Parse(#[source] StatusListTokenParseError),

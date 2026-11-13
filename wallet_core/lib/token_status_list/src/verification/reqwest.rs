@@ -1,5 +1,6 @@
 use derive_more::AsRef;
 use http::header;
+use http_utils::reqwest::bytes_with_max_response_size;
 use http_utils::reqwest::parse_content_type;
 use reqwest::ClientBuilder;
 use reqwest::Response;
@@ -9,6 +10,9 @@ use crate::status_list_token::StatusListFormat;
 use crate::status_list_token::StatusListToken;
 use crate::verification::client::StatusListClient;
 use crate::verification::client::StatusListClientError;
+
+/// The maximum size of a Status List Token response body, to avoid exhausting memory.
+pub const MAX_STATUS_LIST_TOKEN_SIZE: usize = 5 * 1024 * 1024;
 
 #[derive(Debug, Clone, AsRef)]
 pub struct HttpStatusListClient(reqwest::Client);
@@ -27,7 +31,7 @@ impl StatusListClient for HttpStatusListClient {
         url: Url,
         request_format: StatusListFormat,
     ) -> Result<StatusListToken, StatusListClientError> {
-        let response = self
+        let mut response = self
             .as_ref()
             .get(url)
             .header(header::ACCEPT, request_format.media_type())
@@ -38,7 +42,11 @@ impl StatusListClient for HttpStatusListClient {
         // The server may respond in another format than requested, use the one it says it responds in, or fall back to
         // the requested format.
         let format = response_format(&response)?.unwrap_or(request_format);
-        let body = response.bytes().await?;
+        // Read the body in chunks rather than via `.bytes()`, so a status list host cannot exhaust memory by returning
+        // an unbounded or never-ending response body.
+        let body = bytes_with_max_response_size(&mut response, MAX_STATUS_LIST_TOKEN_SIZE)
+            .await?
+            .ok_or(StatusListClientError::TooLarge)?;
         let status_list_token = StatusListToken::from_bytes_as(format, &body).map_err(StatusListClientError::Parse)?;
 
         Ok(status_list_token)
@@ -147,5 +155,26 @@ mod tests {
             error,
             StatusListClientError::UnexpectedContentType(content_type) if content_type == "application/jwt"
         );
+    }
+
+    #[tokio::test]
+    async fn test_fetch_rejects_too_large_response() {
+        let server = MockServer::start_async().await;
+        server
+            .mock_async(|when, then| {
+                when.method(GET).path("/statuslists/1");
+                then.status(200)
+                    .header("content-type", "application/statuslist+jwt")
+                    .body(vec![b'a'; MAX_STATUS_LIST_TOKEN_SIZE + 1]);
+            })
+            .await;
+
+        let error = HttpStatusListClient::new(httpmock_reqwest_client_builder())
+            .unwrap()
+            .fetch(server.url("/statuslists/1").parse().unwrap(), StatusListFormat::Jwt)
+            .await
+            .unwrap_err();
+
+        assert_matches!(error, StatusListClientError::TooLarge);
     }
 }
