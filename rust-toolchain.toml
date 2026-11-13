@@ -1,0 +1,20 @@
+# Keep `channel` in sync with `rust-version` in wallet_core/Cargo.toml and the toolchain in the CI images
+# (deploy/docker-images/ci/rust-user.sh, deploy/macos-image/wallet.pkr.hcl).
+[toolchain]
+channel = "1.100.0"
+profile = "minimal"
+components = ["clippy", "rustfmt"]
+targets = [
+    # Android, see `ndkTargets` in wallet_app/android/app/build.gradle.kts
+    "aarch64-linux-android",
+    "armv7-linux-androideabi",
+    "i686-linux-android",
+    "x86_64-linux-android",
+    # iOS device and simulator, see `CARGO_TARGETS` in wallet_app/ios/Runner.xcodeproj/project.pbxproj
+    "aarch64-apple-ios",
+    "aarch64-apple-ios-sim",
+    "x86_64-apple-ios",
+    # Server binaries
+    "x86_64-unknown-linux-gnu",
+    "x86_64-unknown-linux-musl",
+]
