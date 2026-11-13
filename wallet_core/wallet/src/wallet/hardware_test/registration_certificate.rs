@@ -2,6 +2,7 @@ use anyhow::Result;
 use anyhow::ensure;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelopeParseError;
 use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
 use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
 use attestation_data::registration_certificate::RegistrationCertificateValidationError;
@@ -12,6 +13,7 @@ use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
 use chrono::Utc;
 use ciborium::value::Value;
+use cose::CoseError;
 use cose::wrprc_cwt::WrprcCwtError;
 use indexmap::IndexMap;
 use jwt::error::JwtParseError;
@@ -172,8 +174,24 @@ impl RegistrationCertificateCase {
             (case, DisclosureError::CloseProximityDisclosureSessionError(error)) => match (case, error) {
                 (Self::Missing, RegistrationCertificateParsing(Parse::Missing))
                 | (Self::WrongType, RegistrationCertificateParsing(Parse::NotByteString))
-                | (Self::Malformed, RegistrationCertificateParsing(Parse::Envelope(_)))
-                | (Self::TamperedSignature | Self::Untrusted, RegistrationCertificateVerification(Envelope::Cwt(_)))
+                | (
+                    Self::Malformed,
+                    RegistrationCertificateParsing(Parse::Envelope(
+                        RegistrationCertificateEnvelopeParseError::NeitherFormat { .. },
+                    )),
+                )
+                | (
+                    Self::TamperedSignature,
+                    RegistrationCertificateVerification(Envelope::Cwt(WrprcCwtError::Cose(
+                        CoseError::Esp256SignatureVerificationFailed(_),
+                    ))),
+                )
+                | (
+                    Self::Untrusted,
+                    RegistrationCertificateVerification(Envelope::Cwt(WrprcCwtError::Cose(
+                        CoseError::CertificateVerify(_),
+                    ))),
+                )
                 | (Self::Expired, RegistrationCertificateVerification(Envelope::Cwt(WrprcCwtError::Expired)))
                 | (
                     Self::MismatchedReader,
