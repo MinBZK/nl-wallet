@@ -12,7 +12,7 @@ use crate::verification::client::StatusListClient;
 use crate::verification::client::StatusListClientError;
 
 /// The maximum size of a Status List Token response body, to avoid exhausting memory.
-pub const MAX_STATUS_LIST_TOKEN_SIZE: usize = 5 * 1024 * 1024;
+pub(crate) const MAX_STATUS_LIST_TOKEN_SIZE: usize = 5 * 1024 * 1024;
 
 #[derive(Debug, Clone, AsRef)]
 pub struct HttpStatusListClient(reqwest::Client);
