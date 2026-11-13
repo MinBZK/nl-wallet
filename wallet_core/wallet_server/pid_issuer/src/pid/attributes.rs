@@ -4,7 +4,6 @@ use chrono::NaiveDate;
 use indexmap::IndexMap;
 use itertools::Itertools;
 use serde::Deserialize;
-use serde_valid::Validate;
 
 use crate::pid::rulebook::constants::PID_BASE_MDOC_NAMESPACE;
 use crate::pid::rulebook::constants::PID_BIRTH_PLACE_GROUP;
@@ -73,6 +72,7 @@ impl TryFrom<Vec<Person>> for Persons {
 
 /// Person attributes are modeled after PID rulebook
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Person {
     pub bsn: String,
     pub family_name: String,
@@ -85,25 +85,50 @@ pub struct Person {
     pub sex: Option<RulebookSex>,
 }
 
-#[derive(Debug, Clone, Deserialize, Validate)]
-#[validate(custom = validate_birth_place)]
+impl Person {
+    pub fn display_name(&self) -> String {
+        format!("{} {}", self.given_name, self.family_name)
+    }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
+#[serde(try_from = "UncheckedBirthPlace")]
 pub struct BirthPlace {
+    country: Option<RulebookCountryCode>,
+    region: Option<String>,
+    locality: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct UncheckedBirthPlace {
     pub country: Option<RulebookCountryCode>,
     pub region: Option<String>,
     pub locality: Option<String>,
 }
 
-fn validate_birth_place(birth_place: &BirthPlace) -> Result<(), serde_valid::validation::Error> {
-    if birth_place.country.is_some() || birth_place.region.is_some() || birth_place.locality.is_some() {
-        Ok(())
-    } else {
-        Err(serde_valid::validation::Error::Custom(
-            "birth place should have at least a country, region or locality".into(),
-        ))
+#[derive(Debug, thiserror::Error)]
+#[error("birth place should have at least a country, region or locality")]
+pub struct BirthPlaceError;
+
+impl TryFrom<UncheckedBirthPlace> for BirthPlace {
+    type Error = BirthPlaceError;
+
+    fn try_from(birth_place: UncheckedBirthPlace) -> Result<Self, Self::Error> {
+        if birth_place.country.is_some() || birth_place.region.is_some() || birth_place.locality.is_some() {
+            Ok(Self {
+                country: birth_place.country,
+                region: birth_place.region,
+                locality: birth_place.locality,
+            })
+        } else {
+            Err(BirthPlaceError)
+        }
     }
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(test, derive(PartialEq))]
 pub struct Address {
     pub country: Option<RulebookCountryCode>,
     pub state: Option<String>,
@@ -260,11 +285,60 @@ impl BirthPlace {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::Value;
     use serde_json::json;
 
     use super::*;
     use crate::pid::mock::MOCK_PERSON;
     use crate::pid::rulebook::country_code::IsoCountryCode;
+
+    fn mock_person_json() -> Value {
+        json!({
+            "bsn": "999991772",
+            "family_name": "Jansen",
+            "family_name_birth": "Jansen",
+            "given_name": "Frouke",
+            "birth_date": "2000-03-24",
+            "birth_place": {
+                "country": "NL"
+            },
+            "nationalities": ["NL", "BE"],
+            "address": {
+                "street": "Van Wijngaerdenstraat",
+                "house_number": "1",
+                "postal_code": "2596TW",
+                "city": "Toetsoog",
+                "country": "NL"
+            },
+            "sex": "female"
+        })
+    }
+
+    #[test]
+    fn should_deserialize_mock_person_correctly() {
+        // MOCK_PERSON is constructed from json!
+        assert_eq!(*MOCK_PERSON, serde_json::from_value(mock_person_json()).unwrap(),)
+    }
+
+    #[test]
+    fn should_fail_on_empty_birth_place() {
+        let mut person = mock_person_json();
+        // Empty birth place
+        person
+            .as_object_mut()
+            .unwrap()
+            .get_mut("birth_place")
+            .unwrap()
+            .as_object_mut()
+            .unwrap()
+            .clear();
+
+        let error = serde_json::from_value::<Person>(person).unwrap_err();
+        assert_eq!(
+            error.to_string(),
+            "birth place should have at least a country, region or locality"
+        );
+    }
 
     #[test]
     fn should_convert_person_to_sd_jwt_issuable_vec() {

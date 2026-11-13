@@ -5,12 +5,11 @@ use chrono::NaiveDate;
 use utils::vec_nonempty;
 
 use crate::pid::attributes::Address;
-use crate::pid::attributes::BirthPlace;
 use crate::pid::attributes::Person;
+use crate::pid::attributes::UncheckedBirthPlace;
 use crate::pid::rulebook::country_code::IsoCountryCode;
 use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 use crate::pid::rulebook::sex::IsoSex;
-use crate::pid::rulebook::sex::RulebookSex;
 
 pub static MOCK_PERSON: LazyLock<Person> = LazyLock::new(|| Person {
     bsn: "999991772".into(),
@@ -18,11 +17,13 @@ pub static MOCK_PERSON: LazyLock<Person> = LazyLock::new(|| Person {
     family_name_birth: Some("Jansen".into()),
     given_name: "Frouke".into(),
     birth_date: NaiveDate::from_ymd_opt(2000, 3, 24).unwrap(),
-    birth_place: BirthPlace {
+    birth_place: UncheckedBirthPlace {
         country: Some(IsoCountryCode::Netherlands.into()),
         region: None,
         locality: None,
-    },
+    }
+    .try_into()
+    .unwrap(),
     nationalities: vec_nonempty![IsoCountryCode::Netherlands.into(), IsoCountryCode::Belgium.into()].into(),
     address: Some(Address {
         street: Some("Van Wijngaerdenstraat".into()),
@@ -32,7 +33,7 @@ pub static MOCK_PERSON: LazyLock<Person> = LazyLock::new(|| Person {
         state: None,
         country: Some(IsoCountryCode::Netherlands.into()),
     }),
-    sex: Some(RulebookSex::Iso(IsoSex::Female)),
+    sex: Some(IsoSex::Female.into()),
 });
 
 const MOCK_RECOVERY_CODE: &str = "1234567";

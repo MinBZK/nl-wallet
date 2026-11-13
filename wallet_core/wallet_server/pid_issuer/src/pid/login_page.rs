@@ -101,7 +101,7 @@ impl LoginPage {
                 .into_iter()
                 .map(|p| Subject {
                     bsn: p.bsn.clone(),
-                    name: format!("{} {}", p.given_name, p.family_name),
+                    name: p.display_name(),
                 })
                 .collect(),
         );

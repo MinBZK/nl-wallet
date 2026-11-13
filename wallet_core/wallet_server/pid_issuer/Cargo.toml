@@ -47,7 +47,6 @@ itertools.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_valid.workspace = true
 serde_with = { workspace = true, features = ["base64", "json"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true

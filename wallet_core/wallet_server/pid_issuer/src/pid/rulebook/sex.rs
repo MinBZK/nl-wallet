@@ -41,6 +41,12 @@ impl From<RulebookSex> for Attribute {
     }
 }
 
+impl From<IsoSex> for RulebookSex {
+    fn from(value: IsoSex) -> RulebookSex {
+        RulebookSex::Iso(value)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
