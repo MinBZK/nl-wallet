@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -euxo pipefail
 
-wget --no-hsts -q -O ./rustup-init https://static.rust-lang.org/rustup/archive/1.29.2/x86_64-unknown-linux-gnu/rustup-init
-echo "5be191e8c70a5007074254cb74d78dbfdd25cd5a61c27de7b8e5410122ec24f4  rustup-init" | sha256sum -c
+wget --no-hsts -q -O ./rustup-init https://static.rust-lang.org/rustup/archive/1.29.3/x86_64-unknown-linux-gnu/rustup-init
+echo "b1c8cb14e30889e7e2999e6b69e62d9e9b9ffc0f4df8180564d306d9680e6c55  rustup-init" | sha256sum -c
 
 chmod +x ./rustup-init
-./rustup-init -y --default-toolchain 1.98.1 --profile minimal --component clippy,rustfmt
+./rustup-init -y --default-toolchain 1.100.0 --profile minimal --component clippy,rustfmt
 rm ./rustup-init
 
 rustup toolchain install nightly --profile minimal --component rustfmt
@@ -15,11 +15,11 @@ rustup component add llvm-tools-preview # needed by cargo-llvm-cov
 cargo --version
 rustc --version
 
-cargo install cargo-audit --features=fix --locked --version 0.22.2
+cargo install cargo-audit --features=fix --locked --version 0.23.0
 cargo install cargo-expand --locked --version 1.0.127
 cargo install cargo-llvm-cov --locked --version 0.9.1
-cargo install cargo-hack --locked --version 0.6.45
-cargo install cargo-nextest --locked --version 0.9.149
+cargo install cargo-hack --locked --version 0.6.46
+cargo install cargo-nextest --locked --version 0.9.151
 cargo install flutter_rust_bridge_codegen --locked --version 2.12.0
 cargo install lcov2xml --locked --version 1.0.10
 cargo install sea-orm-cli --locked --version 1.1.19 --no-default-features \
