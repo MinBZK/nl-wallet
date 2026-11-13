@@ -47,7 +47,7 @@ use crate::pid::attributes::Persons;
 use crate::pid::rulebook::constants::pid_attestation_type;
 use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
-const ISSUER_STATE_LENGTH: usize = 32;
+const LOGIN_STATE_LENGTH: usize = 32;
 
 /// Errors raised by [`LoginAuthorizationCodeFlow`] on either half of the flow.
 #[derive(Debug, thiserror::Error)]
@@ -236,17 +236,17 @@ impl AuthorizationCodeFlow for LoginAuthorizationCodeFlow {
         );
 
         // Generate a random `login_state` to keep track of the flow
-        let issuer_state = random_string(ISSUER_STATE_LENGTH);
+        let login_state = random_string(LOGIN_STATE_LENGTH);
 
         // Create the login URL to which the wallet should redirect
         let mut login_url = self.login_url.clone();
-        login_url.query_pairs_mut().append_pair("state", issuer_state.as_str());
+        login_url.query_pairs_mut().append_pair("state", login_state.as_str());
 
         // Retain the wallet-side context so the callback can redirect the user-agent back to the
         // wallet and the `openid4vc` layer's /token handler can verify the wallet's PKCE challenge.
         let entry = StateBridgeEntry { context, formats };
         self.state_bridge_store
-            .store(issuer_state, entry)
+            .store(login_state, entry)
             .await
             .map_err(Self::Error::StateBridge)?;
 
