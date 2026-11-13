@@ -1288,7 +1288,7 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -
     }
 }
 
-pub async fn start_pid_issuer_server(mut pid_settings: PidIssuerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
+async fn start_pid_issuer_server(mut pid_settings: PidIssuerSettings, hsm: Option<Pkcs11Hsm>) -> IssuerUrl {
     let public_listener = TcpListener::bind("localhost:0").await.unwrap();
     let public_port = public_listener.local_addr().unwrap().port();
     let public_url = local_http_issuer_identifier(public_port);
