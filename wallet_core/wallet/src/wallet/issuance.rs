@@ -5,6 +5,7 @@ use std::sync::Arc;
 use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
@@ -582,101 +583,6 @@ where
         Ok(result)
     }
 
-    /// Creates an [`AttestationPresentation`] for every credential preview, in the same order. Its identity is that of
-    /// the stored attestation the offered credential would renew, if any.
-    async fn process_previews(
-        &self,
-        credential_previews: VecNonEmpty<OfferedCredentialPreview<'_>>,
-        organization: &Organization,
-        pid_purpose: Option<PidIssuancePurpose>,
-        pid_config: &PidAttributesConfiguration,
-    ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
-        let preview_attestation_types_and_formats = credential_previews
-            .iter()
-            .map(|preview| preview.credential_kind().into_owned())
-            .collect();
-
-        let stored = self
-            .storage
-            .read()
-            .await
-            .fetch_unique_attestations_by_credential_kinds(preview_attestation_types_and_formats)
-            .await
-            .map_err(IssuanceError::AttestationQuery)?;
-
-        let mut matcher = renewal_matcher(stored, pid_purpose.is_some().then_some(pid_config), &TimeGenerator);
-
-        info!("successfully received token and previews from issuer");
-        let attestations = credential_previews
-            .into_nonempty_iter()
-            .map(|preview_data| {
-                // Find the stored attestation this preview renews, if any, to determine its database identity.
-                let identity = matcher(preview_data.format, preview_data.credential_payload);
-
-                AttestationPresentation::create_from_contents(
-                    identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
-                    preview_data.format,
-                    preview_data.credential_payload,
-                    preview_data.metadata.clone(),
-                    Box::new(organization.clone()),
-                    pid_config,
-                )
-                .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(organization.clone()),
-                    error,
-                })
-            })
-            .collect::<Result<VecNonEmpty<_>, IssuanceError>>()?;
-
-        Ok(attestations)
-    }
-
-    /// Creates an [`AttestationPresentation`] for every issued credential, in the same order. Its identity is that of
-    /// the stored attestation the credential renews, if any.
-    async fn process_issued_credentials(
-        &mut self,
-        credentials: &VecNonEmpty<CredentialWithMetadata>,
-        organization: &Organization,
-        pid_purpose: Option<PidIssuancePurpose>,
-        pid_config: &PidAttributesConfiguration,
-    ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
-        let issued_credential_kinds = credentials
-            .nonempty_iter()
-            .map(|credential| credential.credential_kind().into_owned())
-            .collect();
-
-        let stored = self
-            .storage
-            .read()
-            .await
-            .fetch_unique_attestations_by_credential_kinds(issued_credential_kinds)
-            .await
-            .map_err(IssuanceError::AttestationQuery)?;
-
-        let mut matcher = renewal_matcher(stored, pid_purpose.is_some().then_some(pid_config), &TimeGenerator);
-
-        credentials
-            .nonempty_iter()
-            .map(|credential| {
-                // Find the stored attestation this credential renews, if any, to determine its database identity.
-                let identity = matcher(credential.copies.format(), &credential.contents);
-
-                AttestationPresentation::create_from_contents(
-                    identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
-                    credential.copies.format(),
-                    &credential.contents,
-                    credential.metadata.clone(),
-                    Box::new(organization.clone()),
-                    pid_config,
-                )
-                .map_err(|error| IssuanceError::Attestation {
-                    organization: Box::new(organization.clone()),
-                    error,
-                })
-            })
-            .collect()
-    }
-
     /// Accepts an issuance session with previews, which the user has already seen, using the PIN and stores the issued
     /// credentials. A session without previews is accepted with [`Self::issue_credentials_for_review`] instead.
     #[instrument(skip_all)]
@@ -877,6 +783,101 @@ where
         self.finalize_issuance(credentials, transfer_session_id).await?;
 
         Ok(IssuanceResult { transfer_session_id })
+    }
+
+    /// Creates an [`AttestationPresentation`] for every credential preview, in the same order. Its identity is that of
+    /// the stored attestation the offered credential would renew, if any.
+    async fn process_previews(
+        &self,
+        credential_previews: VecNonEmpty<OfferedCredentialPreview<'_>>,
+        organization: &Organization,
+        pid_purpose: Option<PidIssuancePurpose>,
+        pid_config: &PidAttributesConfiguration,
+    ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
+        let preview_attestation_types_and_formats = credential_previews
+            .iter()
+            .map(|preview| CredentialKind::new(preview.format, preview.credential_payload.attestation_type.to_owned()))
+            .collect();
+
+        let stored = self
+            .storage
+            .read()
+            .await
+            .fetch_unique_attestations_by_credential_kinds(preview_attestation_types_and_formats)
+            .await
+            .map_err(IssuanceError::AttestationQuery)?;
+
+        let mut matcher = renewal_matcher(stored, pid_purpose.is_some().then_some(pid_config), &TimeGenerator);
+
+        info!("successfully received token and previews from issuer");
+        let attestations = credential_previews
+            .into_nonempty_iter()
+            .map(|preview_data| {
+                // Find the stored attestation this preview renews, if any, to determine its database identity.
+                let identity = matcher(preview_data.format, preview_data.credential_payload);
+
+                AttestationPresentation::create_from_contents(
+                    identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
+                    preview_data.format,
+                    preview_data.credential_payload,
+                    preview_data.metadata.clone(),
+                    Box::new(organization.clone()),
+                    pid_config,
+                )
+                .map_err(|error| IssuanceError::Attestation {
+                    organization: Box::new(organization.clone()),
+                    error,
+                })
+            })
+            .collect::<Result<VecNonEmpty<_>, IssuanceError>>()?;
+
+        Ok(attestations)
+    }
+
+    /// Creates an [`AttestationPresentation`] for every issued credential, in the same order. Its identity is that of
+    /// the stored attestation the credential renews, if any.
+    async fn process_issued_credentials(
+        &self,
+        credentials: &VecNonEmpty<CredentialWithMetadata>,
+        organization: &Organization,
+        pid_purpose: Option<PidIssuancePurpose>,
+        pid_config: &PidAttributesConfiguration,
+    ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
+        let issued_credential_kinds = credentials
+            .nonempty_iter()
+            .map(|credential| credential.credential_kind().into_owned())
+            .collect();
+
+        let stored = self
+            .storage
+            .read()
+            .await
+            .fetch_unique_attestations_by_credential_kinds(issued_credential_kinds)
+            .await
+            .map_err(IssuanceError::AttestationQuery)?;
+
+        let mut matcher = renewal_matcher(stored, pid_purpose.is_some().then_some(pid_config), &TimeGenerator);
+
+        credentials
+            .nonempty_iter()
+            .map(|credential| {
+                // Find the stored attestation this credential renews, if any, to determine its database identity.
+                let identity = matcher(credential.copies.format(), &credential.contents);
+
+                AttestationPresentation::create_from_contents(
+                    identity.map_or(AttestationIdentity::Ephemeral, |id| AttestationIdentity::Fixed { id }),
+                    credential.copies.format(),
+                    &credential.contents,
+                    credential.metadata.clone(),
+                    Box::new(organization.clone()),
+                    pid_config,
+                )
+                .map_err(|error| IssuanceError::Attestation {
+                    organization: Box::new(organization.clone()),
+                    error,
+                })
+            })
+            .collect()
     }
 
     /// Accepts the issuance session using the PIN and receives the issued credentials, after which the issuance session
