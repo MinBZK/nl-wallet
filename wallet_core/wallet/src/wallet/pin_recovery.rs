@@ -500,7 +500,6 @@ where
 mod tests {
     use std::assert_matches;
     use std::collections::HashSet;
-    use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::str::FromStr;
     use std::sync::Arc;
@@ -1060,7 +1059,7 @@ mod tests {
     struct MockPinWscd;
 
     impl IssuanceWscd for MockPinWscd {
-        type Error = Infallible;
+        type Error = !;
 
         async fn perform_issuance(
             &self,

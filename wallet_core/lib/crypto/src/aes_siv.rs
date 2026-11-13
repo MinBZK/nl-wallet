@@ -614,8 +614,6 @@ pub mod test {
 
 #[cfg(test)]
 mod tests {
-    use std::convert::Infallible;
-
     use aes::Aes256;
     use aes::cipher::KeyIvInit;
     use aes::cipher::StreamCipher;
@@ -647,7 +645,7 @@ mod tests {
     pub struct MemoryAesSivBackend;
 
     impl AesSivBackend for MemoryAesSivBackend {
-        type Error = Infallible;
+        type Error = !;
 
         type MacKey = [u8; 32];
         type EncryptionKey = [u8; 32];

@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::sync::Arc;
 use std::sync::LazyLock;
 
@@ -62,7 +61,7 @@ impl EcdsaKey for MockHardwareEcdsaKey {
 impl SecureEcdsaKey for MockHardwareEcdsaKey {}
 
 impl StoredByIdentifier for MockHardwareEcdsaKey {
-    type Error = Infallible;
+    type Error = !;
 
     fn new_unique(identifier: &str) -> Option<Self> {
         // Obtain lock on SIGNING_KEYS static hashmap.
@@ -143,7 +142,7 @@ impl EncryptionKey for MockHardwareEncryptionKey {
 impl SecureEncryptionKey for MockHardwareEncryptionKey {}
 
 impl StoredByIdentifier for MockHardwareEncryptionKey {
-    type Error = Infallible;
+    type Error = !;
 
     fn new_unique(identifier: &str) -> Option<Self> {
         // Obtain lock on ENCRYPTION_CIPHERS static hashmap.

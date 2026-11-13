@@ -1,6 +1,5 @@
 use std::assert_matches;
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::ffi::OsStr;
 use std::io::ErrorKind;
 use std::num::NonZeroUsize;
@@ -73,7 +72,7 @@ use uuid::Uuid;
 struct RevokeAllBool(Arc<AtomicBool>);
 
 impl RevokeAll for RevokeAllBool {
-    type Error = Infallible;
+    type Error = !;
 
     async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
         Ok(self.0.load(Ordering::Relaxed))

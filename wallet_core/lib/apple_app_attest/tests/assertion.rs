@@ -1,5 +1,4 @@
 use std::assert_matches;
-use std::convert::Infallible;
 use std::sync::LazyLock;
 
 use apple_app_attest::AppIdentifier;
@@ -26,7 +25,7 @@ struct MockClientData {
 }
 
 impl ClientData for MockClientData {
-    type Error = Infallible;
+    type Error = !;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
         let mut data = Vec::with_capacity(self.message.len() + self.challenge.len());

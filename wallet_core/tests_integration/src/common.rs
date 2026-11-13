@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::io;
 use std::net::IpAddr;
 use std::path::Path;
@@ -1247,7 +1246,7 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -
     let (issuer, _, _, server_settings) = settings
         .authorizing_issuer_settings
         .into_authorizing_issuer(None, |store_connection| {
-            Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(
+            Ok::<_, !>(DemoAuthorizationCodeFlow::new(
                 store_connection,
                 consent_base_url,
                 usecases,
@@ -1317,7 +1316,7 @@ where
 
     let (issuer, _, _, server_settings) = pid_settings
         .authorizing_issuer_settings
-        .into_authorizing_issuer(hsm, |_| Ok::<_, Infallible>(flow))
+        .into_authorizing_issuer(hsm, |_| Ok::<_, !>(flow))
         .await
         .unwrap();
 

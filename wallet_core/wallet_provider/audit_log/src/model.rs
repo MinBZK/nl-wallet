@@ -107,7 +107,6 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use std::convert::Infallible;
     use std::fmt::Display;
 
     use sea_orm::JsonValue;
@@ -138,7 +137,7 @@ pub mod mock {
     }
 
     impl AuditLog for MockAuditLog {
-        type Error = Infallible;
+        type Error = !;
 
         async fn audit<F, T, E>(
             &self,

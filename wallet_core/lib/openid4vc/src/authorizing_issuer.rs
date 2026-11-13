@@ -396,7 +396,6 @@ mod tests {
     use std::assert_matches;
     use std::collections::HashMap;
     use std::collections::HashSet;
-    use std::convert::Infallible;
     use std::num::NonZeroUsize;
     use std::sync::Arc;
 
@@ -532,7 +531,7 @@ mod tests {
 
     #[derive(Debug, thiserror::Error)]
     #[error(transparent)]
-    struct FixedOutcomeFlowError(Infallible);
+    struct FixedOutcomeFlowError(!);
 
     impl ErrorWithCode for FixedOutcomeFlowError {
         type ErrorCode = AuthorizationErrorCode;

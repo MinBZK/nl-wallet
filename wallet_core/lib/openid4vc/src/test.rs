@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
@@ -205,7 +204,7 @@ impl MockObtainingStatusListService {
 }
 
 impl StatusListService for MockObtainingStatusListService {
-    type Error = Infallible;
+    type Error = !;
 
     async fn obtain_status_claims(
         &self,
