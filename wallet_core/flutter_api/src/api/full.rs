@@ -23,6 +23,7 @@ use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::CloseProximityDisclosureFlutterUpdate;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceInstructionResult;
+use crate::models::instruction::IssueCredentialsResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
@@ -428,6 +429,37 @@ pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<PidIssuanceResul
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_issuance(pin.into()).await.try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn issue_credentials_for_review(pin: String) -> anyhow::Result<IssueCredentialsResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet
+        .issue_credentials_for_review(pin.into())
+        .await
+        .map(Vec::from)
+        .try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn commit_issued_credentials() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.commit_issued_credentials().await?;
+
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn commit_issued_pid(pin: String) -> anyhow::Result<PidIssuanceResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.commit_issued_pid(pin.into()).await.try_into()?;
 
     Ok(result)
 }

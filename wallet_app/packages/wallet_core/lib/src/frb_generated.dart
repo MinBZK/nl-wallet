@@ -82,7 +82,7 @@ class WalletCore extends BaseEntrypoint<WalletCoreApi, WalletCoreApiImpl, Wallet
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1988532183;
+  int get rustContentHash => -1536006699;
 
   static const kDefaultExternalLibraryLoaderConfig = ExternalLibraryLoaderConfig(
     stem: 'wallet_core',
@@ -136,6 +136,10 @@ abstract class WalletCoreApi extends BaseApi {
 
   Future<void> crateApiFullClearVersionStateStream();
 
+  Future<void> crateApiFullCommitIssuedCredentials();
+
+  Future<PidIssuanceResult> crateApiFullCommitIssuedPid({required String pin});
+
   Future<void> crateApiFullCompletePinRecovery({required String pin});
 
   Future<WalletInstructionResult> crateApiFullConfirmWalletTransfer({required String pin});
@@ -188,6 +192,8 @@ abstract class WalletCoreApi extends BaseApi {
   Future<bool> crateApiFullIsInitialized();
 
   Future<PinValidationResult> crateApiFullIsValidPin({required String pin});
+
+  Future<IssueCredentialsResult> crateApiFullIssueCredentialsForReview({required String pin});
 
   Future<void> crateApiFullLockWallet();
 
@@ -726,6 +732,53 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   TaskConstMeta get kCrateApiFullClearVersionStateStreamConstMeta => const TaskConstMeta(
     debugName: "clear_version_state_stream",
     argNames: [],
+  );
+
+  @override
+  Future<void> crateApiFullCommitIssuedCredentials() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          return wire.wire__crate__api__full__commit_issued_credentials(port_);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_unit,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullCommitIssuedCredentialsConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullCommitIssuedCredentialsConstMeta => const TaskConstMeta(
+    debugName: "commit_issued_credentials",
+    argNames: [],
+  );
+
+  @override
+  Future<PidIssuanceResult> crateApiFullCommitIssuedPid({required String pin}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__commit_issued_pid(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_pid_issuance_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullCommitIssuedPidConstMeta,
+        argValues: [pin],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullCommitIssuedPidConstMeta => const TaskConstMeta(
+    debugName: "commit_issued_pid",
+    argNames: ["pin"],
   );
 
   @override
@@ -1318,6 +1371,30 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
 
   TaskConstMeta get kCrateApiFullIsValidPinConstMeta => const TaskConstMeta(
     debugName: "is_valid_pin",
+    argNames: ["pin"],
+  );
+
+  @override
+  Future<IssueCredentialsResult> crateApiFullIssueCredentialsForReview({required String pin}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          var arg0 = cst_encode_String(pin);
+          return wire.wire__crate__api__full__issue_credentials_for_review(port_, arg0);
+        },
+        codec: DcoCodec(
+          decodeSuccessData: dco_decode_issue_credentials_result,
+          decodeErrorData: dco_decode_AnyhowException,
+        ),
+        constMeta: kCrateApiFullIssueCredentialsForReviewConstMeta,
+        argValues: [pin],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFullIssueCredentialsForReviewConstMeta => const TaskConstMeta(
+    debugName: "issue_credentials_for_review",
     argNames: ["pin"],
   );
 
@@ -2592,6 +2669,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
   }
 
   @protected
+  IssueCredentialsResult dco_decode_issue_credentials_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return IssueCredentialsResult_Ok(
+          dco_decode_list_attestation_presentation(raw[1]),
+        );
+      case 1:
+        return IssueCredentialsResult_InstructionError(
+          error: dco_decode_box_autoadd_wallet_instruction_error(raw[1]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   List<AppNotification> dco_decode_list_app_notification(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_app_notification).toList();
@@ -3693,6 +3787,23 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case 2:
         var var_issuer = sse_decode_box_autoadd_organization(deserializer);
         return IssuanceStartResult_NoPreviews(issuer: var_issuer);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  IssueCredentialsResult sse_decode_issue_credentials_result(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+        return IssueCredentialsResult_Ok(var_field0);
+      case 1:
+        var var_error = sse_decode_box_autoadd_wallet_instruction_error(deserializer);
+        return IssueCredentialsResult_InstructionError(error: var_error);
       default:
         throw UnimplementedError('');
     }
@@ -5132,6 +5243,19 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case IssuanceStartResult_NoPreviews(issuer: final issuer):
         sse_encode_i_32(2, serializer);
         sse_encode_box_autoadd_organization(issuer, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_issue_credentials_result(IssueCredentialsResult self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case IssueCredentialsResult_Ok(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
+      case IssueCredentialsResult_InstructionError(error: final error):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_wallet_instruction_error(error, serializer);
     }
   }
 

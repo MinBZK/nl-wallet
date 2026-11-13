@@ -126,6 +126,14 @@ Future<WalletInstructionResult> acceptIssuance({required String pin}) =>
 Future<PidIssuanceResult> acceptPidIssuance({required String pin}) =>
     WalletCore.instance.api.crateApiFullAcceptPidIssuance(pin: pin);
 
+Future<IssueCredentialsResult> issueCredentialsForReview({required String pin}) =>
+    WalletCore.instance.api.crateApiFullIssueCredentialsForReview(pin: pin);
+
+Future<void> commitIssuedCredentials() => WalletCore.instance.api.crateApiFullCommitIssuedCredentials();
+
+Future<PidIssuanceResult> commitIssuedPid({required String pin}) =>
+    WalletCore.instance.api.crateApiFullCommitIssuedPid(pin: pin);
+
 Future<StartDisclosureResult> startDisclosure({required String uri, required bool isQrCode}) =>
     WalletCore.instance.api.crateApiFullStartDisclosure(uri: uri, isQrCode: isQrCode);
 

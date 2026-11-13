@@ -87,6 +87,22 @@ class WalletCoreMock implements WalletCoreApi {
     throw StateError('No active issuance session');
   }
 
+  /// The mock issuers always provide previews, so there is never a session to issue credentials for review.
+  @override
+  Future<IssueCredentialsResult> crateApiFullIssueCredentialsForReview({required String pin}) async {
+    throw StateError('No active issuance session without previews');
+  }
+
+  @override
+  Future<void> crateApiFullCommitIssuedCredentials() async {
+    throw StateError('No issued credentials to commit');
+  }
+
+  @override
+  Future<PidIssuanceResult> crateApiFullCommitIssuedPid({required String pin}) async {
+    throw StateError('No issued PID to commit');
+  }
+
   @override
   Future<PidIssuanceResult> crateApiFullAcceptPidIssuance({required String pin}) async {
     final result = _pinManager.checkPin(pin);

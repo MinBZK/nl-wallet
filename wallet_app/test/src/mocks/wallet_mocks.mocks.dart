@@ -4016,6 +4016,32 @@ class MockWalletCoreApi extends _i1.Mock implements _i15.WalletCoreApi {
   ) as _i9.Future<void>);
 
   @override
+  _i9.Future<void> crateApiFullCommitIssuedCredentials() => (super.noSuchMethod(
+    Invocation.method(#crateApiFullCommitIssuedCredentials, []),
+    returnValue: _i9.Future<void>.value(),
+    returnValueForMissingStub: _i9.Future<void>.value(),
+  ) as _i9.Future<void>);
+
+  @override
+  _i9.Future<_i15.PidIssuanceResult> crateApiFullCommitIssuedPid({
+    required String? pin,
+  }) => (super.noSuchMethod(
+    Invocation.method(#crateApiFullCommitIssuedPid, [], {#pin: pin}),
+    returnValue: _i9.Future<_i15.PidIssuanceResult>.value(
+      _i11.dummyValue<_i15.PidIssuanceResult>(
+        this,
+        Invocation.method(#crateApiFullCommitIssuedPid, [], {#pin: pin}),
+      ),
+    ),
+    returnValueForMissingStub: _i9.Future<_i15.PidIssuanceResult>.value(
+      _i11.dummyValue<_i15.PidIssuanceResult>(
+        this,
+        Invocation.method(#crateApiFullCommitIssuedPid, [], {#pin: pin}),
+      ),
+    ),
+  ) as _i9.Future<_i15.PidIssuanceResult>);
+
+  @override
   _i9.Future<void> crateApiFullCompletePinRecovery({required String? pin}) => (super.noSuchMethod(
     Invocation.method(#crateApiFullCompletePinRecovery, [], {#pin: pin}),
     returnValue: _i9.Future<void>.value(),
@@ -4393,6 +4419,29 @@ class MockWalletCoreApi extends _i1.Mock implements _i15.WalletCoreApi {
       _i15.PinValidationResult.Ok,
     ),
   ) as _i9.Future<_i15.PinValidationResult>);
+
+  @override
+  _i9.Future<_i15.IssueCredentialsResult> crateApiFullIssueCredentialsForReview({
+    required String? pin,
+  }) => (super.noSuchMethod(
+    Invocation.method(#crateApiFullIssueCredentialsForReview, [], {#pin: pin}),
+    returnValue: _i9.Future<_i15.IssueCredentialsResult>.value(
+      _i11.dummyValue<_i15.IssueCredentialsResult>(
+        this,
+        Invocation.method(#crateApiFullIssueCredentialsForReview, [], {
+          #pin: pin,
+        }),
+      ),
+    ),
+    returnValueForMissingStub: _i9.Future<_i15.IssueCredentialsResult>.value(
+      _i11.dummyValue<_i15.IssueCredentialsResult>(
+        this,
+        Invocation.method(#crateApiFullIssueCredentialsForReview, [], {
+          #pin: pin,
+        }),
+      ),
+    ),
+  ) as _i9.Future<_i15.IssueCredentialsResult>);
 
   @override
   _i9.Future<void> crateApiFullLockWallet() => (super.noSuchMethod(

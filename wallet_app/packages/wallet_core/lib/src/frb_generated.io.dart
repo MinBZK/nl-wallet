@@ -215,6 +215,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   IssuanceStartResult dco_decode_issuance_start_result(dynamic raw);
 
   @protected
+  IssueCredentialsResult dco_decode_issue_credentials_result(dynamic raw);
+
+  @protected
   List<AppNotification> dco_decode_list_app_notification(dynamic raw);
 
   @protected
@@ -549,6 +552,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
 
   @protected
   IssuanceStartResult sse_decode_issuance_start_result(SseDeserializer deserializer);
+
+  @protected
+  IssueCredentialsResult sse_decode_issue_credentials_result(SseDeserializer deserializer);
 
   @protected
   List<AppNotification> sse_decode_list_app_notification(SseDeserializer deserializer);
@@ -1595,6 +1601,25 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   }
 
   @protected
+  void cst_api_fill_to_wire_issue_credentials_result(
+    IssueCredentialsResult apiObj,
+    wire_cst_issue_credentials_result wireObj,
+  ) {
+    if (apiObj is IssueCredentialsResult_Ok) {
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
+      wireObj.tag = 0;
+      wireObj.kind.Ok.field0 = pre_field0;
+      return;
+    }
+    if (apiObj is IssueCredentialsResult_InstructionError) {
+      var pre_error = cst_encode_box_autoadd_wallet_instruction_error(apiObj.error);
+      wireObj.tag = 1;
+      wireObj.kind.InstructionError.error = pre_error;
+      return;
+    }
+  }
+
+  @protected
   void cst_api_fill_to_wire_localized_string(LocalizedString apiObj, wire_cst_localized_string wireObj) {
     wireObj.language = cst_encode_String(apiObj.language);
     wireObj.value = cst_encode_String(apiObj.value);
@@ -2224,6 +2249,9 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
   void sse_encode_issuance_start_result(IssuanceStartResult self, SseSerializer serializer);
 
   @protected
+  void sse_encode_issue_credentials_result(IssueCredentialsResult self, SseSerializer serializer);
+
+  @protected
   void sse_encode_list_app_notification(List<AppNotification> self, SseSerializer serializer);
 
   @protected
@@ -2694,6 +2722,36 @@ class WalletCoreWire implements BaseWire {
   late final _wire__crate__api__full__clear_version_state_stream =
       _wire__crate__api__full__clear_version_state_streamPtr.asFunction<void Function(int)>();
 
+  void wire__crate__api__full__commit_issued_credentials(int port_) {
+    return _wire__crate__api__full__commit_issued_credentials(port_);
+  }
+
+  late final _wire__crate__api__full__commit_issued_credentialsPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Int64)>>(
+        'frbgen_wallet_core_wire__crate__api__full__commit_issued_credentials',
+      );
+  late final _wire__crate__api__full__commit_issued_credentials = _wire__crate__api__full__commit_issued_credentialsPtr
+      .asFunction<void Function(int)>();
+
+  void wire__crate__api__full__commit_issued_pid(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+  ) {
+    return _wire__crate__api__full__commit_issued_pid(port_, pin);
+  }
+
+  late final _wire__crate__api__full__commit_issued_pidPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >('frbgen_wallet_core_wire__crate__api__full__commit_issued_pid');
+  late final _wire__crate__api__full__commit_issued_pid = _wire__crate__api__full__commit_issued_pidPtr
+      .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
   void wire__crate__api__full__complete_pin_recovery(
     int port_,
     ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
@@ -3077,6 +3135,28 @@ class WalletCoreWire implements BaseWire {
       >('frbgen_wallet_core_wire__crate__api__full__is_valid_pin');
   late final _wire__crate__api__full__is_valid_pin = _wire__crate__api__full__is_valid_pinPtr
       .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
+
+  void wire__crate__api__full__issue_credentials_for_review(
+    int port_,
+    ffi.Pointer<wire_cst_list_prim_u_8_strict> pin,
+  ) {
+    return _wire__crate__api__full__issue_credentials_for_review(port_, pin);
+  }
+
+  late final _wire__crate__api__full__issue_credentials_for_reviewPtr =
+      _lookup<
+        ffi.NativeFunction<
+          ffi.Void Function(
+            ffi.Int64,
+            ffi.Pointer<wire_cst_list_prim_u_8_strict>,
+          )
+        >
+      >(
+        'frbgen_wallet_core_wire__crate__api__full__issue_credentials_for_review',
+      );
+  late final _wire__crate__api__full__issue_credentials_for_review =
+      _wire__crate__api__full__issue_credentials_for_reviewPtr
+          .asFunction<void Function(int, ffi.Pointer<wire_cst_list_prim_u_8_strict>)>();
 
   void wire__crate__api__full__lock_wallet(int port_) {
     return _wire__crate__api__full__lock_wallet(port_);
@@ -4617,6 +4697,27 @@ final class wire_cst_issuance_start_result extends ffi.Struct {
   external int tag;
 
   external IssuanceStartResultKind kind;
+}
+
+final class wire_cst_IssueCredentialsResult_Ok extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
+}
+
+final class wire_cst_IssueCredentialsResult_InstructionError extends ffi.Struct {
+  external ffi.Pointer<wire_cst_wallet_instruction_error> error;
+}
+
+final class IssueCredentialsResultKind extends ffi.Union {
+  external wire_cst_IssueCredentialsResult_Ok Ok;
+
+  external wire_cst_IssueCredentialsResult_InstructionError InstructionError;
+}
+
+final class wire_cst_issue_credentials_result extends ffi.Struct {
+  @ffi.Int32()
+  external int tag;
+
+  external IssueCredentialsResultKind kind;
 }
 
 final class wire_cst_PidIssuanceResult_Ok extends ffi.Struct {

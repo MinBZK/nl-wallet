@@ -27,6 +27,18 @@ sealed class DisclosureBasedIssuanceInstructionResult with _$DisclosureBasedIssu
 }
 
 @freezed
+sealed class IssueCredentialsResult with _$IssueCredentialsResult {
+  const IssueCredentialsResult._();
+
+  const factory IssueCredentialsResult.ok(
+    List<AttestationPresentation> field0,
+  ) = IssueCredentialsResult_Ok;
+  const factory IssueCredentialsResult.instructionError({
+    required WalletInstructionError error,
+  }) = IssueCredentialsResult_InstructionError;
+}
+
+@freezed
 sealed class PidIssuanceResult with _$PidIssuanceResult {
   const PidIssuanceResult._();
 

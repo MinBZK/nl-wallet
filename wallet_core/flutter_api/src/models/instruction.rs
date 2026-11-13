@@ -10,6 +10,7 @@ use wallet::errors::RevocationCodeError;
 use wallet::errors::TransferError;
 use wallet::errors::WalletUnlockError;
 
+use crate::models::attestation::AttestationPresentation;
 use crate::models::issuance::DisclosureBasedIssuanceResult;
 
 pub enum WalletInstructionResult {
@@ -29,6 +30,11 @@ pub enum RevocationCodeResult {
 
 pub enum DisclosureBasedIssuanceInstructionResult {
     Ok(DisclosureBasedIssuanceResult),
+    InstructionError { error: WalletInstructionError },
+}
+
+pub enum IssueCredentialsResult {
+    Ok(Vec<AttestationPresentation>),
     InstructionError { error: WalletInstructionError },
 }
 
@@ -148,6 +154,30 @@ impl TryFrom<Result<IssuanceResult, IssuanceError>> for PidIssuanceResult {
                 transfer_available: transfer_session_id.is_some(),
             }),
             Err(IssuanceError::Instruction(instruction_error)) => Ok(PidIssuanceResult::InstructionError {
+                error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
+            }),
+            Err(error) => Err(error),
+        }
+    }
+}
+
+/// This conversion distinguishes between 3 distinct cases:
+///
+/// 1. In case of a successful result, [`IssueCredentialsResult::Ok`] will be returned, with the attestations converted
+///    into the expected format.
+/// 2. In case of an expected and/or specific error case a different variant of [`IssueCredentialsResult`] by mapping
+///    the nested [`InstructionError`].
+/// 3. In any other cases, this is an unexpected and/or generic error and the [`IssuanceError`] will be returned
+///    unchanged.
+impl TryFrom<Result<Vec<wallet::AttestationPresentation>, IssuanceError>> for IssueCredentialsResult {
+    type Error = IssuanceError;
+
+    fn try_from(value: Result<Vec<wallet::AttestationPresentation>, IssuanceError>) -> Result<Self, Self::Error> {
+        match value {
+            Ok(attestations) => Ok(Self::Ok(
+                attestations.into_iter().map(AttestationPresentation::from).collect(),
+            )),
+            Err(IssuanceError::Instruction(instruction_error)) => Ok(Self::InstructionError {
                 error: instruction_error.try_into().map_err(IssuanceError::Instruction)?,
             }),
             Err(error) => Err(error),
