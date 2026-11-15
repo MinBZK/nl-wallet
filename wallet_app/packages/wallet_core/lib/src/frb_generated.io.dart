@@ -1434,10 +1434,10 @@ abstract class WalletCoreApiImplPlatform extends BaseApiImpl<WalletCoreWire> {
       wireObj.kind.Previews.field0 = pre_field0;
       return;
     }
-    if (apiObj is DisclosureBasedIssuanceResult_NoPreviews) {
-      var pre_issuer = cst_encode_box_autoadd_organization(apiObj.issuer);
+    if (apiObj is DisclosureBasedIssuanceResult_IssuedForReview) {
+      var pre_field0 = cst_encode_list_attestation_presentation(apiObj.field0);
       wireObj.tag = 2;
-      wireObj.kind.NoPreviews.issuer = pre_issuer;
+      wireObj.kind.IssuedForReview.field0 = pre_field0;
       return;
     }
   }
@@ -4273,14 +4273,14 @@ final class wire_cst_DisclosureBasedIssuanceResult_Previews extends ffi.Struct {
   external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
 }
 
-final class wire_cst_DisclosureBasedIssuanceResult_NoPreviews extends ffi.Struct {
-  external ffi.Pointer<wire_cst_organization> issuer;
+final class wire_cst_DisclosureBasedIssuanceResult_IssuedForReview extends ffi.Struct {
+  external ffi.Pointer<wire_cst_list_attestation_presentation> field0;
 }
 
 final class DisclosureBasedIssuanceResultKind extends ffi.Union {
   external wire_cst_DisclosureBasedIssuanceResult_Previews Previews;
 
-  external wire_cst_DisclosureBasedIssuanceResult_NoPreviews NoPreviews;
+  external wire_cst_DisclosureBasedIssuanceResult_IssuedForReview IssuedForReview;
 }
 
 final class wire_cst_disclosure_based_issuance_result extends ffi.Struct {

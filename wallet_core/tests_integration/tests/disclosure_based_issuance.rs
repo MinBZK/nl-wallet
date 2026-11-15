@@ -254,8 +254,8 @@ async fn ltc10_test_disclosure_based_issuance_error_no_attributes(
 
 /// Disclosure based issuance against an issuance server configured without the Credential Preview Endpoint.
 ///
-/// The wallet receives no previews, only the issuer organization. The issued degrees are presented for review, and
-/// stored once committed.
+/// As the wallet receives no previews, the degrees are issued right after the disclosure, using the same PIN. They are
+/// presented for review, and stored once committed.
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
@@ -301,20 +301,18 @@ async fn test_disclosure_based_issuance_without_previews(#[values(Format::MsoMdo
         .await
         .unwrap();
 
-    let DisclosureBasedIssuanceResult::NoPreviews { issuer } = wallet
-        .continue_disclosure_based_issuance(&[0], pin.clone())
-        .await
-        .unwrap()
+    let DisclosureBasedIssuanceResult::IssuedForReview(reviewed_attestations) =
+        wallet.continue_disclosure_based_issuance(&[0], pin).await.unwrap()
     else {
-        panic!("expected no previews");
+        panic!("expected attestations issued for review");
     };
 
-    let reviewed_attestations = wallet.issue_credentials_for_review(pin).await.unwrap();
     let reviewed_degrees = reviewed_attestations
         .iter()
         .filter(|attestation| attestation.attestation_type == "com.example.degree")
         .collect_vec();
     assert_eq!(reviewed_degrees.len(), 2);
+    let issuer = reviewed_degrees[0].issuer.clone();
     assert!(reviewed_degrees.iter().all(|degree| degree.issuer == issuer));
 
     wallet.commit_issued_credentials().await.unwrap();
@@ -400,10 +398,9 @@ async fn issue_degrees(wallet: &mut WalletWithStorage, pin: &Pin, issuance_urls:
 
             wallet.accept_issuance(pin.clone()).await.unwrap();
         }
-        DisclosureBasedIssuanceResult::NoPreviews { .. } => {
+        DisclosureBasedIssuanceResult::IssuedForReview(_) => {
             assert!(!expect_previews, "expected previews");
 
-            let _attestations = wallet.issue_credentials_for_review(pin.clone()).await.unwrap();
             wallet.commit_issued_credentials().await.unwrap();
         }
         DisclosureBasedIssuanceResult::NoIssuableAttestations => panic!("expected issuable degrees"),

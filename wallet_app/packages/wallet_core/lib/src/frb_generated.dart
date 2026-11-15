@@ -2396,8 +2396,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
           dco_decode_list_attestation_presentation(raw[1]),
         );
       case 2:
-        return DisclosureBasedIssuanceResult_NoPreviews(
-          issuer: dco_decode_box_autoadd_organization(raw[1]),
+        return DisclosureBasedIssuanceResult_IssuedForReview(
+          dco_decode_list_attestation_presentation(raw[1]),
         );
       default:
         throw Exception("unreachable");
@@ -3516,8 +3516,8 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
         var var_field0 = sse_decode_list_attestation_presentation(deserializer);
         return DisclosureBasedIssuanceResult_Previews(var_field0);
       case 2:
-        var var_issuer = sse_decode_box_autoadd_organization(deserializer);
-        return DisclosureBasedIssuanceResult_NoPreviews(issuer: var_issuer);
+        var var_field0 = sse_decode_list_attestation_presentation(deserializer);
+        return DisclosureBasedIssuanceResult_IssuedForReview(var_field0);
       default:
         throw UnimplementedError('');
     }
@@ -5015,9 +5015,9 @@ class WalletCoreApiImpl extends WalletCoreApiImplPlatform implements WalletCoreA
       case DisclosureBasedIssuanceResult_Previews(field0: final field0):
         sse_encode_i_32(1, serializer);
         sse_encode_list_attestation_presentation(field0, serializer);
-      case DisclosureBasedIssuanceResult_NoPreviews(issuer: final issuer):
+      case DisclosureBasedIssuanceResult_IssuedForReview(field0: final field0):
         sse_encode_i_32(2, serializer);
-        sse_encode_box_autoadd_organization(issuer, serializer);
+        sse_encode_list_attestation_presentation(field0, serializer);
     }
   }
 

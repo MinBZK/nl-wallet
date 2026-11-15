@@ -22,9 +22,9 @@ sealed class DisclosureBasedIssuanceResult with _$DisclosureBasedIssuanceResult 
   const factory DisclosureBasedIssuanceResult.previews(
     List<AttestationPresentation> field0,
   ) = DisclosureBasedIssuanceResult_Previews;
-  const factory DisclosureBasedIssuanceResult.noPreviews({
-    required Organization issuer,
-  }) = DisclosureBasedIssuanceResult_NoPreviews;
+  const factory DisclosureBasedIssuanceResult.issuedForReview(
+    List<AttestationPresentation> field0,
+  ) = DisclosureBasedIssuanceResult_IssuedForReview;
 }
 
 @freezed

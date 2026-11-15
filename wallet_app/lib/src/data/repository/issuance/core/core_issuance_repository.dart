@@ -81,8 +81,8 @@ class CoreIssuanceRepository implements IssuanceRepository {
             return _attestationMapper.mapList(cards);
           case core.DisclosureBasedIssuanceResult_NoIssuableAttestations():
             return [];
-          case core.DisclosureBasedIssuanceResult_NoPreviews():
-            throw UnsupportedError('Disclosure based issuance without previews is not supported yet');
+          case core.DisclosureBasedIssuanceResult_IssuedForReview():
+            throw UnsupportedError('Reviewing cards issued after disclosure is not supported yet');
         }
       case core.DisclosureBasedIssuanceInstructionResult_InstructionError():
         throw result.error;

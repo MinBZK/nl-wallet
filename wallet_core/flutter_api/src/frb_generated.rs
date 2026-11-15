@@ -2270,8 +2270,9 @@ impl SseDecode for crate::models::issuance::DisclosureBasedIssuanceResult {
                 return crate::models::issuance::DisclosureBasedIssuanceResult::Previews(var_field0);
             }
             2 => {
-                let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
-                return crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer: var_issuer };
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(var_field0);
             }
             _ => {
                 unimplemented!("");
@@ -3740,8 +3741,8 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::DisclosureBasedI
             crate::models::issuance::DisclosureBasedIssuanceResult::Previews(field0) => {
                 [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer } => {
-                [2.into_dart(), issuer.into_into_dart().into_dart()].into_dart()
+            crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(field0) => {
+                [2.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4954,9 +4955,9 @@ impl SseEncode for crate::models::issuance::DisclosureBasedIssuanceResult {
                 <i32>::sse_encode(1, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
-            crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer } => {
+            crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(field0) => {
                 <i32>::sse_encode(2, serializer);
-                <crate::models::organization::Organization>::sse_encode(issuer, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6410,10 +6411,8 @@ mod io {
                     crate::models::issuance::DisclosureBasedIssuanceResult::Previews(ans.field0.cst_decode())
                 }
                 2 => {
-                    let ans = unsafe { self.kind.NoPreviews };
-                    crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews {
-                        issuer: ans.issuer.cst_decode(),
-                    }
+                    let ans = unsafe { self.kind.IssuedForReview };
+                    crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(ans.field0.cst_decode())
                 }
                 _ => unreachable!(),
             }
@@ -8576,7 +8575,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub union DisclosureBasedIssuanceResultKind {
         Previews: wire_cst_DisclosureBasedIssuanceResult_Previews,
-        NoPreviews: wire_cst_DisclosureBasedIssuanceResult_NoPreviews,
+        IssuedForReview: wire_cst_DisclosureBasedIssuanceResult_IssuedForReview,
         nil__: (),
     }
     #[repr(C)]
@@ -8586,8 +8585,8 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews {
-        issuer: *mut wire_cst_organization,
+    pub struct wire_cst_DisclosureBasedIssuanceResult_IssuedForReview {
+        field0: *mut wire_cst_list_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

@@ -270,13 +270,13 @@ typedef struct wire_cst_DisclosureBasedIssuanceResult_Previews {
   struct wire_cst_list_attestation_presentation *field0;
 } wire_cst_DisclosureBasedIssuanceResult_Previews;
 
-typedef struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews {
-  struct wire_cst_organization *issuer;
-} wire_cst_DisclosureBasedIssuanceResult_NoPreviews;
+typedef struct wire_cst_DisclosureBasedIssuanceResult_IssuedForReview {
+  struct wire_cst_list_attestation_presentation *field0;
+} wire_cst_DisclosureBasedIssuanceResult_IssuedForReview;
 
 typedef union DisclosureBasedIssuanceResultKind {
   struct wire_cst_DisclosureBasedIssuanceResult_Previews Previews;
-  struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews NoPreviews;
+  struct wire_cst_DisclosureBasedIssuanceResult_IssuedForReview IssuedForReview;
 } DisclosureBasedIssuanceResultKind;
 
 typedef struct wire_cst_disclosure_based_issuance_result {
