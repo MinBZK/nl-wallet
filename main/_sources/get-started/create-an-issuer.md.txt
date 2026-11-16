@@ -518,7 +518,7 @@ cargo build \
   --manifest-path wallet_core/Cargo.toml \
   --package issuance_server \
   --bin issuance_server \
-  --locked --release
+  --release
 ```
 
 The above command creates `wallet_core/target/release/issuance_server`, which is
