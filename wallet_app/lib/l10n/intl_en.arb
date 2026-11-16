@@ -1,6 +1,6 @@
 {
     "@@locale": "en",
-    "@@last_modified": "2026-11-16T16:26:41+01:00",
+    "@@last_modified": "2026-11-16T16:36:10+01:00",
     "aboutScreenDescription": "The NL Wallet is created by the Dutch government so that everyone can use digital services safely and easily.\n\nYou can follow the developments on {url}.",
     "aboutScreenDescriptionLink": "edi.pleio.nl",
     "@aboutScreenDescriptionLink": {
@@ -318,7 +318,15 @@
     "checkAgreementPageTitle": "Are you aware of the agreements?",
     "checkAttributesScreenChangeCardCta": "Swap card",
     "checkAttributesScreenDataIncorrectCta": "Are your details incorrect?",
-    "checkAttributesScreenSubtitle": "Card issued by {issuer}",
+    "checkAttributesScreenSubtitle": "Card issued by {organization}.",
+    "@checkAttributesScreenSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
     "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} data from {title}} other {{count} data from {title}}}",
     "confirmAgreementPageCancelCta": "No",
     "confirmAgreementPageConfirmCta": "Yes, sign",
@@ -896,7 +904,7 @@
         }
     },
     "issuanceReviewCardsPageShowDetailsCta": "Check details",
-    "issuanceReviewCardsPageSubtitle": "{cards, plural, one {Card issued by {organization}} other {Cards issued by {organization}.}}",
+    "issuanceReviewCardsPageSubtitle": "{cards, plural, one {Card issued by {organization}.} other {Cards issued by {organization}.}}",
     "@issuanceReviewCardsPageSubtitle": {
         "placeholders": {
             "cards": {
