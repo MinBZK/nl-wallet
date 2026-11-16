@@ -305,7 +305,7 @@ impl From<&str> for ClientId {
 }
 
 impl FromStr for ClientId {
-    type Err = std::convert::Infallible;
+    type Err = !;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(ClientId::from(s))

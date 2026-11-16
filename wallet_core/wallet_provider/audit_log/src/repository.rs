@@ -103,8 +103,6 @@ impl AuditLogRepository for PostgresAuditLogRepository {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use std::convert::Infallible;
-
     use chrono::DateTime;
     use chrono::Utc;
     use sea_orm::JsonValue;
@@ -115,7 +113,7 @@ pub mod mock {
     pub struct NoopAuditLogRepository;
 
     impl AuditLogRepository for NoopAuditLogRepository {
-        type Error = Infallible;
+        type Error = !;
 
         async fn audit_operation_start(
             &self,

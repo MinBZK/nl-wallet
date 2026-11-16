@@ -11,23 +11,22 @@ workspace = true
 doctest = false
 
 [features]
-mock = []
+mock = ["dep:utils"]
 test_pid_constants = []
 
 [dependencies]
 base64.workspace = true
 data-url.workspace = true
 derive_more = { workspace = true, features = ["constructor", "debug", "display"] }
-itertools.workspace = true
 serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
 serde_with = { workspace = true, features = ["base64", "macros"] }
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 
-utils.path = "../utils"
+utils = { path = "../utils", optional = true }
 
 [dev-dependencies]
 hex.workspace = true
 rstest.workspace = true
+serde_json.workspace = true

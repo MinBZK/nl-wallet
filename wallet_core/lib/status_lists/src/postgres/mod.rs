@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
@@ -97,7 +96,7 @@ pub trait RevokeAll {
 pub struct NoRevokeAll;
 
 impl RevokeAll for NoRevokeAll {
-    type Error = Infallible;
+    type Error = !;
 
     async fn is_revoked_all(&self) -> Result<bool, Self::Error> {
         Ok(false)

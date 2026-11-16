@@ -88,7 +88,6 @@ reqwest.workspace = true
 ring.workspace = true
 rusqlite.workspace = true
 rustls-pki-types.workspace = true
-sanitize-filename.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

@@ -135,24 +135,25 @@ test_common = [
     "apple_app_attest/mock",
     "attestation_data/example_credential_payloads",
     "attestation_data/mock",
-    "dep:axum-server",
     "axum/json",
+    "dep:acf_demo_issuer",
     "dep:android_attest",
     "dep:audit_log",
+    "dep:axum-server",
     "dep:crypto",
     "dep:ctor",
+    "dep:db_test",
     "dep:futures",
     "dep:gba_hc_converter",
     "dep:health_checkers",
     "dep:indexmap",
     "dep:issuance_server",
-    "dep:pid_issuer",
-    "dep:pacf_issuance_server",
-    "dep:acf_demo_issuer",
     "dep:issuer_common",
     "dep:jwt",
     "dep:oauth",
     "dep:openid4vc",
+    "dep:pacf_issuance_server",
+    "dep:pid_issuer",
     "dep:reqwest",
     "dep:rustls",
     "dep:semver",
@@ -195,7 +196,6 @@ fake_digid = [
     "dep:reqwest",
     "dep:tracing",
     "dep:url",
-    "dep:wallet_configuration",
     "http_utils/client",
 ]
 
@@ -212,7 +212,7 @@ db_test = [
 ]
 
 # Include and run test that depend on a configured HSM
-hsm_test = ["hsm/hsm_test", "hsm/hsm_test_key_import", "wallet_provider?/hsm_test"]
+hsm_test = ["hsm?/hsm_test", "hsm?/hsm_test_key_import", "wallet_provider?/hsm_test"]
 
 # Feature used for enabling all integration tests
 integration_test = [
@@ -222,9 +222,7 @@ integration_test = [
     "dep:jsonwebtoken",
     "dep:rand_core",
     "dep:regex",
-    "dep:rstest",
     "dep:serde",
-    "dep:serial_test",
     "dep:zstd",
     "hsm_test",
     "issuance_server/test_internal_ui",
@@ -245,7 +243,6 @@ digid_test = [
     "dep:rand_core",
     "dep:ring",
     "dep:rustls-pki-types",
-    "dep:serial_test",
     "dep:wallet_account",
     "fake_digid",
     "test_common",
@@ -269,7 +266,6 @@ performance_test = [
     "dep:tracing",
     "dep:url",
     "dep:utils",
-    "dep:verification_server",
     "fake_digid",
     "logging",
     "openid4vc_server/disclosure",
@@ -299,7 +295,6 @@ rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 ring = { workspace = true, optional = true }
-rstest = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
@@ -307,7 +302,6 @@ semver = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 serde_qs = { workspace = true, optional = true }
-serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 tokio = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
@@ -321,7 +315,7 @@ attestation_data = { path = "../lib/attestation_data", optional = true }
 attestation_types = { path = "../lib/attestation_types", optional = true }
 audit_log = { path = "../wallet_provider/audit_log", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
-db_test.path = "../lib/db_test"
+db_test = { path = "../lib/db_test", optional = true }
 dcql = { path = "../lib/dcql", optional = true }
 gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 health_checkers = { path = "../lib/health_checkers", optional = true }
@@ -356,6 +350,8 @@ wscd = { path = "../lib/wscd", optional = true }
 
 [dev-dependencies]
 itertools.workspace = true
+rstest.workspace = true
+serial_test.workspace = true
 
 # This enables the automatic running of unit and integration tests for these crates when tests
 # are run from the workspace. The following features are not included in this:

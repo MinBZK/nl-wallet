@@ -1615,7 +1615,6 @@ fn verify_preview(
 mod tests {
     use std::assert_matches;
     use std::borrow::Cow;
-    use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
@@ -3535,7 +3534,7 @@ mod tests {
     }
 
     impl IssuanceWscd for DuplicateKeyMockRemoteWscd {
-        type Error = Infallible;
+        type Error = !;
 
         async fn perform_issuance(
             &self,

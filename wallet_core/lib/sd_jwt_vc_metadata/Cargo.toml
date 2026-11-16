@@ -11,7 +11,7 @@ workspace = true
 doctest = false
 
 [features]
-example_constructors = []
+example_constructors = ["dep:crypto"]
 
 [dependencies]
 derive_more = { workspace = true, features = ["as_ref", "debug"] }
@@ -26,11 +26,11 @@ thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 attestation_types.path = "../attestation_types"
-crypto.path = "../crypto"
-http_utils.path = "../http_utils"
+crypto = { path = "../crypto", optional = true }
 utils.path = "../utils"
 
 [dev-dependencies]
 rstest.workspace = true
 
 attestation_types = { path = "../../lib/attestation_types", features = ["test_pid_constants"] }
+crypto.path = "../../lib/crypto"

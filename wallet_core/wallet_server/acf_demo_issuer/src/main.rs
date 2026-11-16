@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::sync::Arc;
 
 use acf_demo_issuer::flow::DemoAuthorizationCodeFlow;
@@ -40,7 +39,7 @@ async fn main_impl(settings: AcfDemoIssuerSettings) -> Result<()> {
     let (issuer, database_checkers, _, server_settings) = settings
         .authorizing_issuer_settings
         .into_authorizing_issuer(hsm, |store_connection| {
-            Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(
+            Ok::<_, !>(DemoAuthorizationCodeFlow::new(
                 store_connection,
                 issuer_identifier.as_base_url(),
                 usecases,

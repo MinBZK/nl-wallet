@@ -1,2 +1,5 @@
 [env]
 TS_RS_EXPORT_DIR = { value = "../wallet_web/lib/models/", relative = true }
+
+[registry]
+global-min-publish-age = "7 days"
