@@ -1,7 +1,7 @@
 // coverage:ignore-file
 import 'dart:ui';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../widget/digid_confirm_buttons.dart';
 import '../widget/digid_sign_in_with_header.dart';

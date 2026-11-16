@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/model/organization.dart';
 import '../../../util/extension/build_context_extension.dart';

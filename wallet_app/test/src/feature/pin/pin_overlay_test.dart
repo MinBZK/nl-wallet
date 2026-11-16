@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';

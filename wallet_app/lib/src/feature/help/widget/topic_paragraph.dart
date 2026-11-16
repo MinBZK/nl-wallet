@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/model/help/topic_block.dart';
 import '../../../util/launch_util.dart';
@@ -19,10 +19,18 @@ class TopicParagraph extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MarkdownBody(
-      data: block.markdown,
-      onTapLink: (text, href, title) => _handleMarkdownLinkTap(href),
-      styleSheet: topicMarkdownStyleSheet(context),
+    // flutter_markdown_plus reads the legacy flutter/material theme.
+    // TODO(Rubin): remove the bridge once it supports material_ui, see:
+    // https://github.com/foresightmobile/flutter_markdown_plus/issues/144
+    // https://github.com/foresightmobile/flutter_markdown_plus/pull/145
+    // https://github.com/foresightmobile/flutter_markdown_plus/pull/150
+    // ignore: deprecated_member_use
+    return MaterialUiCompatibilityBridge(
+      child: MarkdownBody(
+        data: block.markdown,
+        onTapLink: (text, href, title) => _handleMarkdownLinkTap(href),
+        styleSheet: topicMarkdownStyleSheet(context),
+      ),
     );
   }
 

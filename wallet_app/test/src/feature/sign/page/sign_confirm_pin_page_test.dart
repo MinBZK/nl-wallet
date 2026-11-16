@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/sign/page/sign_confirm_pin_page.dart';

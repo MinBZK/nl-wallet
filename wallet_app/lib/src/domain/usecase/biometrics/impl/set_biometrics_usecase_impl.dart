@@ -1,5 +1,5 @@
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:fimber/fimber.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:local_auth/local_auth.dart';
 
 import '../../../../../l10n/generated/app_localizations.dart';

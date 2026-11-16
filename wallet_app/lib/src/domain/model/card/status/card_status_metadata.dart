@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Metadata class that holds the formatted UI data for a card status.
 class CardStatusMetadata {

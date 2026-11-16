@@ -1,5 +1,5 @@
 // coverage:ignore-file
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../common/widget/spacer/sliver_sized_box.dart';
 import '../widget/digid_confirm_buttons.dart';

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/usecase/disclosure/accept_disclosure_usecase.dart';
 import '../../common/widget/pin_header.dart';

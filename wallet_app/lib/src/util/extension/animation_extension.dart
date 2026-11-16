@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 extension AnimationExtension<T> on Animation<T> {
   void addOnCompleteListener(VoidCallback onComplete) {

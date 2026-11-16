@@ -2,8 +2,8 @@ import 'dart:ui';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// A service that listens for and propagates semantics actions.

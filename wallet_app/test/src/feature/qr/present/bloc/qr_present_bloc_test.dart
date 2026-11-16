@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:bloc_test/bloc_test.dart';
 import 'package:bluetooth/bluetooth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dart';

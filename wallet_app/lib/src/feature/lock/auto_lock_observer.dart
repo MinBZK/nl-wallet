@@ -3,8 +3,8 @@ import 'dart:ui';
 
 import 'package:clock/clock.dart';
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../data/service/auto_lock_service.dart';
