@@ -9,6 +9,7 @@ minimumReleaseAgeExclude:
 overrides:
   dompurify@<=3.4.16: 3.4.17
   dompurify@>=3.4.4 <=3.4.16: 3.4.17
+  fast-xml-parser@<=5.11.2: 5.12.0
   follow-redirects@>=1.16.0 <=1.16.1: ^1.16.2
   glob@>=9.0.0 <=14.0.1: ^14.0.2
   handlebars@>=4.0.0 <=4.7.9: ^4.7.10
