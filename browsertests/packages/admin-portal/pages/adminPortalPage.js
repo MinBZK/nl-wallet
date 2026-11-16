@@ -59,6 +59,16 @@ export class AdminPortalPage {
     this.retryButton = page.getByRole("button", { name: "Probeer opnieuw" })
     this.taskCreatedHeading = page.getByRole("heading", { name: "Taak aangemaakt" })
 
+    // wallet step of the revoke wallet wizard
+    this.walletSearchInput = page.getByRole("textbox", { name: "Zoeken Wallet ID" })
+    this.walletSearchButton = page.getByRole("button", { name: "Zoeken", exact: true })
+    this.walletSearchClearButton = page.getByRole("button", { name: "Wis invoer" })
+    this.walletStepError = page.getByRole("alert")
+    this.foundWallet = page.getByRole("region", { name: "Wallet gevonden" })
+    this.walletListHeading = page.getByRole("heading", { level: 3, name: /in de lijst/ })
+    this.walletNotActiveDialog = page.getByRole("dialog", { name: "Deze wallet is niet actief" })
+    this.walletNotActiveConfirmButton = page.getByRole("button", { name: "Begrepen" })
+
     // reason field, in the wizard and in modals
     this.reasonInput = page.getByRole("textbox", { name: "Reden" })
     this.reasonCounter = page.locator("#reason-counter")
@@ -98,9 +108,9 @@ export class AdminPortalPage {
     await this.kcSubmit.click()
   }
 
-  async loginAs(user) {
+  /** Opens the portal with the session of `user`, which the test must have restored through `storageState`. */
+  async openAs(user) {
     await this.open()
-    await this.login(user.username, user.password)
     await expect(this.userName).toHaveText(user.displayName)
   }
 
@@ -135,7 +145,21 @@ export class AdminPortalPage {
 
   /** A row of the task details; the audit log next to it has similar rows, but with a `span` label. */
   detailRow(label) {
-    return this.page.locator(".row:has(> p.row-label)").filter({ hasText: label })
+    return this.page
+      .locator(".row:has(> p.row-label)")
+      .filter({ has: this.page.locator("p.row-label").getByText(label, { exact: true }) })
+  }
+
+  /** An entry of the audit log next to the task details, such as "Resultaat:". */
+  logEntry(title) {
+    return this.page
+      .locator(".log .entry")
+      .filter({ has: this.page.getByRole("heading", { level: 4, name: title, exact: true }) })
+  }
+
+  /** The items of a detail row whose value is a list, such as the Wallet-ID's of a task. */
+  detailRowItems(label) {
+    return this.detailRow(label).getByRole("listitem")
   }
 
   async openTaskDetails(taskId) {
@@ -171,6 +195,24 @@ export class AdminPortalPage {
     await this.openCreateTaskDialog()
     await this.selectTaskAction(action)
     await this.goToReasonStep()
+  }
+
+  addWalletButton(walletId) {
+    return this.page.getByRole("button", { name: `Voeg toe aan de lijst ${walletId}`, exact: true })
+  }
+
+  removeWalletButton(walletId) {
+    return this.page.getByRole("button", { name: `Verwijder uit de lijst ${walletId}`, exact: true })
+  }
+
+  async searchWallet(walletId) {
+    await this.walletSearchInput.fill(walletId)
+    await this.walletSearchButton.click()
+  }
+
+  async addWallet(walletId) {
+    await this.searchWallet(walletId)
+    await this.addWalletButton(walletId).click()
   }
 
   async fillReasonAndGoToCheckStep(reason) {
