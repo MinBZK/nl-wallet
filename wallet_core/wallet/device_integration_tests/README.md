@@ -78,12 +78,13 @@ existing integration-test signing identifier/profile (`nl.ictu.edi.wallet.integr
 no additional provisioning profile is needed. PlatformSupport's own test bundle builds and links
 only the `platform_support` Rust crate. The two suites run separately and serially.
 
-On a clean checkout, prepare the wallet project's generated Xcode metadata first. Xcode resolves
-its Flutter package references even when the selected scheme only builds native targets:
+On a clean checkout, prepare Flutter's iOS artifacts and the wallet project's generated Xcode metadata first.
+Xcode resolves its Flutter package references even when the selected scheme only builds native targets:
 
 ```bash
 cd wallet_app
 flutter pub get --enforce-lockfile
+flutter precache --ios
 (cd ios && bundle exec pod install --allow-root --deployment)
 flutter build ios --config-only --no-codesign --debug --no-pub
 cd ..

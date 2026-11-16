@@ -679,6 +679,7 @@ platform :ios do
     flutter = flutter_cmd
     Dir.chdir("../wallet_app") do
       sh(*flutter, "pub", "get", "--enforce-lockfile")
+      sh(*flutter, "precache", "--ios")
       Dir.chdir("ios") do
         sh("bundle", "exec", "pod", "install", "--allow-root", "--deployment")
       end
