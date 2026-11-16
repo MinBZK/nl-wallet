@@ -48,13 +48,14 @@ class IssuanceShareRequestedAttributesDeclined extends IssuanceEvent {
   const IssuanceShareRequestedAttributesDeclined();
 }
 
+/// The PIN was validated and the attributes were disclosed, [result] holds the outcome.
 class IssuancePinForDisclosureConfirmed extends IssuanceEvent {
-  final List<WalletCard> cards;
+  final DiscloseForIssuanceResult result;
 
-  const IssuancePinForDisclosureConfirmed({required this.cards});
+  const IssuancePinForDisclosureConfirmed({required this.result});
 
   @override
-  List<Object?> get props => [cards];
+  List<Object?> get props => [result];
 }
 
 class IssuancePinForIssuanceConfirmed extends IssuanceEvent {

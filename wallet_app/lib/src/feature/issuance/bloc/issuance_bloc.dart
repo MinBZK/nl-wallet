@@ -12,6 +12,7 @@ import '../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/issuance/continue_issuance_result.dart';
+import '../../../domain/model/issuance/disclose_for_issuance_result.dart';
 import '../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../domain/model/organization.dart';
 import '../../../domain/model/result/application_error.dart';
@@ -206,17 +207,18 @@ class IssuanceBloc extends Bloc<IssuanceEvent, IssuanceState> {
     IssuancePinForDisclosureConfirmed event,
     Emitter<IssuanceState> emit,
   ) async {
-    final issuance = _startIssuanceResult;
-    if (issuance == null) throw UnsupportedError('Can not move to select cards state without _startIssuanceResult');
-
     emit(IssuanceLoadInProgress(state.stepperProgress));
     await Future.delayed(Duration(seconds: Environment.mockRepositories ? 2 : 0));
 
-    if (event.cards.isEmpty) {
-      assert(issuance.relyingParty != null, 'Relying party should be available after disclosing successfully');
-      emit(IssuanceNoCardsRetrieved(organization: issuance.relyingParty!));
-    } else {
-      emit(IssuanceReviewCards.init(cards: event.cards));
+    switch (event.result) {
+      case DiscloseForIssuancePreviews(:final cards) when cards.isEmpty:
+        final relyingParty = _startIssuanceResult?.relyingParty;
+        assert(relyingParty != null, 'Relying party should be available after disclosing successfully');
+        emit(IssuanceNoCardsRetrieved(organization: relyingParty!));
+      case DiscloseForIssuancePreviews(:final cards):
+        emit(IssuanceReviewCards.init(cards: cards));
+      case DiscloseForIssuanceIssuedForReview(:final cards):
+        emit(IssuanceReviewRetrievedCards(cards: cards));
     }
   }
 

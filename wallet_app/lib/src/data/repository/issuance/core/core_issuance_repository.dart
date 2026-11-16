@@ -6,6 +6,7 @@ import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/disclosure/disclose_card_request.dart';
 import '../../../../domain/model/disclosure/disclosure_session_type.dart';
 import '../../../../domain/model/issuance/continue_issuance_result.dart';
+import '../../../../domain/model/issuance/disclose_for_issuance_result.dart';
 import '../../../../domain/model/issuance/start_issuance_result.dart';
 import '../../../../domain/model/organization.dart';
 import '../../../../util/mapper/mapper.dart';
@@ -72,17 +73,17 @@ class CoreIssuanceRepository implements IssuanceRepository {
   }
 
   @override
-  Future<List<WalletCard>> discloseForIssuance(String pin, List<int> selectedIndices) async {
+  Future<DiscloseForIssuanceResult> discloseForIssuance(String pin, List<int> selectedIndices) async {
     final result = await _walletCore.continueDisclosureBasedIssuance(pin, selectedIndices);
     switch (result) {
       case core.DisclosureBasedIssuanceInstructionResult_Ok(field0: final result):
         switch (result) {
           case core.DisclosureBasedIssuanceResult_Previews(field0: final cards):
-            return _attestationMapper.mapList(cards);
+            return DiscloseForIssuanceResult.previews(_attestationMapper.mapList(cards));
           case core.DisclosureBasedIssuanceResult_NoIssuableAttestations():
-            return [];
-          case core.DisclosureBasedIssuanceResult_IssuedForReview():
-            throw UnsupportedError('Reviewing cards issued after disclosure is not supported yet');
+            return const DiscloseForIssuanceResult.previews([]);
+          case core.DisclosureBasedIssuanceResult_IssuedForReview(field0: final cards):
+            return DiscloseForIssuanceResult.issuedForReview(_attestationMapper.mapList(cards));
         }
       case core.DisclosureBasedIssuanceInstructionResult_InstructionError():
         throw result.error;

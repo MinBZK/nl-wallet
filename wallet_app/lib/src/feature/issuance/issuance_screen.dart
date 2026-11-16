@@ -213,7 +213,7 @@ class IssuanceScreen extends StatelessWidget {
     return Provider<DiscloseForIssuanceUseCase>(
       create: (context) => DiscloseForIssuanceUseCaseImpl(context.read(), state.selectedIndices),
       child: IssuanceConfirmPinForDisclosurePage(
-        onPinValidated: (cards) => context.bloc.add(IssuancePinForDisclosureConfirmed(cards: cards)),
+        onPinValidated: (result) => context.bloc.add(IssuancePinForDisclosureConfirmed(result: result)),
         onConfirmWithPinFailed: (context, errorState) => context.bloc.add(
           IssuanceConfirmPinFailed(error: errorState.error),
         ),
