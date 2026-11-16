@@ -54,8 +54,8 @@ impl FromAuditLogError for RetrieveTaskError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTaskError {
-    #[error("missing privilege for task type {0}")]
-    MissingPrivilege(TaskType),
+    #[error("missing privilege for any of task types {0:?}")]
+    MissingPrivilege(Vec<TaskType>),
     #[error("wallet IDs not found: {0:?}")]
     WalletIdsNotFound(HashSet<WalletId>),
     #[error("persistence error: {0}")]
@@ -92,8 +92,8 @@ impl FromAuditLogError for WithdrawTaskError {
 pub enum ReviewTaskError {
     #[error("task not found: {0}")]
     NotFound(Uuid),
-    #[error("missing privilege for task type {0}")]
-    MissingPrivilege(TaskType),
+    #[error("missing privilege for any of task types {0:?}")]
+    MissingPrivilege(Vec<TaskType>),
     #[error("task cannot be reviewed: created by caller, or not in 'created' status")]
     InvalidState,
     #[error("persistence error: {0}")]
@@ -168,7 +168,7 @@ where
                 .reviewed_by_user_id
                 .as_ref()
                 .is_some_and(|reviewer| *reviewer == user.user_id)
-            || user.is_authorized_to(&task.payload.task_type())
+            || user.is_authorized_to([task.payload.task_type()])
         {
             Ok(task)
         } else {
@@ -189,9 +189,9 @@ where
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
-        let task_type = payload.task_type();
-        if !user.is_authorized_to(&task_type) {
-            return Err(CreateTaskError::MissingPrivilege(task_type));
+        let required = [payload.task_type()];
+        if !user.is_authorized_to(required) {
+            return Err(CreateTaskError::MissingPrivilege(required.into()));
         }
 
         // Verify payload
@@ -295,9 +295,9 @@ where
             .ok_or(ReviewTaskError::NotFound(task_id))?;
 
         // Enforce business rule: A reviewer may only review tasks of types it has the privilege for.
-        let task_type = existing.payload.task_type();
-        if !reviewer.is_authorized_to(&task_type) {
-            return Err(ReviewTaskError::MissingPrivilege(task_type));
+        let required = [existing.payload.task_type()];
+        if !reviewer.is_authorized_to(required) {
+            return Err(ReviewTaskError::MissingPrivilege(required.into()));
         }
 
         // Enforce business rule: A reviewer may NOT review its own tasks.
@@ -771,7 +771,7 @@ mod tests {
             .create_task(&revoke_wallet_payload(), TASK_REASON, &user, &user_state, &MockAuditLog)
             .await;
 
-        assert_matches!(result, Err(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet)));
+        assert_matches!(result, Err(CreateTaskError::MissingPrivilege(task_types)) if task_types == [TaskType::RevokeWallet]);
     }
 
     #[rstest]
@@ -1101,7 +1101,7 @@ mod tests {
             )
             .await;
 
-        assert_matches!(result, Err(ReviewTaskError::MissingPrivilege(TaskType::RevokeWallet)));
+        assert_matches!(result, Err(ReviewTaskError::MissingPrivilege(task_types)) if task_types == [TaskType::RevokeWallet]);
     }
 
     #[rstest]

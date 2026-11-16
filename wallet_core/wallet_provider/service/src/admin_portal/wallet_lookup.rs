@@ -42,8 +42,8 @@ impl From<WalletUserState> for WalletRevocationState {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetWalletRevocationStateError {
-    #[error("missing privilege for task type {0}")]
-    MissingPrivilege(TaskType),
+    #[error("missing privilege for any of task types {0:?}")]
+    MissingPrivilege(Vec<TaskType>),
     #[error("wallet not found: {0}")]
     NotFound(WalletId),
     #[error("persistence error: {0}")]
@@ -69,8 +69,8 @@ pub struct RecoveryCodeSummary {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetRecoveryCodeSummaryError {
-    #[error("missing privilege for task type {0}")]
-    MissingPrivilege(TaskType),
+    #[error("missing privilege for any of task types {0:?}")]
+    MissingPrivilege(Vec<TaskType>),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
@@ -91,9 +91,9 @@ impl<R, T, U> AdminPortalService<R, T, U> {
     /// `has_multiple_active_accounts_by_recovery_code` in the persistence layer. A recovery code without wallets and
     /// without a denial record yields zero counts and `is_denied: false`; it is not an error.
     ///
-    /// Requires the `BlockUser` task privilege, otherwise returns `MissingPrivilege`. The wallet states and the denial
-    /// flag are read in one transaction. Returns `Storage` when a persistence call fails. The call is audited as
-    /// `get_recovery_code_summary`.
+    /// Requires the `BlockUser` or `UnblockUser` task privilege, otherwise returns `MissingPrivilege`. The wallet
+    /// states and the denial flag are read in one transaction. Returns `Storage` when a persistence call fails. The
+    /// call is audited as `get_recovery_code_summary`.
     #[audited]
     pub async fn get_recovery_code_summary<TX, UR, F, H>(
         &self,
@@ -106,8 +106,9 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
-        if !user.is_authorized_to(&TaskType::BlockUser) {
-            return Err(GetRecoveryCodeSummaryError::MissingPrivilege(TaskType::BlockUser));
+        let required = [TaskType::BlockUser, TaskType::UnblockUser];
+        if !user.is_authorized_to(required) {
+            return Err(GetRecoveryCodeSummaryError::MissingPrivilege(required.into()));
         }
 
         let transaction = user_state
@@ -159,8 +160,9 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
         // Only authorized users with `privilege_revoke_wallet` may check wallet IDs.
-        if !user.is_authorized_to(&TaskType::RevokeWallet) {
-            return Err(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet));
+        let required = [TaskType::RevokeWallet];
+        if !user.is_authorized_to(required) {
+            return Err(GetWalletRevocationStateError::MissingPrivilege(required.into()));
         }
 
         let transaction = user_state
@@ -281,7 +283,7 @@ mod tests {
 
         assert_matches!(
             result,
-            Err(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet))
+            Err(GetWalletRevocationStateError::MissingPrivilege(task_types)) if task_types == [TaskType::RevokeWallet]
         );
     }
 
@@ -337,8 +339,35 @@ mod tests {
 
         assert_matches!(
             result,
-            Err(GetRecoveryCodeSummaryError::MissingPrivilege(TaskType::BlockUser))
+            Err(GetRecoveryCodeSummaryError::MissingPrivilege(task_types))
+                if task_types == [TaskType::BlockUser, TaskType::UnblockUser]
         );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn recovery_code_summary_accepts_unblock_user(recovery_code: RecoveryCode) {
+        let unblock_user = user("user-1", &[TaskType::UnblockUser]);
+
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_find_wallet_user_states_by_recovery_code()
+            .times(1)
+            .return_once(|_, _| Ok(vec![]));
+        wallet_user_repo
+            .expect_find_recovery_code_is_denied()
+            .times(1)
+            .return_once(|_, _| Ok(None));
+        let user_state = lookup_user_state(wallet_user_repo).await;
+
+        let result = service()
+            .get_recovery_code_summary(&recovery_code, &unblock_user, &user_state, &MockAuditLog)
+            .await;
+
+        assert_matches!(result, Ok(summary) if summary == RecoveryCodeSummary { active: 0, inactive: 0, is_denied: false });
     }
 
     #[rstest]

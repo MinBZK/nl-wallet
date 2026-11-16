@@ -71,9 +71,11 @@ pub struct LoggedInUser {
 }
 
 impl LoggedInUser {
-    /// Verify whether this user is authorized to execute `task_type`.
-    pub fn is_authorized_to(&self, task_type: &TaskType) -> bool {
-        self.authorized_task_types().any(|privilege| privilege == *task_type)
+    /// Verify whether this user holds at least one of `task_types`. Returns `false` for an empty input.
+    pub fn is_authorized_to(&self, task_types: impl IntoIterator<Item = TaskType>) -> bool {
+        task_types
+            .into_iter()
+            .any(|task_type| self.authorized_task_types().any(|privilege| privilege == task_type))
     }
 
     /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
@@ -579,6 +581,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
 
@@ -588,6 +591,7 @@ mod tests {
     use crate::admin_portal::LoginError;
     use crate::admin_portal::TokenVerificationError;
     use crate::admin_portal::UuidV7Generator;
+    use crate::admin_portal::test_support::user;
     use crate::admin_portal::to_privileges;
 
     // Test-only 2048 bit RSA key, used to sign fake Keycloak tokens and serve a matching JWKS.
@@ -848,6 +852,16 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = service_with_repository(&keycloak_url, repository);
 
         assert_eq!(service.session_ttl(), Duration::from_secs(3600));
+    }
+
+    #[test]
+    fn is_authorized_to_accepts_any_of_task_types() {
+        let user = user("user-1", &[TaskType::UnblockUser]);
+
+        assert!(user.is_authorized_to([TaskType::BlockUser, TaskType::UnblockUser]));
+        assert!(user.is_authorized_to([TaskType::UnblockUser]));
+        assert!(!user.is_authorized_to([TaskType::BlockUser, TaskType::RevokeWallet]));
+        assert!(!user.is_authorized_to([]));
     }
 
     #[tokio::test]
