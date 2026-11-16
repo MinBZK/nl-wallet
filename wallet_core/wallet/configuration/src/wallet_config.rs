@@ -242,11 +242,7 @@ impl PidAttributesConfiguration {
     }
 
     /// The key path of the recovery code in the PID of the specified format and attestation type, if configured.
-    pub fn recovery_code_key_path(
-        &self,
-        format: Format,
-        attestation_type: &str,
-    ) -> Option<impl Iterator<Item = &str> + Clone> {
+    pub fn recovery_code_key_path(&self, format: Format, attestation_type: &str) -> Option<impl Iterator<Item = &str>> {
         match format {
             Format::MsoMdoc => self
                 .mso_mdoc

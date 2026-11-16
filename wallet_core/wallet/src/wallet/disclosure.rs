@@ -387,9 +387,11 @@ pub(super) fn is_request_for_recovery_code(
         pid_attributes
             .recovery_code_key_path(request.format(), &attestation_type)
             .is_some_and(|key_path| {
+                let key_path = key_path.collect_vec();
+
                 request
                     .claim_paths()
-                    .any(|claim| ClaimPath::matches_key_path(&claim, key_path.clone()))
+                    .any(|claim| ClaimPath::matches_key_path(&claim, key_path.iter().copied()))
             })
     })
 }
