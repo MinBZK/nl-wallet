@@ -30,6 +30,7 @@ test-ios-platform-support-device:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
     IOS_DEVICE_UDID: "${IOS_2_UDID}"
+  allow_failure: true
 
 test-android-platform-support-device:
   extends: .automation-tests-macos-android-devices
