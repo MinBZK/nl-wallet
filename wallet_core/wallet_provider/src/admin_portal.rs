@@ -450,8 +450,9 @@ async fn withdraw_task(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
-    Json(payload): Json<WithdrawTaskRequest>,
+    request: Result<Json<WithdrawTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
+    let Json(payload) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
         .service
         .withdraw_task(task_id, &payload.withdrawal_comment, &user, &state.audit_log)
@@ -465,8 +466,9 @@ async fn review_task(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
-    Json(payload): Json<ReviewTaskRequest>,
+    request: Result<Json<ReviewTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
+    let Json(payload) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
         .service
         .review_task(
