@@ -2003,9 +2003,14 @@ mod tests {
                 Ok(())
             });
         wallet_user_repo
-            .expect_find_wallet_user_ids_by_recovery_code()
+            .expect_find_wallet_user_ids_by_recovery_codes()
             .times(2)
-            .returning(|_, _| Ok(vec![Uuid::new_v4()]));
+            .returning(|_, recovery_codes| {
+                Ok(recovery_codes
+                    .iter()
+                    .map(|code| (code.clone(), vec![Uuid::new_v4()]))
+                    .collect())
+            });
         wallet_user_repo
             .expect_revoke_wallet_users()
             .times(2)

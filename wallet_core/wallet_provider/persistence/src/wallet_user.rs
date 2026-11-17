@@ -496,21 +496,6 @@ where
     find_wallet_user_by_condition(db, wallet_user::Column::RevocationCodeHmac.eq(revocation_code_hmac)).await
 }
 
-pub async fn find_wallet_user_ids_by_recovery_code<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<Vec<Uuid>>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    wallet_user::Entity::find()
-        .select_only()
-        .column(wallet_user::Column::Id)
-        .filter(wallet_user::Column::RecoveryCode.eq(recovery_code.as_ref()))
-        .into_tuple::<Uuid>()
-        .all(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)
-}
-
 /// Returns the wallet user IDs per recovery code. The map contains an entry for every requested recovery code, with an
 /// empty `Vec` for codes without wallet users.
 pub async fn find_wallet_user_ids_by_recovery_codes<S, T>(

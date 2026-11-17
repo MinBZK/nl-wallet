@@ -62,12 +62,6 @@ pub trait WalletUserRepository {
         revocation_code_hmac: &[u8],
     ) -> Result<WalletUserQueryResult>;
 
-    async fn find_wallet_user_ids_by_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        recovery_code: &RecoveryCode,
-    ) -> Result<Vec<Uuid>>;
-
     /// Returns the wallet user IDs per recovery code. The map contains an entry for every requested recovery code, with
     /// an empty `Vec` for codes without wallet users.
     async fn find_wallet_user_ids_by_recovery_codes(
@@ -377,14 +371,6 @@ pub mod mock {
             _revocation_code_hmac: &[u8],
         ) -> Result<WalletUserQueryResult> {
             Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
-        }
-
-        async fn find_wallet_user_ids_by_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _recovery_code: &RecoveryCode,
-        ) -> Result<Vec<Uuid>> {
-            Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
         }
 
         async fn find_wallet_user_ids_by_recovery_codes(

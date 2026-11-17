@@ -250,14 +250,6 @@ impl WalletUserRepository for Repositories {
         wallet_user::find_wallet_user_by_revocation_code(transaction, revocation_code_hmac).await
     }
 
-    async fn find_wallet_user_ids_by_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        recovery_code: &RecoveryCode,
-    ) -> Result<Vec<Uuid>, PersistenceError> {
-        wallet_user::find_wallet_user_ids_by_recovery_code(transaction, recovery_code).await
-    }
-
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn find_wallet_user_ids_by_recovery_codes(
         &self,
@@ -896,12 +888,6 @@ pub mod mock {
                 revocation_code_hmac: &[u8],
             ) -> Result<WalletUserQueryResult, PersistenceError>;
 
-            async fn find_wallet_user_ids_by_recovery_code(
-                &self,
-                transaction: &MockTransaction,
-                recovery_code: &RecoveryCode,
-            ) -> Result<Vec<Uuid>, PersistenceError>;
-
             async fn find_wallet_user_ids_by_recovery_codes(
                 &self,
                 transaction: &MockTransaction,
@@ -1303,14 +1289,6 @@ pub mod mock {
                 recovery_code: None,
                 recovery_code_is_denied: false,
             })))
-        }
-
-        async fn find_wallet_user_ids_by_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _recovery_code: &RecoveryCode,
-        ) -> Result<Vec<Uuid>, PersistenceError> {
-            Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
         }
 
         async fn find_wallet_user_ids_by_recovery_codes(

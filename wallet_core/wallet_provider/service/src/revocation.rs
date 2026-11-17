@@ -147,37 +147,10 @@ where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    let revocation_reason = RevocationReason::AdminRequest;
-    let revocation_date_time = time.generate();
-
-    let tx = user_state.repositories.begin_transaction().await?;
-
-    user_state
-        .repositories
-        .deny_recovery_codes(&tx, &vec_nonempty![recovery_code.to_owned()].into())
-        .await?;
-
-    let wallet_user_ids = user_state
-        .repositories
-        .find_wallet_user_ids_by_recovery_code(&tx, recovery_code)
-        .await?;
-
-    let found_wallet_count = wallet_user_ids.len();
-    let revoked = user_state
-        .repositories
-        .revoke_wallet_users(&tx, wallet_user_ids, revocation_reason, revocation_date_time)
-        .await?;
-
-    // Commit transaction before updating status list
-    tx.commit().await?;
-
-    user_state
-        .wia_status_list
-        .revoke_attestation_batches(revoked.wia_ids)
-        .await
-        .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
-
-    Ok(found_wallet_count)
+    let counts =
+        system_revoke_wallets_by_recovery_code_list(&vec_nonempty![recovery_code.clone()].into(), user_state, time)
+            .await?;
+    Ok(counts[recovery_code])
 }
 
 /// Denies all `recovery_codes` and revokes the wallets that have them, in one transaction, then revokes their WIAs in
