@@ -200,9 +200,9 @@
 <ul>
 <li><p>The <code class="docutils literal notranslate"><span class="pre">pid_attributes</span></code> section of the wallet configuration has a new format. The
 path to an mdoc attribute is now an object with <code class="docutils literal notranslate"><span class="pre">namespace</span></code> and <code class="docutils literal notranslate"><span class="pre">element_name</span></code>
-instead of an array, and the path to an SD-JWT attribute is the name of a
-top-level claim instead of an array. The claim names <code class="docutils literal notranslate"><span class="pre">_sd</span></code> and <code class="docutils literal notranslate"><span class="pre">...</span></code> are
-rejected, as SD-JWT reserves them. For example:</p>
+instead of an array. The SD-JWT attribute paths are still arrays of claim
+names, but are now called <code class="docutils literal notranslate"><span class="pre">login_path</span></code> and <code class="docutils literal notranslate"><span class="pre">recovery_code_path</span></code>. The claim
+names <code class="docutils literal notranslate"><span class="pre">_sd</span></code> and <code class="docutils literal notranslate"><span class="pre">...</span></code> are rejected, as SD-JWT reserves them. For example:</p>
 <div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;pid_attributes&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;mso_mdoc&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="nt">&quot;eu.europa.ec.eudi.pid.1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -211,7 +211,7 @@ rejected, as SD-JWT reserves them. For example:</p>
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">},</span>
 <span class="w">  </span><span class="nt">&quot;sd_jwt&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;login&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;bsn&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;recovery_code&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;recovery_code&quot;</span><span class="w"> </span><span class="p">}</span>
+<span class="w">    </span><span class="nt">&quot;urn:eudi:pid:nl:1&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;login_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;bsn&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;recovery_code_path&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;recovery_code&quot;</span><span class="p">]</span><span class="w"> </span><span class="p">}</span>
 <span class="w">  </span><span class="p">}</span>
 <span class="p">}</span>
 </pre></div>
