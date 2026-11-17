@@ -3227,15 +3227,15 @@ mod tests {
     ) {
         assert_eq!(access_token.as_ref(), "access_token");
 
-        dpop_header
+        let verified_nonce = dpop_header
             .verify_expecting_key(
                 PublicKey::from(*dpop_signing_key.verifying_key()),
                 url,
                 &Method::POST,
                 Some(&"access_token".to_string().into()),
-                Some(dpop_nonce),
             )
             .unwrap();
+        assert_eq!(verified_nonce.as_ref(), Some(dpop_nonce));
     }
 
     fn create_mock_wscd() -> (IssuanceMockRemoteWscd, TrustAnchors) {

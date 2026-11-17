@@ -44,6 +44,14 @@ impl<T> MemoryNonceStore<T>
 where
     T: Generator<DateTime<Utc>>,
 {
+    #[cfg(any(test, feature = "test"))]
+    pub fn new_with_time_generator(time_generator: T) -> Self {
+        Self {
+            nonces: Mutex::new(HashMap::new()),
+            time_generator,
+        }
+    }
+
     fn now(&self) -> DateTime<Utc> {
         self.time_generator.generate()
     }
@@ -129,9 +137,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
     use std::sync::Arc;
-    use std::sync::Mutex;
 
     use chrono::DateTime;
     use futures::FutureExt;
@@ -145,10 +151,7 @@ mod tests {
         let time_generator = MockTimeGenerator::new(DateTime::from_timestamp_secs(1_000_000_000).unwrap());
         let mock_time = Arc::clone(&time_generator.time);
 
-        let store = MemoryNonceStore {
-            nonces: Mutex::new(HashMap::new()),
-            time_generator,
-        };
+        let store = MemoryNonceStore::new_with_time_generator(time_generator);
 
         test_nonce_store(store, mock_time, async |store| store.nonces.lock().unwrap().len())
             .now_or_never()

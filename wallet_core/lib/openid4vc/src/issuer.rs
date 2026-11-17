@@ -247,6 +247,9 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
+    #[error("could not check DPoP nonce against nonce storage: {0}")]
+    DpopNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+
     #[error("could not decrypt credential request: {0}")]
     Decryption(#[source] JweJsonDecryptionError),
 
@@ -351,7 +354,6 @@ pub struct AccessTokenIssued {
     pub access_token: AccessToken,
     pub prepared_credentials: VecNonEmpty<PreparedCredential>,
     pub dpop_public_key: PublicKey,
-    pub dpop_nonce: DpopNonce,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -713,7 +715,7 @@ where
     S: SessionStore<IssuanceData> + Send + Sync,
     N: NonceStore + Send + Sync,
 {
-    /// Removes expired sessions and proof nonces.
+    /// Removes expired sessions and nonces.
     ///
     /// Scheduled by the server via [`start_cleanup_task`](crate::cleanup::start_cleanup_task).
     async fn cleanup(&self) {
@@ -828,10 +830,27 @@ where
     pub async fn generate_nonce(&self) -> Result<Nonce, NonceStoreError<N::Error>> {
         let nonce = Nonce::new_random();
 
-        self.nonce_store.store_nonce(nonce.clone()).await?;
+        self.nonce_store.store_nonce(proof_nonce_storage_key(&nonce)).await?;
 
         Ok(nonce)
     }
+
+    pub async fn generate_dpop_nonce(&self) -> Result<DpopNonce, NonceStoreError<N::Error>> {
+        let nonce = DpopNonce::new_random();
+        self.nonce_store.store_nonce(dpop_nonce_storage_key(&nonce)).await?;
+
+        Ok(nonce)
+    }
+}
+
+/// Namespace both kinds of nonce before storage and lookup, so even a client-supplied value containing a prefix
+/// cannot substitute a DPoP nonce for a proof or client attestation challenge (or vice versa).
+fn proof_nonce_storage_key(nonce: &Nonce) -> Nonce {
+    format!("proof:{nonce}").into()
+}
+
+fn dpop_nonce_storage_key(nonce: &DpopNonce) -> Nonce {
+    format!("dpop:{nonce}").into()
 }
 
 impl<K, L, S, N> Issuer<K, L, S, N> {
@@ -930,7 +949,7 @@ where
         token_request: VciTokenRequest,
         dpop: Dpop,
         wia_disclosure: WiaDisclosure,
-    ) -> Result<(VciTokenResponse, DpopNonce), TokenRequestError> {
+    ) -> Result<VciTokenResponse, TokenRequestError> {
         let session_token = token_request.code().clone().into();
 
         let session = self
@@ -953,7 +972,7 @@ where
             .await;
 
         let (response, next) = match result {
-            Ok((response, dpop_nonce, next)) => (Ok((response, dpop_nonce)), next.into()),
+            Ok((response, next)) => (Ok(response), next.into()),
             Err(boxed) => {
                 let (err, next) = *boxed;
                 (Err(err), next.into())
@@ -1051,8 +1070,9 @@ async fn verify_wia_and_consume_nonce<K, L>(
         .verify_wia(wia_disclosure, client_id)
         .map_err(WiaError::Verification)?;
 
+    let nonce = proof_nonce_storage_key(nonce.as_ref().ok_or(WiaError::MissingChallenge)?);
     let nonce_status = nonce_store
-        .check_nonce_status_and_remove([nonce.as_ref().ok_or(WiaError::MissingChallenge)?])
+        .check_nonce_status_and_remove([&nonce])
         .await
         .map_err(|error| WiaError::ChallengeStore(error.into()))?;
 
@@ -1091,7 +1111,7 @@ fn utc_now_truncated_to_days() -> DateTime<Utc> {
 /// the `openid4vc` layer should persist in its place. The `Err` variant is boxed to keep the size of
 /// the `Result` reasonable.
 type ProcessTokenRequest =
-    Result<(VciTokenResponse, DpopNonce, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
+    Result<(VciTokenResponse, Session<AccessTokenIssued>), Box<(TokenRequestError, Session<Done>)>>;
 
 impl Grant {
     /// Verify that the `grant_type` of the token request matches the grant captured for this session.
@@ -1248,7 +1268,7 @@ impl Session<AuthCodeIssued> {
         server_url: &BaseUrl,
         issuer_data: &IssuerData<K, L>,
         nonce_store: &impl NonceStore,
-    ) -> Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, DpopNonce), TokenRequestError> {
+    ) -> Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey), TokenRequestError> {
         let wia_claims = verify_wia_and_consume_nonce(
             issuer_data,
             nonce_store,
@@ -1288,17 +1308,16 @@ impl Session<AuthCodeIssued> {
     /// variant of the returned [`ProcessTokenRequest`] is boxed for size.
     fn finalize_token_response(
         self,
-        result: Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, DpopNonce), TokenRequestError>,
+        result: Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey), TokenRequestError>,
     ) -> ProcessTokenRequest {
         match result {
-            Ok((token_response, prepared_credentials, dpop_pubkey, dpop_nonce)) => {
+            Ok((token_response, prepared_credentials, dpop_pubkey)) => {
                 let next = self.transition(AccessTokenIssued {
                     access_token: token_response.oauth_response.access_token.clone(),
                     prepared_credentials,
                     dpop_public_key: dpop_pubkey,
-                    dpop_nonce: dpop_nonce.clone(),
                 });
-                Ok((token_response, dpop_nonce, next))
+                Ok((token_response, next))
             }
             Err(err) => {
                 let next = self.transition_fail(&err);
@@ -1309,7 +1328,7 @@ impl Session<AuthCodeIssued> {
 }
 
 /// Verify DPoP, prepare credentials from the supplied (pre-provisioned) issuables, and
-/// generate a fresh access token + DPoP nonce. Shared by the pre-authorized-code and
+/// generate a fresh access token. Shared by the pre-authorized-code and
 /// authorization-code token-request paths.
 fn build_token_response<K, L>(
     token_request_auth_code: &AuthorizationCode,
@@ -1317,7 +1336,7 @@ fn build_token_response<K, L>(
     server_url: &BaseUrl,
     credential_ids_and_documents: VecNonEmpty<(CredentialConfigurationId, IssuableDocument)>,
     issuer_data: &IssuerData<K, L>,
-) -> Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey, DpopNonce), TokenRequestError> {
+) -> Result<(VciTokenResponse, VecNonEmpty<PreparedCredential>, PublicKey), TokenRequestError> {
     let dpop_public_key = dpop
         .verify(&server_url.join("token"), &Method::POST, None)
         .map_err(|err| TokenRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
@@ -1340,8 +1359,6 @@ fn build_token_response<K, L>(
         })
         .collect::<Result<_, _>>()?;
 
-    let dpop_nonce = DpopNonce::new_random();
-
     // Note that, in the Authorization Code flow, we assume that the implementer of `AuthorizationCodeFlow` provides all
     // of the credentials that are identified by the scopes that the wallet includes in the Authorization Request.
     // Therefore we do not need to include a `scope` value in the Token Response, as the scope that the wallet requested
@@ -1352,7 +1369,7 @@ fn build_token_response<K, L>(
     let token_response =
         VciTokenResponse::new_vci(AccessToken::new(token_request_auth_code), Some(authorization_details));
 
-    Ok((token_response, prepared_credentials, dpop_public_key, dpop_nonce))
+    Ok((token_response, prepared_credentials, dpop_public_key))
 }
 
 impl From<Session<AccessTokenIssued>> for SessionState<IssuanceData> {
@@ -1383,11 +1400,12 @@ impl TryFrom<SessionState<IssuanceData>> for Session<AccessTokenIssued> {
 }
 
 impl Session<AccessTokenIssued> {
-    pub fn check_credential_endpoint_access(
+    pub async fn check_credential_endpoint_access(
         &self,
         access_token: &AccessToken,
         dpop: Dpop,
         endpoint: &Url,
+        nonce_store: &impl NonceStore,
     ) -> Result<(), CredentialRequestError> {
         let session_data = self.session_data();
 
@@ -1397,14 +1415,30 @@ impl Session<AccessTokenIssued> {
         }
 
         // Check that the DPoP is valid and its key matches the one from the Token Request
-        dpop.verify_expecting_key(
-            session_data.dpop_public_key.to_owned(),
-            endpoint,
-            &Method::POST,
-            Some(access_token),
-            Some(&session_data.dpop_nonce),
-        )
-        .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?;
+        let nonce = dpop
+            .verify_expecting_key(
+                session_data.dpop_public_key.to_owned(),
+                endpoint,
+                &Method::POST,
+                Some(access_token),
+            )
+            .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?
+            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(
+                DpopError::IncorrectNonce,
+            )))?;
+
+        // Only consume the nonce after verifying the proof and its binding to this access token. The store checks
+        // expiry and removes it atomically, so concurrent requests cannot reuse the same nonce.
+        let nonce_status = nonce_store
+            .check_nonce_status_and_remove([&dpop_nonce_storage_key(&nonce)])
+            .await
+            .map_err(|error| CredentialRequestError::DpopNonceStore(Box::new(error)))?;
+
+        if !matches!(nonce_status, NonceStatus::AllValid) {
+            return Err(CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(
+                DpopError::IncorrectNonce,
+            )));
+        }
 
         Ok(())
     }
@@ -1430,7 +1464,9 @@ impl Session<AccessTokenIssued> {
             access_token,
             dpop,
             issuer_data.metadata.endpoints.credential_endpoint.as_url(),
-        )?;
+            nonce_store,
+        )
+        .await?;
 
         let session_data = self.session_data();
 
@@ -1577,7 +1613,7 @@ impl CredentialRequest {
 
         // Verify that the used nonce is valid.
         let nonce_status = nonce_store
-            .check_nonce_status_and_remove(std::iter::once(&nonce))
+            .check_nonce_status_and_remove([&proof_nonce_storage_key(&nonce)])
             .await
             .map_err(|error| CredentialRequestError::ProofNonceStore(Box::new(error)))?;
 
@@ -1754,6 +1790,7 @@ mod tests {
     use mdoc::verifier::ValidityRequirement;
     use oauth::dpop::Dpop;
     use oauth::errors::ErrorResponse;
+    use oauth::errors::ErrorWithCode;
     use oauth::errors::RemoteErrorCode;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::token::AccessToken;
@@ -1784,6 +1821,7 @@ mod tests {
     use crate::issuable_document::IssuableDocument;
     use crate::metadata::issuer_metadata::CredentialMetadata;
     use crate::metadata::issuer_metadata::IssuerInfo;
+    use crate::nonce::memory_store::MemoryNonceStore;
     use crate::nonce::response::NonceResponse;
     use crate::preview::CredentialPreviewResponse;
     use crate::server_state::MemorySessionStore;
@@ -2067,7 +2105,7 @@ mod tests {
             wia: &WiaDisclosure,
         ) -> Result<(VciTokenResponse, Option<DpopNonce>), WalletIssuanceError> {
             let wia = self.wia_override.as_ref().unwrap_or(wia);
-            let (token_response, dpop_nonce) = self
+            let token_response = self
                 .issuer
                 .process_token_request(token_request.clone(), dpop_header.clone(), wia.clone())
                 .await
@@ -2076,7 +2114,7 @@ mod tests {
 
                     WalletIssuanceError::VciTokenRequest(Box::new(error_response.into()))
                 })?;
-            Ok((token_response, Some(dpop_nonce)))
+            Ok((token_response, None))
         }
 
         async fn request_challenge(&self, _url: Url) -> Result<Nonce, WalletIssuanceError> {
@@ -2105,7 +2143,8 @@ mod tests {
 
         async fn request_nonce(&self, _url: Url) -> Result<(NonceResponse, Option<DpopNonce>), WalletIssuanceError> {
             let c_nonce = self.issuer.generate_nonce().await.unwrap();
-            Ok((NonceResponse { c_nonce }, None))
+            let dpop_nonce = self.issuer.generate_dpop_nonce().await.unwrap();
+            Ok((NonceResponse { c_nonce }, Some(dpop_nonce)))
         }
 
         async fn request_credential<'a>(
@@ -2475,7 +2514,7 @@ mod tests {
         assert_matches!(
             result,
             WalletIssuanceError::CredentialRequest(err)
-                if matches!(err.error, RemoteErrorCode::Known(CredentialErrorCode::InvalidCredentialRequest))
+                if matches!(err.error, RemoteErrorCode::Known(CredentialErrorCode::InvalidDpopProof))
         );
     }
 
@@ -2483,10 +2522,13 @@ mod tests {
     enum CredentialRequestFailure {
         None,
         WrongDpopNonce,
+        MissingDpopNonce,
+        ProofNonceAsDpopNonce,
         IncorrectPreparedCredentialFormat,
         SingleProofKey,
         MissingProofNonce,
         UnknownProofNonce,
+        DpopNonceAsProofNonce,
         CredentialConfigurationId,
         UnknownCredentialIdentifier,
         DeflateCompression,
@@ -2515,19 +2557,29 @@ mod tests {
 
         let dpop_private_key = SigningKey::generate();
         let dpop_public_key = (*dpop_private_key.verifying_key()).into();
-        let dpop_nonce = DpopNonce::new_random();
+        let dpop_nonce = issuer.generate_dpop_nonce().now_or_never().unwrap().unwrap();
 
-        let request_dpop_nonce = if failure == CredentialRequestFailure::WrongDpopNonce {
-            DpopNonce::new_random()
-        } else {
-            dpop_nonce.clone()
+        let request_dpop_nonce = match failure {
+            CredentialRequestFailure::WrongDpopNonce => Some(DpopNonce::new_random()),
+            CredentialRequestFailure::MissingDpopNonce => None,
+            CredentialRequestFailure::ProofNonceAsDpopNonce => Some(
+                issuer
+                    .generate_nonce()
+                    .now_or_never()
+                    .unwrap()
+                    .unwrap()
+                    .as_ref()
+                    .parse()
+                    .unwrap(),
+            ),
+            _ => Some(dpop_nonce),
         };
         let dpop = Dpop::new(
             &dpop_private_key,
             issuer.issuer_data.server_url.join(CREDENTIAL_ENDPOINT_PATH),
             &Method::POST,
             Some(&access_token),
-            Some(request_dpop_nonce),
+            request_dpop_nonce,
         )
         .unwrap();
 
@@ -2546,6 +2598,9 @@ mod tests {
             None
         } else if failure == CredentialRequestFailure::UnknownProofNonce {
             Some("unknown_nonce".to_string().into())
+        } else if failure == CredentialRequestFailure::DpopNonceAsProofNonce {
+            let nonce = issuer.generate_dpop_nonce().now_or_never().unwrap().unwrap();
+            Some(dpop_nonce_storage_key(&nonce))
         } else {
             Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
         };
@@ -2632,7 +2687,6 @@ mod tests {
             access_token: access_token.clone(),
             prepared_credentials: vec_nonempty![prepared_credential],
             dpop_public_key,
-            dpop_nonce,
         };
 
         let data = IssuanceData::AccessTokenIssued(Box::new(access_token_issued));
@@ -2818,14 +2872,14 @@ mod tests {
         assert_matches!(error, CredentialRequestError::Unauthorized);
     }
 
+    #[rstest]
+    #[case(CredentialRequestFailure::WrongDpopNonce)]
+    #[case(CredentialRequestFailure::MissingDpopNonce)]
+    #[case(CredentialRequestFailure::ProofNonceAsDpopNonce)]
     #[tokio::test]
-    async fn test_process_credential_request_error_dpop_invalid() {
+    async fn test_process_credential_request_error_dpop_invalid(#[case] failure: CredentialRequestFailure) {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
-            setup_mock_issuer_and_credential_request(
-                Format::SdJwt,
-                NonZeroUsize::MIN,
-                CredentialRequestFailure::WrongDpopNonce,
-            );
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, failure);
 
         // Processing a Credential Request with an incorrect DPoP should result in an error.
         let error = issuer
@@ -2833,9 +2887,133 @@ mod tests {
             .await
             .expect_err("processing CredentialRequest should fail");
 
+        assert_eq!(error.error_code(), CredentialErrorCode::InvalidDpopProof);
         assert_matches!(
             error,
-            CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(_))
+            CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::IncorrectNonce))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_process_credential_request_rejects_replayed_dpop_nonce() {
+        let (issuer, _, access_token, dpop, _, credential_request) =
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
+        let time = MockTimeGenerator::default();
+        issuer
+            .process_credential_request(&access_token, dpop.clone(), &credential_request, &time)
+            .await
+            .unwrap();
+
+        let error = issuer
+            .process_credential_request(&access_token, dpop, &credential_request, &time)
+            .await
+            .unwrap_err();
+        assert_matches!(
+            error,
+            CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::IncorrectNonce))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_process_credential_request_consumes_dpop_nonce_once_concurrently() {
+        let (issuer, _, access_token, dpop, _, credential_request) =
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
+        let time = MockTimeGenerator::default();
+        let (first, second) = tokio::join!(
+            issuer.process_credential_request(&access_token, dpop.clone(), &credential_request, &time),
+            issuer.process_credential_request(&access_token, dpop, &credential_request, &time),
+        );
+        let (successes, errors): (Vec<_>, Vec<_>) = [first, second].into_iter().partition(Result::is_ok);
+        assert_eq!(successes.len(), 1);
+        assert_matches!(
+            errors.into_iter().next().unwrap().unwrap_err(),
+            CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::IncorrectNonce))
+        );
+    }
+
+    #[rstest]
+    #[case(300, true)]
+    #[case(301, false)]
+    #[tokio::test]
+    async fn test_credential_endpoint_dpop_nonce_expiry(#[case] age_seconds: u64, #[case] valid: bool) {
+        let (issuer, _, access_token, dpop, _, _) =
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
+        let session = issuer.get_session(access_token.code().unwrap()).await.unwrap();
+        let endpoint = issuer.issuer_data.metadata.endpoints.credential_endpoint.as_url();
+        let nonce = dpop
+            .clone()
+            .verify_expecting_key(
+                session.session_data().dpop_public_key.clone(),
+                endpoint,
+                &Method::POST,
+                Some(&access_token),
+            )
+            .unwrap()
+            .unwrap();
+
+        let time = MockTimeGenerator::default();
+        let store = MemoryNonceStore::new_with_time_generator(time.clone());
+        store.store_nonce(dpop_nonce_storage_key(&nonce)).await.unwrap();
+        *time.time.write() += Duration::from_secs(age_seconds);
+
+        let result = session
+            .check_credential_endpoint_access(&access_token, dpop, endpoint, &store)
+            .await;
+        if valid {
+            result.unwrap();
+        } else {
+            assert_matches!(
+                result.unwrap_err(),
+                CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::IncorrectNonce))
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_invalid_dpop_key_does_not_consume_nonce() {
+        let (issuer, _, access_token, dpop, _, _) =
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, CredentialRequestFailure::None);
+        let mut session = issuer.get_session(access_token.code().unwrap()).await.unwrap();
+        let endpoint = issuer.issuer_data.metadata.endpoints.credential_endpoint.as_url();
+        let expected_key = session.state.data.dpop_public_key.clone();
+        session.state.data.dpop_public_key = (*SigningKey::generate().verifying_key()).into();
+
+        let error = session
+            .check_credential_endpoint_access(&access_token, dpop.clone(), endpoint, issuer.nonce_store.as_ref())
+            .await
+            .unwrap_err();
+        assert_matches!(
+            error,
+            CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::InvalidJwt(_)))
+        );
+
+        session.state.data.dpop_public_key = expected_key;
+        session
+            .check_credential_endpoint_access(&access_token, dpop, endpoint, issuer.nonce_store.as_ref())
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_dpop_nonce_cannot_be_used_as_proof_nonce() {
+        let (issuer, _, _, _) = setup_simple_mock_issuer();
+        let nonce = issuer.generate_dpop_nonce().await.unwrap();
+        let proof_nonce = Nonce::from(nonce.to_string());
+        assert_matches!(
+            issuer
+                .nonce_store
+                .check_nonce_status_and_remove([&proof_nonce_storage_key(&proof_nonce)])
+                .await
+                .unwrap(),
+            NonceStatus::AtLeastOneAbsentOrExpired
+        );
+        assert_matches!(
+            issuer
+                .nonce_store
+                .check_nonce_status_and_remove([&dpop_nonce_storage_key(&nonce)])
+                .await
+                .unwrap(),
+            NonceStatus::AllValid
         );
     }
 
@@ -2920,16 +3098,15 @@ mod tests {
         assert_matches!(error, CredentialRequestError::MissingProofNonce);
     }
 
+    #[rstest]
+    #[case(CredentialRequestFailure::UnknownProofNonce)]
+    #[case(CredentialRequestFailure::DpopNonceAsProofNonce)]
     #[tokio::test]
-    async fn test_process_credential_request_error_invalid_nonce() {
+    async fn test_process_credential_request_error_invalid_nonce(#[case] failure: CredentialRequestFailure) {
         let (issuer, _trust_anchors, access_token, dpop, _holder_public_keys, credential_request) =
-            setup_mock_issuer_and_credential_request(
-                Format::SdJwt,
-                NonZeroUsize::MIN,
-                CredentialRequestFailure::UnknownProofNonce,
-            );
+            setup_mock_issuer_and_credential_request(Format::SdJwt, NonZeroUsize::MIN, failure);
 
-        // Processing a Credential Request with a proof JWT that contains an unknown nonce should result in an error.
+        // A credential proof must use an unused proof nonce, including when another kind of nonce exists in storage.
         let error = issuer
             .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
             .await

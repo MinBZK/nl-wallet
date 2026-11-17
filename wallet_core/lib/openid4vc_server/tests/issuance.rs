@@ -33,7 +33,9 @@ use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
 use oauth::dpop::Dpop;
+use oauth::dpop::DpopNonce;
 use oauth::errors::AuthorizationErrorCode;
+use oauth::errors::ErrorResponse;
 use oauth::errors::RemoteErrorCode;
 use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::pkce::PkcePair;
@@ -48,6 +50,7 @@ use openid4vc::credential::CredentialResponse;
 use openid4vc::credential::Credentials;
 use openid4vc::credential_configurations::CredentialConfigurationFormat;
 use openid4vc::credential_offer::CredentialOfferContainer;
+use openid4vc::errors::CredentialErrorCode;
 use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuable_document::IssuableDocument;
 use openid4vc::issuer::AuthRequestValues;
@@ -1587,6 +1590,61 @@ async fn token_rejects_differing_redirect_uri() {
     assert!(body.contains("invalid_request"), "unexpected body: {body}");
 }
 
+async fn request_issuance_nonces(http_client: &reqwest::Client, nonce_url: &Url) -> (NonceResponse, DpopNonce) {
+    let response = http_client
+        .post(nonce_url.clone())
+        .send()
+        .await
+        .unwrap()
+        .error_for_status()
+        .unwrap();
+    assert_eq!(response.headers().get(header::CACHE_CONTROL).unwrap(), "no-store");
+    let dpop_nonce: DpopNonce = response
+        .headers()
+        .get(DPOP_NONCE_HEADER_NAME)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    let nonce_response = response.json::<NonceResponse>().await.unwrap();
+    assert_ne!(nonce_response.c_nonce.as_ref(), dpop_nonce.as_ref());
+    (nonce_response, dpop_nonce)
+}
+
+async fn assert_invalid_dpop_response(response: reqwest::Response) {
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        response.headers().get(header::WWW_AUTHENTICATE).unwrap(),
+        "DPoP error=\"invalid_dpop_proof\", algs=\"ES256\""
+    );
+    assert_eq!(
+        response
+            .json::<ErrorResponse<CredentialErrorCode>>()
+            .await
+            .unwrap()
+            .error,
+        CredentialErrorCode::InvalidDpopProof
+    );
+}
+
+#[tokio::test]
+async fn nonce_endpoint_returns_fresh_nonces_without_a_session() {
+    let PreAuthCodeFlowServer {
+        issuer,
+        tls_trust_anchor,
+        ..
+    } = start_pre_authorized_code_flow_server(NonZeroUsize::MIN).await;
+    let client = tls_reqwest_client_builder([tls_trust_anchor.into_certificate()])
+        .build()
+        .unwrap();
+    let url = issuer.metadata().endpoints.nonce_endpoint.as_ref().unwrap().as_url();
+    let (first, first_dpop) = request_issuance_nonces(&client, url).await;
+    let (second, second_dpop) = request_issuance_nonces(&client, url).await;
+    assert_ne!(first.c_nonce, second.c_nonce);
+    assert_ne!(first_dpop, second_dpop);
+}
+
 #[tokio::test]
 async fn pre_authorized_code_flow_credential_request() {
     // Prepare an issuer with a new Pre-Authorized Code flow.
@@ -1614,7 +1672,7 @@ async fn pre_authorized_code_flow_credential_request() {
     .await
     .unwrap();
 
-    // Build the TokenRequest and send it to the issuer to get the TokenResponse and DPoP nonce.
+    // Build the TokenRequest and send it to the issuer to get the TokenResponse.
     let wia = MockWiaClient::from_ca(&wptl_ca)
         .issue_wia(issuer.issuer_identifier().to_string(), Some(challenge))
         .await
@@ -1653,28 +1711,13 @@ async fn pre_authorized_code_flow_credential_request() {
         .error_for_status()
         .unwrap();
 
-    let dpop_nonce = response
-        .headers()
-        .get(DPOP_NONCE_HEADER_NAME)
-        .unwrap()
-        .to_str()
-        .unwrap()
-        .to_string();
+    assert!(!response.headers().contains_key(DPOP_NONCE_HEADER_NAME));
     let token_response = response.json::<VciTokenResponse>().await.unwrap();
 
     // Retrieve a fresh nonce from the issuer.
     let nonce_url = format!("{base}issuance/nonce",).parse::<Url>().unwrap();
 
-    let nonce_response = http_client
-        .post(nonce_url.clone())
-        .send()
-        .await
-        .unwrap()
-        .error_for_status()
-        .unwrap()
-        .json::<NonceResponse>()
-        .await
-        .unwrap();
+    let (nonce_response, dpop_nonce) = request_issuance_nonces(&http_client, &nonce_url).await;
 
     // Use the proof nonce to build a CredentialRequest and send it to the issuer to have a single credential issued.
     let credential_id = token_response
@@ -1725,7 +1768,7 @@ async fn pre_authorized_code_flow_credential_request() {
         credential_url.clone(),
         &Method::POST,
         Some(&token_response.oauth_response.access_token),
-        Some(dpop_nonce.parse().unwrap()),
+        Some(dpop_nonce.clone()),
     )
     .unwrap()
     .to_string();
@@ -1750,6 +1793,33 @@ async fn pre_authorized_code_flow_credential_request() {
         "unexpected body: {body}"
     );
 
+    // The DPoP nonce is consumed even when the authenticated request subsequently fails decryption.
+    let response = http_client
+        .post(credential_url.clone())
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
+        .header(DPOP_HEADER_NAME, dpop_header)
+        .header(CONTENT_TYPE, APPLICATION_JWT)
+        .body(credential_request_jwe.clone())
+        .send()
+        .await
+        .unwrap();
+    assert_invalid_dpop_response(response).await;
+
+    let (_, fresh_dpop_nonce) = request_issuance_nonces(&http_client, &nonce_url).await;
+    assert_ne!(dpop_nonce, fresh_dpop_nonce);
+    let dpop_header = Dpop::new(
+        &dpop_key,
+        credential_url.clone(),
+        &Method::POST,
+        Some(&token_response.oauth_response.access_token),
+        Some(fresh_dpop_nonce),
+    )
+    .unwrap()
+    .to_string();
+
     // Sending an encrypted Credential Request should succeed and result in issued credentials.
     let credential_response = http_client
         .post(credential_url.clone())
@@ -1757,9 +1827,9 @@ async fn pre_authorized_code_flow_credential_request() {
             AUTHORIZATION,
             format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
         )
-        .header(DPOP_HEADER_NAME, dpop_header)
+        .header(DPOP_HEADER_NAME, dpop_header.clone())
         .header(CONTENT_TYPE, HeaderValue::from_static(APPLICATION_JWT))
-        .body(credential_request_jwe)
+        .body(credential_request_jwe.clone())
         .send()
         .await
         .expect("sending credential request to issuer should succeed")
@@ -1778,18 +1848,24 @@ async fn pre_authorized_code_flow_credential_request() {
 
     assert_eq!(sd_jwt_credentials.len().get(), 1);
 
-    // Retrieving a fresh nonce and trying to request the same credential a second should result in a 400 HTTP status
-    // code and "credential_request_denied" error code.
-    let nonce_response = http_client
-        .post(nonce_url.clone())
+    // Replaying a successful request is rejected as an invalid DPoP proof, before its credential proof is processed.
+    let response = http_client
+        .post(credential_url.clone())
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
+        .header(DPOP_HEADER_NAME, dpop_header)
+        .header(CONTENT_TYPE, APPLICATION_JWT)
+        .body(credential_request_jwe)
         .send()
         .await
-        .unwrap()
-        .error_for_status()
-        .unwrap()
-        .json::<NonceResponse>()
-        .await
         .unwrap();
+    assert_invalid_dpop_response(response).await;
+
+    // Retrieving a fresh nonce and trying to request the same credential a second should result in a 400 HTTP status
+    // code and "credential_request_denied" error code.
+    let (nonce_response, dpop_nonce) = request_issuance_nonces(&http_client, &nonce_url).await;
     let key_attestation = wscd.sign_key_attestation(
         vec_nonempty![*SigningKey::generate().verifying_key()],
         Some(nonce_response.c_nonce),
@@ -1808,7 +1884,7 @@ async fn pre_authorized_code_flow_credential_request() {
         credential_url.clone(),
         &Method::POST,
         Some(&token_response.oauth_response.access_token),
-        Some(dpop_nonce.parse().unwrap()),
+        Some(dpop_nonce),
     )
     .unwrap()
     .to_string();
