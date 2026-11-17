@@ -200,6 +200,13 @@ class TypedWalletCore {
     runnable: () => core.acceptPidIssuance(pin: pin),
   );
 
+  /// Store the PID that was issued by [issueCredentialsForReview]
+  Future<core.PidIssuanceResult> commitIssuedPid(String pin) => _callWithFlowBreadcrumb(
+    'pid_issuance.commit_issued',
+    failureCode: 'pid_issuance.fail.commit_issued',
+    runnable: () => core.commitIssuedPid(pin: pin),
+  );
+
   Future<core.StartDisclosureResult> startDisclosure(
     String uri, {
     bool isQrCode = false,

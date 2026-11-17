@@ -413,6 +413,11 @@ void main() {
       await typedWalletCore.acceptPidIssuance(_kSamplePin);
       verify(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).called(1);
     });
+
+    test('commitIssuedPid is passed on to core', () async {
+      await typedWalletCore.commitIssuedPid(_kSamplePin);
+      verify(core.crateApiFullCommitIssuedPid(pin: _kSamplePin)).called(1);
+    });
   });
 
   group('disclosure', () {
@@ -749,6 +754,11 @@ void main() {
     test('acceptPidIssuance', () async {
       when(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).thenThrow(ffiException);
       expect(() => typedWalletCore.acceptPidIssuance(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('commitIssuedPid', () async {
+      when(core.crateApiFullCommitIssuedPid(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.commitIssuedPid(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('getRegistrationRevocationCode', () async {

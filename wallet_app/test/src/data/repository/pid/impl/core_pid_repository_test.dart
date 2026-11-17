@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/pid/core/core_pid_repository.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
+import 'package:wallet/src/domain/model/issuance/continue_pid_issuance_result.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/card_attribute_value_mapper.dart';
 import 'package:wallet/src/util/mapper/card/attribute/claim_display_metadata_mapper.dart';
@@ -63,8 +64,58 @@ void main() {
 
       when(core.continueIssuance(mockContinueUri))
           .thenAnswer((realInvocation) async => IssuanceContinueResult.previews([testAttestation]));
-      expect(await pidRepository.continuePidIssuance(mockContinueUri), expectedAttributes);
+      expect(
+        await pidRepository.continuePidIssuance(mockContinueUri),
+        ContinuePidIssuanceResult.previews(expectedAttributes),
+      );
       verify(core.continueIssuance(mockContinueUri));
+    });
+
+    test('continue pid issuance without previews is returned as such', () async {
+      when(core.continueIssuance('uri')).thenAnswer(
+        (_) async => IssuanceContinueResult.noPreviews(issuer: CoreMockData.organization),
+      );
+
+      expect(await pidRepository.continuePidIssuance('uri'), const ContinuePidIssuanceResult.noPreviews());
+    });
+
+    test('issue pid for review should be propagated to the core and map the attributes', () async {
+      const samplePin = '000000';
+      when(core.issueCredentialsForReview(samplePin)).thenAnswer((_) async => const IssueCredentialsResult.ok([]));
+
+      expect(await pidRepository.issuePidForReview(samplePin), isEmpty);
+      verify(core.issueCredentialsForReview(samplePin));
+    });
+
+    test('issue pid for review should propagate instruction errors from the core', () async {
+      const samplePin = '000000';
+      when(core.issueCredentialsForReview(samplePin)).thenAnswer(
+        (_) async => const IssueCredentialsResult.instructionError(
+          error: WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
+        ),
+      );
+
+      expect(() async => pidRepository.issuePidForReview(samplePin), throwsA(isA<WalletInstructionError>()));
+    });
+
+    test('commit issued pid should be propagated to the core and return the transfer state', () async {
+      const samplePin = '000000';
+      when(core.commitIssuedPid(samplePin))
+          .thenAnswer((_) async => const PidIssuanceResult.ok(transferAvailable: true));
+
+      expect(await pidRepository.commitIssuedPid(samplePin), TransferState.available);
+      verify(core.commitIssuedPid(samplePin));
+    });
+
+    test('commit issued pid should propagate instruction errors from the core', () async {
+      const samplePin = '000000';
+      when(core.commitIssuedPid(samplePin)).thenAnswer(
+        (_) async => const PidIssuanceResult_InstructionError(
+          error: WalletInstructionError.incorrectPin(attemptsLeftInRound: 3, isFinalRound: false),
+        ),
+      );
+
+      expect(() async => pidRepository.commitIssuedPid(samplePin), throwsA(isA<WalletInstructionError>()));
     });
 
     test('accept offered pid should be propagated to the core', () async {

@@ -59,25 +59,40 @@ class RenewPidStopped extends RenewPidState {
   const RenewPidStopped();
 }
 
+/// Asks for the PIN to retrieve the PID from an issuer that does not provide previews.
+class RenewPidConfirmPinToRetrieve extends RenewPidState {
+  const RenewPidConfirmPinToRetrieve();
+
+  @override
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kRenewPidSteps);
+}
+
 class RenewPidCheckData extends RenewPidState {
   final List<Attribute> availableAttributes;
   @override
   final bool didGoBack;
 
-  const RenewPidCheckData({required this.availableAttributes, this.didGoBack = false});
+  /// True when [availableAttributes] are of the issued PID instead of a preview, in which case the PID is only added
+  /// to the wallet after the user accepts it and confirms with their PIN again.
+  final bool issuedForReview;
+
+  const RenewPidCheckData({required this.availableAttributes, this.didGoBack = false, this.issuedForReview = false});
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kRenewPidSteps);
 
   @override
-  List<Object?> get props => [availableAttributes, ...super.props];
+  List<Object?> get props => [availableAttributes, issuedForReview, ...super.props];
 }
 
 class RenewPidConfirmPin extends RenewPidState {
   /// Used to return to [RenewPidCheckData] when user presses back
   final List<Attribute> attributes;
 
-  const RenewPidConfirmPin(this.attributes);
+  /// True when the PID was already issued for review, so confirming with the PIN commits it to the wallet.
+  final bool issuedForReview;
+
+  const RenewPidConfirmPin(this.attributes, {this.issuedForReview = false});
 
   @override
   FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kRenewPidSteps);
@@ -86,7 +101,7 @@ class RenewPidConfirmPin extends RenewPidState {
   bool get canGoBack => true;
 
   @override
-  List<Object?> get props => [attributes, ...super.props];
+  List<Object?> get props => [attributes, issuedForReview, ...super.props];
 }
 
 class RenewPidUpdatingCards extends RenewPidState {

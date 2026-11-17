@@ -17,6 +17,8 @@ import 'package:wallet/src/domain/model/event/wallet_events_page.dart';
 import 'package:wallet/src/domain/model/help/help_category.dart';
 import 'package:wallet/src/domain/model/help/topic_block.dart';
 import 'package:wallet/src/domain/model/issuance/continue_issuance_result.dart';
+import 'package:wallet/src/domain/model/issuance/continue_pid_issuance_result.dart';
+import 'package:wallet/src/domain/model/issuance/disclose_for_issuance_result.dart';
 import 'package:wallet/src/domain/model/issuance/start_issuance_result.dart' as domain;
 import 'package:wallet/src/domain/model/navigation/navigation_request.dart';
 import 'package:wallet/src/domain/model/notification/app_notification.dart';
@@ -83,6 +85,10 @@ void _setupMockitoDummies() {
 
   // Core issuance result dummies
   provideDummy<core.IssuanceContinueResult>(const core.IssuanceContinueResult.previews([]));
+
+  // Domain issuance result dummies
+  provideDummy<ContinuePidIssuanceResult>(const ContinuePidIssuanceResult.noPreviews());
+  provideDummy<DiscloseForIssuanceResult>(const DiscloseForIssuanceResult.previews([]));
 
   // Disclosure-related dummies
   provideDummy<StartDisclosureResult>(
@@ -173,6 +179,8 @@ void _setupMockitoDummies() {
   provideDummy<Result<List<WalletEvent>>>(const Result.success([]));
   provideDummy<Result<WalletEventsPage>>(Result.success(WalletEventsPage(pages: SplayTreeMap(), hasNextPage: false)));
   provideDummy<Result<List<Attribute>>>(const Result.success([]));
+  provideDummy<Result<ContinuePidIssuanceResult>>(const Result.success(ContinuePidIssuanceResult.noPreviews()));
+  provideDummy<Result<DiscloseForIssuanceResult>>(const Result.success(DiscloseForIssuanceResult.previews([])));
   provideDummy<Result<List<WalletCard>>>(const Result.success([]));
   provideDummy<Result<List<TourVideo>>>(const Result.success([]));
   provideDummy<Result<List<HelpCategory>>>(const Result.success([]));

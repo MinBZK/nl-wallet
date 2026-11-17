@@ -36,6 +36,16 @@ class WalletPersonalizeLoginWithDigidSucceeded extends WalletPersonalizeEvent {
   List<Object?> get props => [previewAttributes, ...super.props];
 }
 
+/// The PID was retrieved, after entering the PIN, from an issuer that does not provide previews.
+class WalletPersonalizePidRetrieved extends WalletPersonalizeEvent {
+  final List<Attribute> attributes;
+
+  const WalletPersonalizePidRetrieved(this.attributes);
+
+  @override
+  List<Object?> get props => [attributes, ...super.props];
+}
+
 class WalletPersonalizeLoginWithDigidFailed extends WalletPersonalizeEvent {
   final ApplicationError error;
 
