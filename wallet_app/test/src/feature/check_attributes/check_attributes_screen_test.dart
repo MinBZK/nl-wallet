@@ -1,6 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/feature/check_attributes/bloc/check_attributes_bloc.dart';
 import 'package:wallet/src/feature/check_attributes/check_attributes_screen.dart';

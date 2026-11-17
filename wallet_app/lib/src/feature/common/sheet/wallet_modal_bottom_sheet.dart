@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Shows a modal bottom sheet whose scrim still dismisses on tap, but is hidden from assistive technology,
 /// which would otherwise expose it as a meaningless "Scrim" node (also without a screen reader). See PVW-6339.

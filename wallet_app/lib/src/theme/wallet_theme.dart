@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'base_wallet_theme.dart';
 import 'dark_wallet_theme.dart';

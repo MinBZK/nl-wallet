@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:after_layout/after_layout.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../../util/extension/num_extensions.dart';

@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/feature/common/widget/utility/max_brightness.dart';
 
 import '../../../../../wallet_app_test_widget.dart';

@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:fimber/fimber.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:local_auth/local_auth.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 import 'package:wallet_mock/mock.dart' as mock;

@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/util/extension/localized_text_extension.dart';
 import 'package:wallet/src/util/formatter/wallet_event_title_formatter.dart';
 

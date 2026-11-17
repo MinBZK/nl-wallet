@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 

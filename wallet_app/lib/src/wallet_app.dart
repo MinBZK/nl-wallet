@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import 'data/store/impl/active_localization_delegate.dart';
@@ -20,7 +20,8 @@ class WalletApp extends StatelessWidget {
       builder: (context, locale) {
         return MaterialApp(
           localizationsDelegates: [
-            ...AppLocalizations.localizationsDelegates,
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
             context.read<ActiveLocalizationDelegate>(),
           ],
           supportedLocales: AppLocalizations.supportedLocales,

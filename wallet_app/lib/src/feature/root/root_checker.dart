@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:root_jailbreak_sniffer/rjsniffer.dart';
 
 import '../common/widget/minimal_wallet_app.dart';

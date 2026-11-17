@@ -1,6 +1,6 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/tour/tour_video.dart';
 import 'package:wallet/src/feature/tour/overview/bloc/tour_overview_bloc.dart';
