@@ -15,7 +15,14 @@ migration binaries, and `gba_hc_converter` opt out via
 full inventory; dependencies also required by a production root remain in the
 production inventory.
 
-The production inventory still includes Dart development dependencies.
+For Flutter, `dart_production.py` follows `directDependencies` from the `wallet`
+package in `flutter pub deps --json`. It retains runtime dependencies transitively,
+including local workspace packages and packages also used by development tools.
+Development-only packages and unrelated workspace packages are excluded from the
+production inventory. All Dart dependencies remain in the full inventory. A
+missing runtime package or version mismatch fails generation instead of silently
+omitting a dependency.
+
 Swift Package Manager dependencies are not collected.
 
 Run from the repository root with a new or empty output directory:
