@@ -48,6 +48,9 @@ where
     Ok(())
 }
 
+/// Checks whether a recovery_code is denied.
+/// Adds an explicit allow row in the table is it doesn't yet exists, and locks the row, whereas `find_is_denied` does
+/// not lock the row and does not insert a row.
 pub async fn is_denied<S, T>(db: &T, recovery_code: RecoveryCode) -> Result<bool, PersistenceError>
 where
     S: ConnectionTrait,

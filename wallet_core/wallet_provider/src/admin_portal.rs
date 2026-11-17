@@ -618,6 +618,10 @@ pub struct CheckRecoveryCodeRequest {
     pub recovery_code: RecoveryCode,
 }
 
+/// Check the status of a `[RecoveryCode]`, and return associated wallet counts.
+/// This is implemented as a POST endpoint because a `[RecoveryCode]` is a free-form string, which is unsafe to encode
+/// in a GET URL query parameters. Ideally we would use the recently proposed HTTP QUERY method, but that is not yet
+/// widely available.
 async fn check_recovery_code(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
