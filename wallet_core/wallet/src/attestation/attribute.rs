@@ -6,6 +6,7 @@ use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
@@ -176,10 +177,14 @@ impl AttestationPresentation {
         }
 
         let attributes = match config.filtered_attribute(format, &attestation_type) {
-            Some(filtered_key) => attributes
-                .into_iter()
-                .filter(|attr| attr.key.iter().map(String::as_str).ne(filtered_key.clone()))
-                .collect(),
+            Some(filtered_key) => {
+                let filtered_key = filtered_key.collect_vec();
+
+                attributes
+                    .into_iter()
+                    .filter(|attr| attr.key.as_slice() != filtered_key.as_slice())
+                    .collect()
+            }
             None => attributes,
         };
 
