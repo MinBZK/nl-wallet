@@ -42,3 +42,13 @@ reason = "`astral-tokio-tar` is an unmaintained transitive dependency of `testco
 id = "RUSTSEC-2026-0459"
 ignoreUntil = 2027-01-01
 reason = "The fixed `libsqlite3-sys` version 0.39 conflicts with dependencies of `sqlx`, which is already fix upstream. However, a new version has not yet been released."
+
+[[IgnoredVulns]]
+id = "GHSA-8474-xrp6-wh69"
+ignoreUntil = 2027-01-01
+reason = "`activesupport` is only used by fastlane, cocoapods and slather during builds, and never gets untrusted input. `cocoapods-core` requires `activesupport` < 8, and 7.2 has no fixed release."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+ignoreUntil = 2027-01-01
+reason = "`chrono` is unmaintained, but has no known vulnerability. We use it directly in many crates, and `sea-orm`, `sqlx`, `rasn` and `serde_with` depend on it. A move to `jiff` or `time` is a separate task."
