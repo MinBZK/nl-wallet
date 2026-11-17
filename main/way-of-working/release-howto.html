@@ -477,6 +477,12 @@ backend. When the flag is removed (and so becomes a considered-stable release),
 don’t forget to remove the <code class="docutils literal notranslate"><span class="pre">CONDITIONAL_PRE_RELEASE_WARNING</span></code> paragraph from the
 release description.</p>
 </section>
+<section id="step-11-update-jira-releases">
+<h3>Step 11: Update Jira releases<a class="headerlink" href="#step-11-update-jira-releases" title="Link to this heading"></a></h3>
+<p>After publishing the release, find someone with the required Jira permissions
+and ask them to mark the current version as <code class="docutils literal notranslate"><span class="pre">Released</span></code> and create the next
+release version in Jira.</p>
+</section>
 </section>
 <section id="release-checklists">
 <h2>Release Checklists<a class="headerlink" href="#release-checklists" title="Link to this heading"></a></h2>
@@ -556,8 +562,8 @@ be used to explain possible exceptions from the different aspects and steps.</p>
 </tbody>
 </table>
 </section>
-<section id="final-release-verification-checklist-steps-5-10">
-<h3>Final Release Verification Checklist (Steps 5-10)<a class="headerlink" href="#final-release-verification-checklist-steps-5-10" title="Link to this heading"></a></h3>
+<section id="final-release-verification-checklist-steps-5-11">
+<h3>Final Release Verification Checklist (Steps 5-11)<a class="headerlink" href="#final-release-verification-checklist-steps-5-11" title="Link to this heading"></a></h3>
 <p>Use this checklist to verify all steps have been completed after release
 execution:</p>
 <table class="docutils align-default">
@@ -619,6 +625,14 @@ execution:</p>
 <tr class="row-even"><td><p>GitHub release published</p></td>
 <td><p></p></td>
 <td><p>Release successfully published on GitHub</p></td>
+</tr>
+<tr class="row-odd"><td><p>Jira version marked as Released</p></td>
+<td><p></p></td>
+<td><p>Someone with the required Jira permissions marked the current version as <code class="docutils literal notranslate"><span class="pre">Released</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Next Jira release version created</p></td>
+<td><p></p></td>
+<td><p>Someone with the required Jira permissions created the next release version</p></td>
 </tr>
 </tbody>
 </table>
