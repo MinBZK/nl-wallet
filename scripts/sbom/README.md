@@ -7,8 +7,16 @@ and produces two CycloneDX 1.5 inventories:
 - `bom-prod.json` and `bom-prod.xml`: production dependencies, using each
   generator's filters and selected Rust application/service roots.
 
-The production inventory still includes Dart development dependencies and demo
-services. Swift Package Manager dependencies are not collected.
+The production Rust roots are `flutter_api`, `wallet_provider`,
+`wallet_provider_migrations`, `audit_log_migrations`, `update_policy_server`,
+and `revocation_portal`. Demo applications, issuer/verifier services and their
+migration binaries, and `gba_hc_converter` opt out via
+`package.metadata.sbom.production-root = false`. These packages remain in the
+full inventory; dependencies also required by a production root remain in the
+production inventory.
+
+The production inventory still includes Dart development dependencies.
+Swift Package Manager dependencies are not collected.
 
 Run from the repository root with a new or empty output directory:
 
