@@ -109,10 +109,9 @@ where
 pub mod mock {
     use std::convert::Infallible;
     use std::fmt::Display;
-    use std::sync::Arc;
+    use std::sync::Mutex;
 
     use sea_orm::JsonValue;
-    use tokio::sync::RwLock;
 
     use super::AuditLog;
     use super::AuditUser;
@@ -157,7 +156,7 @@ pub mod mock {
     }
 
     #[derive(Default)]
-    pub struct InMemoryAuditLog(Arc<RwLock<Vec<String>>>);
+    pub struct InMemoryAuditLog(Mutex<Vec<String>>);
 
     impl AuditLog for InMemoryAuditLog {
         type Error = Infallible;
@@ -182,7 +181,7 @@ pub mod mock {
                 Err(_) => "FAILED",
             };
 
-            let mut lock = self.0.write().await;
+            let mut lock = self.0.lock().unwrap();
             lock.push(format!(
                 "AUDIT_LOG: {operation_name}{user_string} with {arguments} -> {operation_succeeded}"
             ));
@@ -192,21 +191,21 @@ pub mod mock {
     }
 
     impl InMemoryAuditLog {
-        pub async fn len(&self) -> usize {
-            let lock = self.0.read().await;
+        pub fn len(&self) -> usize {
+            let lock = self.0.lock().unwrap();
             lock.len()
         }
 
-        pub async fn is_empty(&self) -> bool {
-            let lock = self.0.read().await;
+        pub fn is_empty(&self) -> bool {
+            let lock = self.0.lock().unwrap();
             lock.is_empty()
         }
 
-        pub async fn contains_match<F>(&self, pattern: F) -> bool
+        pub fn contains_match<F>(&self, pattern: F) -> bool
         where
             F: FnMut(&String) -> bool,
         {
-            let lock = self.0.read().await;
+            let lock = self.0.lock().unwrap();
             lock.iter().any(pattern)
         }
     }

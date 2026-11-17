@@ -1187,11 +1187,7 @@ mod tests {
         assert_eq!(executed.executed_at, Some(now));
         assert_eq!(executed.execution_successful, Some(expected_successful));
         assert!(executed.execution_details.unwrap().contains(expected_details));
-        assert!(
-            audit_log
-                .contains_match(|log: &String| log.contains("wallet_ids"))
-                .await
-        );
+        assert!(audit_log.contains_match(|log: &String| log.contains("wallet_ids")));
     }
 
     #[rstest]
@@ -1220,11 +1216,7 @@ mod tests {
 
         assert_eq!(executed.execution_successful, Some(true));
         assert_eq!(executed.execution_details.as_deref(), Some("denied 2 recovery code(s)"));
-        assert!(
-            audit_log
-                .contains_match(|log: &String| log.contains("recovery_codes"))
-                .await
-        );
+        assert!(audit_log.contains_match(|log: &String| log.contains("recovery_codes")));
     }
 
     #[rstest]

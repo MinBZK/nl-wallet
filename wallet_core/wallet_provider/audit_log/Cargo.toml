@@ -16,7 +16,7 @@ path = "tests/macro.rs"
 required-features = ["mock"]
 
 [features]
-mock = ["dep:serde_json", "dep:tokio"]
+mock = ["dep:serde_json"]
 db_test = ["mock", "dep:db_test", "tokio/rt-multi-thread"]
 
 [[test]]
