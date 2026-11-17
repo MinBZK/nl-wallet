@@ -69,7 +69,7 @@ done
 (cd wallet_app && flutter pub get --enforce-lockfile)
 # The workspace lockfile does not distinguish runtime and development-only transitive packages.
 cdxgen --fail-on-error --spec-version 1.5 --type dart --output "$work/dart.json"
-(cd wallet_app && flutter pub deps --json) > "$work/dart-deps.json"
+(cd wallet_app && flutter --suppress-analytics pub deps --json) > "$work/dart-deps.json"
 python3 "$repo/scripts/sbom/dart_production.py" "$work/dart.json" "$work/dart-deps.json" \
     --root wallet > "$work/dart-prod.json"
 full+=("$work/dart.json")
