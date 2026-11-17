@@ -4,7 +4,25 @@ dependency-check:
   stage: qa
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-merge-request, rules]
+    - !reference [.default-branch, rules]
+    # On merge requests, only run when files that this job scans change
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - deploy/dependencies/dependency-check-suppressions.xml
+        - deploy/docker-images/ci/dependency-check.sh
+        - deploy/gitlab/vulnerabilities.yml
+        - "**/*.jar"
+        - "**/*.podspec"
+        - "**/Gemfile.lock"
+        - "**/package.json"
+        - "**/Package.resolved"
+        - "**/Package.swift"
+        - "**/pnpm-lock.yaml"
+        - "**/Podfile.lock"
+        - "**/requirements.txt"
+      interruptible: true
+      variables:
+        CACHE_POLICY: pull
   needs: []
   before_script:
     - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
