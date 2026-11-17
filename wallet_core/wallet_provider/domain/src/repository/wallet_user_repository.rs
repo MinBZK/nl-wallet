@@ -8,6 +8,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
+use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 
@@ -274,12 +275,10 @@ pub trait WalletUserRepository {
         revocation_date_time: DateTime<Utc>,
     ) -> Result<RevokedWalletUsers>;
 
-    async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: RecoveryCode) -> Result<()>;
-
     async fn deny_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_codes: &[RecoveryCode],
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     ) -> Result<()>;
 
     async fn recovery_code_is_denied(
@@ -676,18 +675,10 @@ pub mod mock {
             })
         }
 
-        async fn deny_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _recovery_code: RecoveryCode,
-        ) -> Result<()> {
-            Ok(())
-        }
-
         async fn deny_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_codes: &[RecoveryCode],
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<()> {
             Ok(())
         }

@@ -4,6 +4,7 @@ use crypto::utils::random_string;
 use db_test::DbSetup;
 use tokio::time::Duration;
 use tokio::time::sleep;
+use utils::vec_nonempty;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;
@@ -26,7 +27,7 @@ async fn test_insert_recovery_code() {
     let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
     assert!(!is_denied);
 
-    recovery_code::insert(&db, recovery_code.clone())
+    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .expect("should be able to insert recovery code");
 
@@ -34,11 +35,40 @@ async fn test_insert_recovery_code() {
     assert!(is_denied);
 
     // verify idempotency
-    recovery_code::insert(&db, recovery_code.clone())
+    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .expect("should be able to insert recovery code");
     let is_denied = recovery_code::is_denied(&db, recovery_code).await.unwrap();
     assert!(is_denied);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_deny_many_inserts_and_updates_recovery_codes() {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+
+    let new_code: RecoveryCode = random_string(64).into();
+    let allowed_code: RecoveryCode = random_string(64).into();
+    let denied_code: RecoveryCode = random_string(64).into();
+    let unrelated_code: RecoveryCode = random_string(64).into();
+
+    assert!(!recovery_code::is_denied(&db, allowed_code.clone()).await.unwrap());
+    assert!(!recovery_code::is_denied(&db, unrelated_code.clone()).await.unwrap());
+    recovery_code::deny_many(&db, &vec_nonempty![denied_code.clone()].into())
+        .await
+        .unwrap();
+    assert_eq!(recovery_code::find_is_denied(&db, &new_code).await.unwrap(), None);
+
+    let codes = vec_nonempty![new_code, denied_code, allowed_code].into();
+    recovery_code::deny_many(&db, &codes).await.unwrap();
+
+    for code in &codes {
+        assert_eq!(recovery_code::find_is_denied(&db, code).await.unwrap(), Some(true));
+    }
+    assert_eq!(
+        recovery_code::find_is_denied(&db, &unrelated_code).await.unwrap(),
+        Some(false)
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -65,7 +95,7 @@ async fn test_recovery_code_is_denied() {
     assert!(!wallet_user.recovery_code_is_denied);
 
     // set recovery code to denied
-    recovery_code::insert(&db, recovery_code.clone())
+    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .expect("insert deny");
 
@@ -103,7 +133,9 @@ async fn test_find_recovery_code_is_denied() {
     assert_eq!(result, Some(false));
 
     // denied recovery code
-    recovery_code::insert(&db, recovery_code.clone()).await.unwrap();
+    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
+        .await
+        .unwrap();
     let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
     assert_eq!(result, Some(true));
 }
@@ -160,7 +192,9 @@ async fn test_recovery_code_repeatable_reads() {
         // Ensure we run the insert while the reader is sleeping between reads.
         sleep(Duration::from_millis(50)).await;
 
-        recovery_code::insert(&tx, recovery_code).await.unwrap();
+        recovery_code::deny_many(&tx, &vec_nonempty![recovery_code.clone()].into())
+            .await
+            .unwrap();
 
         tx.commit().await.expect("could not commit transaction");
     });
@@ -185,7 +219,7 @@ async fn test_remove_recovery_code() {
         .await
         .expect("should be able to set non-denied recovery code to allowed");
 
-    recovery_code::insert(&db, recovery_code.clone())
+    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .expect("should be able to insert denied recovery code");
 
@@ -220,18 +254,7 @@ async fn test_list_recovery_code() {
 
     assert!(!recovery_codes.contains(&recovery_code));
 
-    recovery_code::insert(&db, recovery_code.clone())
-        .await
-        .expect("should be able to insert denied recovery code");
-
-    let recovery_codes = recovery_code::list(&db)
-        .await
-        .expect("should be able to list denied recovery code");
-
-    assert!(recovery_codes.contains(&recovery_code));
-
-    // inserting the same code again should not create duplicates
-    recovery_code::insert(&db, recovery_code.clone())
+    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .expect("should be able to insert denied recovery code");
 
@@ -243,7 +266,7 @@ async fn test_list_recovery_code() {
 
     // inserting another should result in both being listed
     let another_recovery_code: RecoveryCode = random_string(64).into();
-    recovery_code::insert(&db, another_recovery_code.clone())
+    recovery_code::deny_many(&db, &vec_nonempty![another_recovery_code.clone()].into())
         .await
         .expect("should be able to insert denied recovery code");
 

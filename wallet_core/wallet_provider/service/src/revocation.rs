@@ -14,6 +14,7 @@ use itertools::Itertools;
 use token_status_list::status_list_service::StatusListService;
 use utils::generator::Generator;
 use utils::vec_at_least::VecNonEmptyUnique;
+use utils::vec_nonempty;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
@@ -153,7 +154,7 @@ where
 
     user_state
         .repositories
-        .deny_recovery_code(&tx, recovery_code.to_owned())
+        .deny_recovery_codes(&tx, &vec_nonempty![recovery_code.to_owned()].into())
         .await?;
 
     let wallet_user_ids = user_state
@@ -196,10 +197,7 @@ where
 
     let tx = user_state.repositories.begin_transaction().await?;
 
-    user_state
-        .repositories
-        .deny_recovery_codes(&tx, recovery_codes.as_slice())
-        .await?;
+    user_state.repositories.deny_recovery_codes(&tx, recovery_codes).await?;
 
     let found_wallet_user_ids = user_state
         .repositories

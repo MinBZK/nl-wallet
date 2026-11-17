@@ -11,6 +11,7 @@ use hsm::model::wrapped_key::WrappedKey;
 use measure::measure;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
+use utils::vec_at_least::VecNonEmptyUnique;
 use uuid;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
@@ -669,21 +670,12 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn deny_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        recovery_code: RecoveryCode,
-    ) -> Result<(), PersistenceError> {
-        recovery_code::insert(transaction, recovery_code).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn deny_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_codes: &[RecoveryCode],
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     ) -> Result<(), PersistenceError> {
-        recovery_code::insert_many(transaction, recovery_codes).await
+        recovery_code::deny_many(transaction, recovery_codes).await
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
@@ -740,6 +732,7 @@ pub mod mock {
     use p256::ecdsa::VerifyingKey;
     use p256::elliptic_curve::Generate;
     use semver::Version;
+    use utils::vec_at_least::VecNonEmptyUnique;
     use uuid::Uuid;
     use uuid::uuid;
     use wallet_account::messages::errors::RevocationReason;
@@ -1137,16 +1130,10 @@ pub mod mock {
                 revocation_date_time: DateTime<Utc>
             ) -> Result<RevokedWalletUsers, PersistenceError>;
 
-            async fn deny_recovery_code(
-                &self,
-                transaction: &MockTransaction,
-                recovery_code: RecoveryCode,
-            ) -> Result<(), PersistenceError>;
-
             async fn deny_recovery_codes(
                 &self,
                 transaction: &MockTransaction,
-                recovery_codes: &[RecoveryCode],
+                recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
             ) -> Result<(), PersistenceError>;
 
             async fn recovery_code_is_denied(
@@ -1643,18 +1630,10 @@ pub mod mock {
             })
         }
 
-        async fn deny_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _recovery_code: RecoveryCode,
-        ) -> Result<(), PersistenceError> {
-            Ok(())
-        }
-
         async fn deny_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_codes: &[RecoveryCode],
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<(), PersistenceError> {
             Ok(())
         }

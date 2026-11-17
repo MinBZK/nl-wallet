@@ -8,56 +8,32 @@ use sea_orm::SelectColumns;
 use sea_orm::Set;
 use sea_orm::prelude::Expr;
 use sea_orm::sea_query::OnConflict;
+use utils::vec_at_least::VecNonEmptyUnique;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::repository::PersistenceError;
 
 use crate::PersistenceConnection;
 use crate::entity::recovery_code;
 
-fn insert_model(recovery_code: RecoveryCode) -> recovery_code::ActiveModel {
-    recovery_code::ActiveModel {
-        id: NotSet,
-        recovery_code: Set(recovery_code.into()),
-        is_denied: Set(true),
-    }
-}
-
-pub async fn insert<S, T>(db: &T, recovery_code: RecoveryCode) -> Result<(), PersistenceError>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let model = insert_model(recovery_code);
-
-    recovery_code::Entity::insert(model)
-        .on_conflict(
-            OnConflict::column(recovery_code::Column::RecoveryCode)
-                .update_column(recovery_code::Column::IsDenied)
-                .to_owned(),
-        )
-        .exec(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)?;
-
-    Ok(())
-}
-
 /// Denies all `recovery_codes` in one statement. Codes are inserted in sorted order, so concurrent batches lock rows in
 /// the same order.
-pub async fn insert_many<S, T>(db: &T, recovery_codes: &[RecoveryCode]) -> Result<(), PersistenceError>
+pub async fn deny_many<S, T>(db: &T, recovery_codes: &VecNonEmptyUnique<RecoveryCode>) -> Result<(), PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
-    if recovery_codes.is_empty() {
-        return Ok(());
-    }
-
     // Sort recovery codes, so concurrent batches lock rows in the same order.
-    let mut sorted = recovery_codes.to_vec();
-    sorted.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    let mut sorted = recovery_codes.iter().collect::<Vec<_>>();
+    sorted.sort();
 
-    let models = sorted.into_iter().map(insert_model);
+    let models = sorted
+        .into_iter()
+        .cloned()
+        .map(|recovery_code| recovery_code::ActiveModel {
+            id: NotSet,
+            recovery_code: Set(recovery_code.into()),
+            is_denied: Set(true),
+        });
 
     recovery_code::Entity::insert_many(models)
         .on_conflict(
