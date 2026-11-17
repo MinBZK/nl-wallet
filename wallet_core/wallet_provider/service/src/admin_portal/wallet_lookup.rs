@@ -351,32 +351,6 @@ mod tests {
     }
 
     #[rstest]
-    #[tokio::test]
-    async fn recovery_code_summary_accepts_unblock_user(recovery_code: RecoveryCode) {
-        let unblock_user = user("user-1", &[TaskType::UnblockUser]);
-
-        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
-        wallet_user_repo
-            .expect_begin_transaction()
-            .returning(|| Ok(MockTransaction));
-        wallet_user_repo
-            .expect_find_wallet_user_states_by_recovery_code()
-            .times(1)
-            .return_once(|_, _| Ok(vec![]));
-        wallet_user_repo
-            .expect_find_recovery_code_is_denied()
-            .times(1)
-            .return_once(|_, _| Ok(None));
-        let user_state = lookup_user_state(wallet_user_repo).await;
-
-        let result = service()
-            .get_recovery_code_summary(&recovery_code, &unblock_user, &user_state, &MockAuditLog)
-            .await;
-
-        assert_matches!(result, Ok(summary) if summary == RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 0, is_denied: false });
-    }
-
-    #[rstest]
     #[case::counts(
         vec![WalletUserState::Active, WalletUserState::Blocked, WalletUserState::Revoked, WalletUserState::Transferred],
         None,
@@ -391,11 +365,12 @@ mod tests {
     #[tokio::test]
     async fn recovery_code_summary_return_lookup_result(
         recovery_code: RecoveryCode,
-        block_user: LoggedInUser,
+        #[values(TaskType::BlockUser, TaskType::UnblockUser)] task_type: TaskType,
         #[case] states: Vec<WalletUserState>,
         #[case] is_denied: Option<bool>,
         #[case] expected: RecoveryCodeSummary,
     ) {
+        let block_user = user("user-1", &[task_type]);
         let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
         wallet_user_repo
             .expect_begin_transaction()
