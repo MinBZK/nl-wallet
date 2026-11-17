@@ -561,11 +561,11 @@ async fn check_wallet(
 #[serde(rename_all = "camelCase")]
 pub enum RecoveryCodeStatus {
     // wallets exist, and the recovery_code is NOT denied
-    Active,
+    Allowed,
     // the recovery_code is denied
-    Inactive,
+    Denied,
     // no wallets exist for the recovery_code, and it is NOT denied
-    Unknown,
+    NotKnown,
 }
 
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -594,11 +594,11 @@ impl CheckRecoveryCodeResponse {
 impl From<RecoveryCodeSummary> for CheckRecoveryCodeResponse {
     fn from(summary: RecoveryCodeSummary) -> Self {
         let status = if summary.is_denied {
-            RecoveryCodeStatus::Inactive
+            RecoveryCodeStatus::Denied
         } else if summary.wallet_count() > 0 {
-            RecoveryCodeStatus::Active
+            RecoveryCodeStatus::Allowed
         } else {
-            RecoveryCodeStatus::Unknown
+            RecoveryCodeStatus::NotKnown
         };
 
         Self {
