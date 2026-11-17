@@ -51,4 +51,4 @@ reason = "`activesupport` is only used by fastlane, cocoapods and slather during
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0543"
 ignoreUntil = 2027-01-01
-reason = "`chrono` is unmaintained, but has no known vulnerability. We use it directly in many crates, and `sea-orm`, `sqlx`, `rasn` and `serde_with` depend on it. A move to `jiff` or `time` is a separate task."
+reason = "`chrono` is unmaintained, but has no known vulnerability. We use it directly in many crates, and `sea-orm`, `sqlx`, `rasn` and `serde_with` depend on it. The move to `jiff` is planned in PVW-6537."
