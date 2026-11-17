@@ -62,7 +62,7 @@ pub struct RevokeWalletParameters {
     pub wallet_ids: VecNonEmptyUnique<WalletId>,
 }
 
-/// Parameters of a [`TaskType::BlockUser`] task: the recovery_codes to revoke, at least one, without duplicates.
+/// Parameters of a [`TaskType::BlockUser`] task: the recovery_codes to deny, at least one, without duplicates.
 #[serde_as]
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

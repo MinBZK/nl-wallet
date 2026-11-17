@@ -176,9 +176,9 @@ pub mod mock {
 
             let operation_name = operation_name.into();
             let user_string = user_id.map(|user_id| format!(" by {user_id}")).unwrap_or_default();
-            let arguments = serde_json::to_string(&parameters).unwrap_or("<SERIALIZATION_ERROR>".to_string());
+            let arguments = parameters.to_string();
             let operation_succeeded = match &result {
-                Ok(_) => "SUCCES",
+                Ok(_) => "SUCCESS",
                 Err(_) => "FAILED",
             };
 

@@ -1091,7 +1091,7 @@ mod http_tests {
     )]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-    async fn check_recovery_code_route_rejects_request(#[case] body: Value, #[case] status: StatusCode) {
+    async fn check_recovery_code_response_status(#[case] body: Value, #[case] status: StatusCode) {
         let (state, jar) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
 
         let request = post_json_request("/recovery-codes/check", &session_cookie_header(&jar), &body);
