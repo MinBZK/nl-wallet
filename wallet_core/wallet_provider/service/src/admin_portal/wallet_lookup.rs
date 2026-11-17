@@ -62,9 +62,15 @@ impl FromAuditLogError for GetWalletRevocationStateError {
 /// recovery code is denied.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RecoveryCodeSummary {
-    pub active: usize,
-    pub inactive: usize,
+    pub active_wallets: usize,
+    pub inactive_wallets: usize,
     pub is_denied: bool,
+}
+
+impl RecoveryCodeSummary {
+    pub fn wallet_count(&self) -> usize {
+        self.active_wallets + self.inactive_wallets
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -117,7 +123,7 @@ impl<R, T, U> AdminPortalService<R, T, U> {
             .await
             .map_err(GetRecoveryCodeSummaryError::Storage)?;
 
-        let states = user_state
+        let wallet_states = user_state
             .repositories
             .find_wallet_user_states_by_recovery_code(&transaction, recovery_code)
             .await
@@ -135,14 +141,14 @@ impl<R, T, U> AdminPortalService<R, T, U> {
             .await
             .map_err(GetRecoveryCodeSummaryError::Storage)?;
 
-        let active = states
+        let active_wallets = wallet_states
             .iter()
             .filter(|state| !matches!(state, WalletUserState::Revoked | WalletUserState::Transferred))
             .count();
 
         Ok(RecoveryCodeSummary {
-            active,
-            inactive: states.len() - active,
+            active_wallets,
+            inactive_wallets: wallet_states.len() - active_wallets,
             is_denied,
         })
     }
@@ -367,20 +373,20 @@ mod tests {
             .get_recovery_code_summary(&recovery_code, &unblock_user, &user_state, &MockAuditLog)
             .await;
 
-        assert_matches!(result, Ok(summary) if summary == RecoveryCodeSummary { active: 0, inactive: 0, is_denied: false });
+        assert_matches!(result, Ok(summary) if summary == RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 0, is_denied: false });
     }
 
     #[rstest]
     #[case::counts(
         vec![WalletUserState::Active, WalletUserState::Blocked, WalletUserState::Revoked, WalletUserState::Transferred],
         None,
-        RecoveryCodeSummary { active: 2, inactive: 2, is_denied: false }
+        RecoveryCodeSummary { active_wallets: 2, inactive_wallets: 2, is_denied: false }
     )]
-    #[case::unknown(vec![], None, RecoveryCodeSummary { active: 0, inactive: 0, is_denied: false })]
+    #[case::unknown(vec![], None, RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 0, is_denied: false })]
     #[case::denied(
         vec![WalletUserState::Revoked],
         Some(true),
-        RecoveryCodeSummary { active: 0, inactive: 1, is_denied: true }
+        RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 1, is_denied: true }
     )]
     #[tokio::test]
     async fn recovery_code_summary_return_lookup_result(

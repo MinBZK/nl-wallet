@@ -572,16 +572,30 @@ pub enum RecoveryCodeStatus {
 #[cfg_attr(feature = "web_test", derive(Deserialize))]
 #[serde(rename_all = "camelCase")]
 pub struct CheckRecoveryCodeResponse {
-    pub status: RecoveryCodeStatus,
-    pub active_wallet_count: usize,
-    pub inactive_wallet_count: usize,
+    status: RecoveryCodeStatus,
+    active_wallet_count: usize,
+    inactive_wallet_count: usize,
+}
+
+impl CheckRecoveryCodeResponse {
+    pub fn status(&self) -> RecoveryCodeStatus {
+        self.status
+    }
+
+    pub fn active_wallet_count(&self) -> usize {
+        self.active_wallet_count
+    }
+
+    pub fn inactive_wallet_count(&self) -> usize {
+        self.inactive_wallet_count
+    }
 }
 
 impl From<RecoveryCodeSummary> for CheckRecoveryCodeResponse {
     fn from(summary: RecoveryCodeSummary) -> Self {
         let status = if summary.is_denied {
             RecoveryCodeStatus::Inactive
-        } else if summary.active + summary.inactive > 0 {
+        } else if summary.wallet_count() > 0 {
             RecoveryCodeStatus::Active
         } else {
             RecoveryCodeStatus::Unknown
@@ -589,8 +603,8 @@ impl From<RecoveryCodeSummary> for CheckRecoveryCodeResponse {
 
         Self {
             status,
-            active_wallet_count: summary.active,
-            inactive_wallet_count: summary.inactive,
+            active_wallet_count: summary.active_wallets,
+            inactive_wallet_count: summary.inactive_wallets,
         }
     }
 }
