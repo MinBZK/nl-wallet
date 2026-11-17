@@ -35,6 +35,9 @@ impl TaskPayload {
         self.into()
     }
 
+    /// Renders only the parameters to a `[JsonValue]`, to include in the `task_parameters` database row.
+    /// Calling `serde_json::to_value` on `self` directly would result in an object that includes both `taskType` and
+    /// `taskParameters` fields .
     pub fn parameters_json(&self) -> Result<JsonValue, serde_json::Error> {
         match self {
             Self::RevokeWallet(parameters) => serde_json::to_value(parameters),
