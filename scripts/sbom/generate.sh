@@ -67,10 +67,13 @@ for project in wallet_web wallet_admin_portal; do
 done
 
 (cd wallet_app && flutter pub get --enforce-lockfile)
-# The Dart workspace lockfile lives at the repository root. Include all Dart deps in BOTH variants.
+# The workspace lockfile does not distinguish runtime and development-only transitive packages.
 cdxgen --fail-on-error --spec-version 1.5 --type dart --output "$work/dart.json"
+(cd wallet_app && flutter --suppress-analytics pub deps --json) > "$work/dart-deps.json"
+python3 "$repo/scripts/sbom/dart_production.py" "$work/dart.json" "$work/dart-deps.json" \
+    --root wallet > "$work/dart-prod.json"
 full+=("$work/dart.json")
-prod+=("$work/dart.json")
+prod+=("$work/dart-prod.json")
 
 # Match the existing CI setup for CocoaPods, restoring Flutter's generated setting on exit.
 cp wallet_app/.flutter-plugins-dependencies "$work/flutter-plugins-dependencies"
@@ -115,7 +118,7 @@ cyclonedx merge --name nl-wallet --version "$version" --output-version v1_5 \
     --input-files "${prod[@]}" --output-file "$work/merged-prod.json"
 normalize_bom "$work/merged-prod.json"
 jq '.metadata.properties += [{"name":"nl-wallet:sbom:dart-dependencies",
-    "value":"All Dart dependencies are included, including development dependencies."}]' \
+    "value":"Runtime dependency closure of the wallet package from flutter pub deps --json."}]' \
     "$work/merged-prod.json" > "$work/bom-prod.json"
 for name in bom bom-prod; do
     cyclonedx convert --output-version v1_5 --input-file "$work/$name.json" --output-file "$work/$name.xml"
@@ -125,4 +128,4 @@ for name in bom bom-prod; do
     cyclonedx validate --input-file "$work/$name.json" --input-version v1_5 --fail-on-errors
 done
 cp "$work/bom.json" "$work/bom.xml" "$work/bom-prod.json" "$work/bom-prod.xml" "$output/"
-echo "SBOMs written to $output (production SBOM includes all Dart dependencies)"
+echo "SBOMs written to $output"
