@@ -9,30 +9,51 @@ dependency-check:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
         - deploy/dependencies/dependency-check-suppressions.xml
+        - deploy/dependencies/dependency-check.init.gradle
         - deploy/docker-images/ci/dependency-check.sh
         - deploy/gitlab/vulnerabilities.yml
+        - "**/*.gradle.kts"
         - "**/*.jar"
         - "**/*.podspec"
         - "**/Gemfile.lock"
-        - "**/package.json"
         - "**/Package.resolved"
         - "**/Package.swift"
         - "**/pnpm-lock.yaml"
         - "**/Podfile.lock"
+        - "**/pubspec.lock"
+        - "**/pubspec.yaml"
         - "**/requirements.txt"
       interruptible: true
       variables:
         CACHE_POLICY: pull
   needs: []
   before_script:
-    - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
-    - OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
-    - OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
+    # The pip analyzer cannot parse hashes, so install each project instead
+    - for requirements in $(git ls-files '*requirements.txt'); do
+        python3 -m pip install --quiet --no-deps --no-compile --target
+        "dependency_check_python/$(dirname "$requirements")" --requirement "$requirements";
+      done
+    # The Flutter Gradle plugin needs the Flutter packages
+    - (cd wallet_app && flutter pub get --enforce-lockfile)
+    # Export the secrets after the installs, for the Gradle plugin
+    - export NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
+    - export OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
+    - export OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
   script:
-    - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --disableDart --disableAssembly
-      --disableYarnAudit --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --suppression
-      $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1
+    # Run all scans, also when one fails, and fail the job at the end
+    - status=0
+    - for build in wallet_app/android wallet_core/wallet/platform_support/android uiautomation; do
+        (cd "$build" && ./gradlew --no-daemon --init-script
+        "$CI_PROJECT_DIR/deploy/dependencies/dependency-check.init.gradle" dependencyCheckAggregate) || status=1;
+      done
+    - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --disableNodeJS --disablePip --disablePyPkg
+      --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --suppression
+      $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
+    # Quality-time and Sonar read one report, so add the Gradle results
+    - for ext in json xml; do deploy/bin/merge-dependency-check-reports.py dependency-check-report.$ext
+        $(find dependency_check_gradle -name dependency-check-report.$ext); done
+    - exit $status
   after_script:
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
       qt/quality-time/dependency-check/report.$ext; done
@@ -43,6 +64,7 @@ dependency-check:
       - dependency-check-report.json
       - dependency-check-report.html
       - dependency-check-report.xml
+      - dependency_check_gradle
   cache:
     key: dependency-check
     when: always

@@ -1,0 +1,45 @@
+// Adds dependency-check to a Gradle build without a change to its files
+initscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        // Keep equal to the version in deploy/docker-images/ci/dependency-check.sh
+        classpath 'org.owasp:dependency-check-gradle:13.0.0'
+    }
+}
+
+def repository = initscript.sourceFile.parentFile.parentFile.parentFile
+
+rootProject {
+    apply plugin: org.owasp.dependencycheck.gradle.DependencyCheckPlugin
+
+    dependencyCheck {
+        // Also scan Gradle plugins and test configurations
+        scanBuildEnv = true
+        skipTestGroups = false
+        // Same as --failOnCVSS of the command-line scan in CI
+        failBuildOnCVSS = 0.1
+        formats = ['HTML', 'JSON', 'XML']
+        outputDirectory = new File(repository, "dependency_check_gradle/${repository.toPath().relativize(rootDir.toPath())}")
+        suppressionFile = new File(repository, 'deploy/dependencies/dependency-check-suppressions.xml').path
+        data {
+            directory = new File(repository, 'dependency_check_data').path
+        }
+        nvd {
+            apiKey = System.getenv('NVD_API_KEY')
+        }
+        analyzers {
+            // The .dll files in jars are native libraries, not .NET assemblies
+            assemblyEnabled = false
+            nodeAudit {
+                // The only yarn.lock files are templates in kotlin-gradle-plugin
+                yarnEnabled = false
+            }
+            ossIndex {
+                username = System.getenv('OSS_INDEX_USERNAME')
+                password = System.getenv('OSS_INDEX_PASSWORD')
+            }
+        }
+    }
+}
