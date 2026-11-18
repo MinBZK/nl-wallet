@@ -909,6 +909,7 @@ mod tests {
     use chrono::Duration;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
+    use itertools::Either;
     use mockall::predicate::*;
     use openid4vc::token::CredentialPreview;
     use openid4vc::wallet_issuance::IssuanceFlow;
@@ -2337,15 +2338,15 @@ mod tests {
                 .collect::<HashMap<_, _>>()
         };
 
-        let expected_updated = expected_renewed_formats
-            .iter()
-            .map(|format| (*format, AttestationIdentity::Fixed { id: stored_ids[format] }))
-            .collect::<HashMap<_, _>>();
-        let expected_inserted = [Format::SdJwt, Format::MsoMdoc]
-            .into_iter()
-            .filter(|format| !expected_renewed_formats.contains(format))
-            .map(|format| (format, AttestationIdentity::Ephemeral))
-            .collect::<HashMap<_, _>>();
+        let (expected_updated, expected_inserted): (HashMap<_, _>, HashMap<_, _>) =
+            [Format::SdJwt, Format::MsoMdoc].into_iter().partition_map(|format| {
+                if expected_renewed_formats.contains(&format) {
+                    let id = stored_ids[&format];
+                    Either::Left((format, AttestationIdentity::Fixed { id }))
+                } else {
+                    Either::Right((format, AttestationIdentity::Ephemeral))
+                }
+            });
 
         assert_eq!(identities_by_format(&updated_credentials.lock()), expected_updated);
         assert_eq!(identities_by_format(&inserted_credentials.lock()), expected_inserted);
