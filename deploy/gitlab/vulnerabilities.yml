@@ -27,6 +27,10 @@ dependency-check:
       variables:
         CACHE_POLICY: pull
   needs: []
+  variables:
+    # Java needs a UTF-8 locale for file names such as javaslang/λ.class
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
   before_script:
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
     # The pip analyzer cannot parse hashes, so install each project instead
