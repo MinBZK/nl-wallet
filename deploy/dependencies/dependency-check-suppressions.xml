@@ -18,22 +18,6 @@
     <cve>CVE-2022-3095</cve>
     <cve>CVE-2026-27704</cve>
   </suppress>
-  <suppress>
-    <notes><![CDATA[
-    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
-    <cve>CVE-2022-3095</cve>
-    <cve>CVE-2026-27704</cve>
-  </suppress>
-  <suppress>
-    <notes><![CDATA[
-    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
-    <cve>CVE-2022-3095</cve>
-    <cve>CVE-2026-27704</cve>
-  </suppress>
 
   <suppress>
     <notes><![CDATA[
@@ -49,14 +33,6 @@
     ]]></notes>
     <packageUrl regex="true">^pkg:cocoapods/root_jailbreak_sniffer@.*$</packageUrl>
     <cve>CVE-2026-24811</cve>
-  </suppress>
-
-  <suppress>
-    <notes><![CDATA[
-    False positive (Drupal)
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
-    <cve>CVE-2015-3362</cve>
   </suppress>
 
   <suppress until="2027-01-01Z">
