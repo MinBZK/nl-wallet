@@ -367,8 +367,8 @@ where
             _ => issuance_result.map_err(PinRecoveryError::Issuance)?,
         };
 
-        // Check the recovery code in the received PID against the one in the stored PID, as otherwise both wallets will
-        // be revoked.
+        // Check the recovery code in the received PID against the one in the stored PID, as on a mismatch the Wallet
+        // Provider revokes all wallets of both persons.
         let recovery_code_disclosure = self
             .checked_recovery_code_disclosure(&issuance_result, &config.pid_attributes)
             .await

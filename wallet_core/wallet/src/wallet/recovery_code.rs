@@ -63,6 +63,9 @@ where
 {
     /// Find the recovery code in the first SD-JWT PID among the issued credentials, check it against the recovery code
     /// of the stored PID, if any, and create a disclosure of just that claim for the Wallet Provider.
+    ///
+    /// Disclosing the recovery code of another person, e.g. when someone else logged in at the PID issuer, would make
+    /// the Wallet Provider revoke all wallets of both persons.
     pub(super) async fn checked_recovery_code_disclosure(
         &self,
         credentials: &[CredentialWithMetadata],
