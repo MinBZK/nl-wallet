@@ -31,6 +31,7 @@ dependency-check:
     # Java needs a UTF-8 locale for file names such as javaslang/λ.class
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
   before_script:
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
     # The pip analyzer cannot parse hashes, so install each project instead
@@ -52,7 +53,7 @@ dependency-check:
         "$CI_PROJECT_DIR/deploy/dependencies/dependency-check.init.gradle" dependencyCheckAggregate) || status=1;
       done
     - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --disableNodeJS --disablePip --disablePyPkg
-      --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --suppression
+      --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --exclude ".gradle/**" --suppression
       $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
     # Quality-time and Sonar read one report, so add the Gradle results
     - for ext in json xml; do deploy/bin/merge-dependency-check-reports.py dependency-check-report.$ext
@@ -70,11 +71,17 @@ dependency-check:
       - dependency-check-report.xml
       - dependency_check_gradle
   cache:
-    key: dependency-check
-    when: always
-    paths:
-      - $CI_PROJECT_DIR/dependency_check_data
-    policy: $CACHE_POLICY
+    - key: dependency-check
+      when: always
+      paths:
+        - $CI_PROJECT_DIR/dependency_check_data
+      policy: $CACHE_POLICY
+    - key: dependency-check-gradle
+      when: always
+      paths:
+        - .gradle/caches/modules-2
+        - .gradle/wrapper
+      policy: $CACHE_POLICY
   allow_failure: true
 
 osv-scanner:
