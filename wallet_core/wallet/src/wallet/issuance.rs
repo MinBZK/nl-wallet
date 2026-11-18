@@ -610,7 +610,7 @@ where
     /// Creates an [`AttestationPresentation`] for every issued credential, in the same order. Its identity is that of
     /// the stored attestation the credential renews, if any.
     async fn process_issued_credentials(
-        &self,
+        &mut self,
         credentials: &[CredentialWithMetadata],
         organization: &Organization,
         pid_purpose: Option<PidIssuancePurpose>,
