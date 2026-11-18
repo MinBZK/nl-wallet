@@ -440,7 +440,7 @@ pub enum WalletIssuanceError {
 #[derive(Debug, Clone, Copy, Constructor)]
 pub struct IssuanceDiscoveryParameters<'a, W> {
     pub offer_uri: &'a Url,
-    pub selection: &'a CredentialSelection,
+    pub selection: CredentialSelection<'a>,
     pub wia_client: &'a W,
     pub wrpac_trust_anchors: &'a TrustAnchors,
     pub wrprc_trust_anchors: &'a TrustAnchors,
@@ -485,10 +485,10 @@ impl OfferedCredentialPreview<'_> {
 /// issuance. If the `CredentialSelection::ByCredentialKind` variant is used, issuance will fail if the issuer offers
 /// none of the credential kinds. If some of them match, issuance will proceed with those matched credential
 /// configurations.
-#[derive(Debug, Clone)]
-pub enum CredentialSelection {
+#[derive(Debug, Clone, Copy)]
+pub enum CredentialSelection<'a> {
     All,
-    ByCredentialKind(HashSet<CredentialKind>),
+    ByCredentialKind(&'a HashSet<CredentialKindRef<'a>>),
 }
 
 #[derive(Debug)]

@@ -53,14 +53,14 @@ pub struct MockAuthorizationSessionData {
 mockall::mock! {
     #[derive(Debug)]
     pub IssuanceDiscovery {
-        pub fn start_sync(
+        pub fn start_sync<'a>(
             &self,
-            selection: &CredentialSelection,
+            selection: CredentialSelection<'a>,
         ) -> Result<IssuanceFlow<MockAuthorizationSession, MockIssuanceSession>, WalletIssuanceError>;
 
-        pub fn start_authorization_code_flow_sync(&self, selection: &CredentialSelection) -> Result<MockAuthorizationSession, WalletIssuanceError>;
+        pub fn start_authorization_code_flow_sync<'a>(&self, selection: CredentialSelection<'a>) -> Result<MockAuthorizationSession, WalletIssuanceError>;
 
-        pub fn start_pre_authorized_code_flow_sync(&self, selection: &CredentialSelection) -> Result<MockIssuanceSession, WalletIssuanceError>;
+        pub fn start_pre_authorized_code_flow_sync<'a>(&self, selection: CredentialSelection<'a>) -> Result<MockIssuanceSession, WalletIssuanceError>;
 
         pub fn restore_authorization_session_sync(&self, data: MockAuthorizationSessionData) -> MockAuthorizationSession;
     }

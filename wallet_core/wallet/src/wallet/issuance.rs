@@ -349,7 +349,7 @@ where
             .start_authorization_code_flow(
                 IssuanceDiscoveryParameters::new(
                     &config.pid_credential_offer,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
                     config.wrpac_trust_anchors(),
                     config.wrprc_trust_anchors(),
@@ -425,7 +425,7 @@ where
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_uri,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &self.new_remote_wia_client(Arc::clone(attested_key), registration_data, &config),
                     config.wrpac_trust_anchors(),
                     config.wrprc_trust_anchors(),

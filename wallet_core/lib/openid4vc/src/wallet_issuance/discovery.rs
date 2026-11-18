@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
+use attestation_types::credential_kind::CredentialKindRef;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::crl::CertificateCrlVerifier;
 use crypto::x509::crl::CrlFetcher;
@@ -556,7 +557,7 @@ where
             .map(|(id, config)| {
                 config
                     .format
-                    .credential_kind()
+                    .credential_kind_ref()
                     .ok_or_else(|| WalletIssuanceError::UnsupportedOfferedCredentialConfiguration(id.clone()))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -609,7 +610,7 @@ where
     async fn resolve_credential_offer_flow(
         &self,
         offer_uri: &Url,
-        selection: &CredentialSelection,
+        selection: CredentialSelection<'_>,
         wrpac_trust_anchors: &TrustAnchors,
         wrprc_trust_anchors: &TrustAnchors,
     ) -> Result<
@@ -720,25 +721,27 @@ where
         let selected_credential_configs = match selection {
             CredentialSelection::All => credential_configs,
             CredentialSelection::ByCredentialKind(credential_kinds) => {
-                let (selected_credential_configs, other_credential_kinds): (Vec<_>, Vec<_>) =
-                    credential_configs.into_iter().partition_map(|(id, config)| {
-                        let credential_kind = config.format.credential_kind();
-
-                        if credential_kind
-                            .as_ref()
-                            .is_some_and(|credential_kind| credential_kinds.contains(credential_kind))
-                        {
-                            Either::Left((id, config))
-                        } else {
-                            Either::Right(credential_kind)
-                        }
+                let (selected_credential_configs, other_credential_configs): (Vec<_>, Vec<_>) =
+                    credential_configs.into_iter().partition(|(_id, config)| {
+                        config
+                            .format
+                            .credential_kind_ref()
+                            .is_some_and(|credential_kind| credential_kinds.contains(&credential_kind))
                     });
 
                 // It is an error if none of the requested `CredentialKind`s match the configurations on offer.
                 if selected_credential_configs.is_empty() {
                     return Err(WalletIssuanceError::CredentialKindsNotOffered {
-                        requested: credential_kinds.clone(),
-                        offered: other_credential_kinds.into_iter().flatten().collect(),
+                        requested: credential_kinds
+                            .iter()
+                            .copied()
+                            .map(CredentialKindRef::into_owned)
+                            .collect(),
+                        offered: other_credential_configs
+                            .iter()
+                            .filter_map(|(_id, config)| config.format.credential_kind_ref())
+                            .map(CredentialKindRef::into_owned)
+                            .collect(),
                     });
                 }
 
@@ -819,6 +822,7 @@ mod test {
     use attestation_data::registration_certificate::mock::issuer_registration_certificate_payload;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
+    use attestation_types::credential_kind::CredentialKindRef;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use chrono::DateTime;
     use crypto::server_keys::generate::Ca;
@@ -1375,7 +1379,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -1410,7 +1414,7 @@ mod test {
                     .start_authorization_code_flow(
                         IssuanceDiscoveryParameters::new(
                             &offer_url,
-                            &CredentialSelection::All,
+                            CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
                             &registration_certificate.trust_anchors,
@@ -1425,7 +1429,7 @@ mod test {
                 let error = discovery
                     .start_pre_authorized_code_flow(IssuanceDiscoveryParameters::new(
                         &offer_url,
-                        &CredentialSelection::All,
+                        CredentialSelection::All,
                         &MockWiaClient::new(),
                         &wrpac_trust_anchors,
                         &registration_certificate.trust_anchors,
@@ -1478,7 +1482,7 @@ mod test {
                 let second_issuance_session = discovery
                     .start_pre_authorized_code_flow(IssuanceDiscoveryParameters::new(
                         &offer_url,
-                        &CredentialSelection::All,
+                        CredentialSelection::All,
                         &MockWiaClient::new(),
                         &wrpac_trust_anchors,
                         &registration_certificate.trust_anchors,
@@ -1491,7 +1495,7 @@ mod test {
                     .start_authorization_code_flow(
                         IssuanceDiscoveryParameters::new(
                             &offer_url,
-                            &CredentialSelection::All,
+                            CredentialSelection::All,
                             &MockWiaClient::new(),
                             &wrpac_trust_anchors,
                             &registration_certificate.trust_anchors,
@@ -1587,7 +1591,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -1636,10 +1640,8 @@ mod test {
             "fake_pre_auth_code".to_string().into(),
         ))
         .to_credential_offer_url();
-        let selection = CredentialSelection::ByCredentialKind(HashSet::from([CredentialKind::new(
-            Format::MsoMdoc,
-            PID_ATTESTATION_TYPE.to_string(),
-        )]));
+        let credential_kinds = HashSet::from([CredentialKindRef::new(Format::MsoMdoc, PID_ATTESTATION_TYPE)]);
+        let selection = CredentialSelection::ByCredentialKind(&credential_kinds);
         let discovery = HttpIssuanceDiscovery::new(
             HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
             crl_verifier,
@@ -1650,7 +1652,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &selection,
+                    selection,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -1707,7 +1709,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
@@ -1729,7 +1731,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
@@ -1756,7 +1758,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
@@ -1798,7 +1800,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
@@ -1849,7 +1851,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -1888,7 +1890,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &TrustAnchors::empty(),
                     &TrustAnchors::empty(),
@@ -1946,7 +1948,7 @@ mod test {
         .start(
             IssuanceDiscoveryParameters::new(
                 &offer_url,
-                &CredentialSelection::All,
+                CredentialSelection::All,
                 &MockWiaClient::new(),
                 &trust_anchors,
                 &registration_certificate.trust_anchors,
@@ -1987,7 +1989,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2052,7 +2054,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2142,7 +2144,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &TrustAnchors::empty(),
@@ -2268,7 +2270,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2321,7 +2323,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2372,7 +2374,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2416,7 +2418,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2462,7 +2464,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2508,7 +2510,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2553,7 +2555,9 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::ByCredentialKind(requested_kinds.clone()),
+                    CredentialSelection::ByCredentialKind(
+                        &requested_kinds.iter().map(CredentialKind::as_ref).collect(),
+                    ),
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2575,12 +2579,12 @@ mod test {
         );
 
         // Requesting at least one credential kind that is offered should succeed.
-        let requested_kinds = HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_ATTESTATION_TYPE.to_string())]);
+        let requested_kinds = HashSet::from([CredentialKindRef::new(Format::MsoMdoc, PID_ATTESTATION_TYPE)]);
         let _flow = discovery
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::ByCredentialKind(requested_kinds),
+                    CredentialSelection::ByCredentialKind(&requested_kinds),
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,
@@ -2620,7 +2624,7 @@ mod test {
             .start(
                 IssuanceDiscoveryParameters::new(
                     &offer_url,
-                    &CredentialSelection::All,
+                    CredentialSelection::All,
                     &MockWiaClient::new(),
                     &wrpac_trust_anchors,
                     &registration_certificate.trust_anchors,

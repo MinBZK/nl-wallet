@@ -293,7 +293,7 @@ async fn start_issuance_session(server: &AuthCodeFlowServer) -> HttpIssuanceSess
         .start(
             IssuanceDiscoveryParameters::new(
                 &credential_offer_url,
-                &CredentialSelection::All,
+                CredentialSelection::All,
                 &MockWiaClient::from_ca(&server.wptl_ca),
                 &server.issuer_trust_anchors,
                 &server.registration_certificate.trust_anchors,
@@ -457,7 +457,7 @@ async fn pre_authorized_code_flow(
         .start(
             IssuanceDiscoveryParameters::new(
                 &credential_offer_url,
-                &CredentialSelection::All,
+                CredentialSelection::All,
                 &MockWiaClient::from_ca(&wptl_ca),
                 &issuer_trust_anchors,
                 &registration_certificate.trust_anchors,
@@ -525,7 +525,7 @@ async fn pre_authorized_code_flow_rejects_unknown_client_id() {
         .start(
             IssuanceDiscoveryParameters::new(
                 &credential_offer_url,
-                &CredentialSelection::All,
+                CredentialSelection::All,
                 &MockWiaClient::from_ca_with_client_id(&wptl_ca, "unknown_client_id".to_string()),
                 &issuer_trust_anchors,
                 &registration_certificate.trust_anchors,

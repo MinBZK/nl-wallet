@@ -2,7 +2,6 @@ use std::fmt::Debug;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 
-use attestation_types::credential_kind::CredentialKindRef;
 use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::urls;
@@ -154,18 +153,13 @@ where
             .ok_or_else(|| PinRecoveryError::NotRegistered)?;
 
         info!("Fetching issuer metadata to discover authorization server");
-        let credential_kinds = config
-            .pid_attributes
-            .sd_jwt_credential_kinds()
-            .into_iter()
-            .map(CredentialKindRef::into_owned)
-            .collect();
+        let credential_kinds = config.pid_attributes.sd_jwt_credential_kinds();
         let authorization_session = self
             .issuance_discovery
             .start_authorization_code_flow(
                 IssuanceDiscoveryParameters::new(
                     &config.pid_credential_offer,
-                    &CredentialSelection::ByCredentialKind(credential_kinds),
+                    CredentialSelection::ByCredentialKind(&credential_kinds),
                     &self.new_remote_wia_client(attested_key.to_owned(), registration_data, config),
                     config.wrpac_trust_anchors(),
                     config.wrprc_trust_anchors(),
@@ -480,7 +474,7 @@ mod tests {
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
-    use attestation_types::credential_kind::CredentialKind;
+    use attestation_types::credential_kind::CredentialKindRef;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_FAMILY_NAME;
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
@@ -543,12 +537,12 @@ mod tests {
             .expect_start_authorization_code_flow_sync()
             .withf(|selection| {
                 let expected_credential_kinds =
-                    HashSet::from([CredentialKind::new(Format::SdJwt, PID_ATTESTATION_TYPE.to_string())]);
+                    HashSet::from([CredentialKindRef::new(Format::SdJwt, PID_ATTESTATION_TYPE)]);
 
                 matches!(
                     selection,
                     CredentialSelection::ByCredentialKind(credential_kinds)
-                        if *credential_kinds == expected_credential_kinds
+                        if **credential_kinds == expected_credential_kinds
                 )
             })
             .return_once(|_| {
