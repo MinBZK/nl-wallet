@@ -21,7 +21,7 @@
             </template>
             <td>
               <RouterLink :to="{ name: 'task-details', params: { id: task.id } }" class="details">
-                BEKIJK DETAILS
+                {{ actionLabel }}
               </RouterLink>
             </td>
           </tr>
@@ -41,11 +41,12 @@ import { formatCreatedBy } from '@/utils/taskFormatters.ts'
 import EmptyState from '../ui/EmptyState.vue'
 import TasksTableHeader from './TasksTableHeader.vue'
 
-defineProps<{
+const { actionLabel = 'BEKIJK DETAILS' } = defineProps<{
   variant: 'open' | 'history'
   tasks: (Task | TaskHistoryEntry)[]
   emptyTitle: string
   emptyDescription: string
+  actionLabel?: string
 }>()
 
 const OPEN_COLUMNS = [
