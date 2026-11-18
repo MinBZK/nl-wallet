@@ -1,7 +1,7 @@
 apiVersion: v2
 type: application
 name: keycloak
-version: 1.0.1
+version: 1.0.2
 appVersion: "26.7.3"
 description: A helm-chart for Keycloak.
 dependencies:
