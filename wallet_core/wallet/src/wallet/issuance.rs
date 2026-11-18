@@ -719,7 +719,7 @@ where
         info!("Issuance succeeded; removing issuance session state");
         self.session = None;
 
-        let attestations = match preview_attestations {
+        let attestation_presentations = match preview_attestations {
             Some(preview_attestations) => preview_attestations.into_inner(),
             None => {
                 self.process_issued_credentials(
@@ -762,13 +762,13 @@ where
                 .map_err(IssuanceError::TransferDataStorage)?;
         }
 
-        // The attestations can be paired with the credentials by position. `IssuanceSession::accept_issuance` returns
-        // the credentials in the same order as the previews from which `preview_attestations` were created, and
-        // `process_issued_credentials` keeps the order of the credentials.
+        // The attestation presentations can be paired with the issued credentials by position.
+        // `IssuanceSession::accept_issuance` returns the credentials in the same order as the previews from which
+        // `preview_attestations` were created, and `process_issued_credentials` keeps the order of the credentials.
         let (existing, new): (Vec<_>, Vec<_>) = issued_credentials_with_metadata
             .into_iter()
-            .zip_eq(attestations)
-            .partition(|(_, attestation)| matches!(attestation.identity, AttestationIdentity::Fixed { .. }));
+            .zip_eq(attestation_presentations)
+            .partition(|(_, presentation)| matches!(presentation.identity, AttestationIdentity::Fixed { .. }));
 
         info!("Attestations accepted, storing credentials in database");
         if !existing.is_empty() {
