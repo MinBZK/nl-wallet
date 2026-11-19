@@ -1944,6 +1944,7 @@ mod tests {
                 StoredAttestationMetadata,
             ),
         >,
+        #[values(true, false)] with_previews: bool,
     ) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
@@ -1985,7 +1986,7 @@ mod tests {
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
-                preview_attestations: Some(attestations),
+                preview_attestations: with_previews.then_some(attestations),
                 protocol_state: pid_issuer,
             },
         }));
@@ -2001,10 +2002,12 @@ mod tests {
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
 
+        // The stored PID is looked up to compare its recovery code. Without previews, it is also looked up before that,
+        // to determine which stored attestations the issued credentials renew.
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .times(1)
+            .times(if with_previews { 1 } else { 2 })
             .returning(|_| Ok(vec![]));
 
         wallet
@@ -2566,19 +2569,20 @@ mod tests {
         assert!(!wallet.is_locked());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn test_accept_pid_issuance_error_missing_pid_sd_jwt() {
+    async fn test_accept_pid_issuance_error_missing_pid_sd_jwt(#[values(true, false)] with_previews: bool) {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        // Have the mock OpenID4VCI session issue the PID only in Mdoc format.
+        // Have the mock OpenID4VCI session issue the PID only in Mdoc format, with or without previews.
         let (mdoc_credential, metadata_documents, _) = mdoc_pid();
         let (pid_issuer, attestations) =
             mock_issuance_session([(mdoc_credential, metadata_documents)], Some(NonZeroU8::MAX));
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Issuance {
-                preview_attestations: Some(attestations),
+                preview_attestations: with_previews.then_some(attestations),
                 protocol_state: pid_issuer,
             },
         }));
@@ -2587,6 +2591,13 @@ mod tests {
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
+
+        // Without previews, the stored attestations are looked up to determine which ones the issued credentials renew.
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .times(if with_previews { 0 } else { 1 })
+            .returning(|_| Ok(vec![]));
 
         // Accepting PID issuance should result in an error.
         let error = wallet
