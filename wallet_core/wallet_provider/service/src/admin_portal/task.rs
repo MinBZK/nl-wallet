@@ -19,7 +19,6 @@ use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
-use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::AdminPortalRepository;
@@ -30,6 +29,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 
 use super::AdminPortalService;
 use super::LoggedInUser;
+use super::MissingPrivileges;
 use crate::account_server::UserState;
 use crate::admin_portal::execution::block_users;
 use crate::admin_portal::execution::revoke_wallets;
@@ -54,8 +54,8 @@ impl FromAuditLogError for RetrieveTaskError {
 
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTaskError {
-    #[error("missing privilege for any of task types {0:?}")]
-    MissingPrivilege(Vec<TaskType>),
+    #[error(transparent)]
+    MissingPrivilege(MissingPrivileges),
     #[error("wallet IDs not found: {0:?}")]
     WalletIdsNotFound(HashSet<WalletId>),
     #[error("persistence error: {0}")]
@@ -92,8 +92,8 @@ impl FromAuditLogError for WithdrawTaskError {
 pub enum ReviewTaskError {
     #[error("task not found: {0}")]
     NotFound(Uuid),
-    #[error("missing privilege for any of task types {0:?}")]
-    MissingPrivilege(Vec<TaskType>),
+    #[error(transparent)]
+    MissingPrivilege(MissingPrivileges),
     #[error("task cannot be reviewed: created by caller, or not in 'created' status")]
     InvalidState,
     #[error("persistence error: {0}")]
@@ -168,7 +168,7 @@ where
                 .reviewed_by_user_id
                 .as_ref()
                 .is_some_and(|reviewer| *reviewer == user.user_id)
-            || user.is_authorized_to([task.payload.task_type()])
+            || user.is_authorized_to(task.payload.task_type())
         {
             Ok(task)
         } else {
@@ -189,10 +189,8 @@ where
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
-        let required = [payload.task_type()];
-        if !user.is_authorized_to(required) {
-            return Err(CreateTaskError::MissingPrivilege(required.into()));
-        }
+        user.verify_authorized_to(payload.task_type())
+            .map_err(CreateTaskError::MissingPrivilege)?;
 
         // Verify payload
         match &payload {
@@ -295,10 +293,9 @@ where
             .ok_or(ReviewTaskError::NotFound(task_id))?;
 
         // Enforce business rule: A reviewer may only review tasks of types it has the privilege for.
-        let required = [existing.payload.task_type()];
-        if !reviewer.is_authorized_to(required) {
-            return Err(ReviewTaskError::MissingPrivilege(required.into()));
-        }
+        reviewer
+            .verify_authorized_to(existing.payload.task_type())
+            .map_err(ReviewTaskError::MissingPrivilege)?;
 
         // Enforce business rule: A reviewer may NOT review its own tasks.
         if existing.created_by_user_id == reviewer.user_id {
@@ -771,7 +768,7 @@ mod tests {
             .create_task(&revoke_wallet_payload(), TASK_REASON, &user, &user_state, &MockAuditLog)
             .await;
 
-        assert_matches!(result, Err(CreateTaskError::MissingPrivilege(task_types)) if task_types == [TaskType::RevokeWallet]);
+        assert_matches!(result, Err(CreateTaskError::MissingPrivilege(missing)) if missing.required() == [TaskType::RevokeWallet]);
     }
 
     #[rstest]
@@ -1101,7 +1098,7 @@ mod tests {
             )
             .await;
 
-        assert_matches!(result, Err(ReviewTaskError::MissingPrivilege(task_types)) if task_types == [TaskType::RevokeWallet]);
+        assert_matches!(result, Err(ReviewTaskError::MissingPrivilege(missing)) if missing.required() == [TaskType::RevokeWallet]);
     }
 
     #[rstest]

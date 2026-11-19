@@ -648,6 +648,7 @@ mod tests {
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
+    use wallet_provider_service::admin_portal::MissingPrivileges;
 
     use super::*;
 
@@ -715,7 +716,7 @@ mod tests {
         StatusCode::BAD_REQUEST
     )]
     #[case::create_missing_privilege(
-        TaskApiError::Create(CreateTaskError::MissingPrivilege(vec![TaskType::RevokeWallet])),
+        TaskApiError::Create(CreateTaskError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::RevokeWallet]))),
         StatusCode::FORBIDDEN
     )]
     #[case::create_wallet_ids_not_found(
@@ -750,7 +751,7 @@ mod tests {
         StatusCode::NOT_FOUND
     )]
     #[case::review_missing_privilege(
-        TaskApiError::Review(ReviewTaskError::MissingPrivilege(vec![TaskType::RevokeWallet])),
+        TaskApiError::Review(ReviewTaskError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::RevokeWallet]))),
         StatusCode::FORBIDDEN
     )]
     #[case::review_invalid_state(TaskApiError::Review(ReviewTaskError::InvalidState), StatusCode::CONFLICT)]
@@ -785,7 +786,7 @@ mod tests {
 
     #[rstest]
     #[case::missing_privilege(
-        WalletApiError::Check(GetWalletRevocationStateError::MissingPrivilege(vec![TaskType::RevokeWallet])),
+        WalletApiError::Check(GetWalletRevocationStateError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::RevokeWallet]))),
         StatusCode::FORBIDDEN
     )]
     #[case::not_found(
@@ -802,7 +803,7 @@ mod tests {
 
     #[rstest]
     #[case::missing_privilege(
-        RecoveryCodeApiError::Summary(GetRecoveryCodeSummaryError::MissingPrivilege(vec![TaskType::BlockUser])),
+        RecoveryCodeApiError::Summary(GetRecoveryCodeSummaryError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::BlockUser]))),
         StatusCode::FORBIDDEN
     )]
     #[case::storage(

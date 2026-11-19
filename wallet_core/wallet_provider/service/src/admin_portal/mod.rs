@@ -70,12 +70,47 @@ pub struct LoggedInUser {
     pub privileges: Vec<String>,
 }
 
+/// The user lacks the privilege for every one of the `required` task types, i.e. at least one of them was needed.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("denied; user lacks any privilege in: {0:?}")]
+pub struct MissingPrivileges(Vec<TaskType>);
+
+impl MissingPrivileges {
+    pub fn new(required: Vec<TaskType>) -> Self {
+        Self(required)
+    }
+
+    #[cfg(test)]
+    /// The task types of which the user needed at least one.
+    pub fn required(&self) -> &[TaskType] {
+        &self.0
+    }
+}
+
 impl LoggedInUser {
-    /// Verify whether this user holds at least one of `task_types`. Returns `false` for an empty input.
-    pub fn is_authorized_to(&self, task_types: impl IntoIterator<Item = TaskType>) -> bool {
-        task_types
-            .into_iter()
-            .any(|task_type| self.authorized_task_types().any(|privilege| privilege == task_type))
+    /// Whether this user holds the privilege for `task_type`.
+    pub fn is_authorized_to(&self, task_type: TaskType) -> bool {
+        self.authorized_task_types().any(|privilege| privilege == task_type)
+    }
+
+    /// Returns [`MissingPrivileges`] unless this user holds the privilege for `task_type`.
+    pub fn verify_authorized_to(&self, task_type: TaskType) -> Result<(), MissingPrivileges> {
+        self.verify_authorized_to_any_of([task_type])
+    }
+
+    /// Returns [`MissingPrivileges`] unless this user holds the privilege for at least one of `task_types`.
+    /// An empty `task_types` always fails.
+    pub fn verify_authorized_to_any_of(
+        &self,
+        task_types: impl IntoIterator<Item = TaskType>,
+    ) -> Result<(), MissingPrivileges> {
+        let required: Vec<TaskType> = task_types.into_iter().collect();
+
+        if required.iter().any(|&task_type| self.is_authorized_to(task_type)) {
+            Ok(())
+        } else {
+            Err(MissingPrivileges::new(required))
+        }
     }
 
     /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
@@ -855,13 +890,19 @@ yP3ST1F3e7Cha7l54e71Lg==
     }
 
     #[test]
-    fn is_authorized_to_accepts_any_of_task_types() {
+    fn verify_authorized_to_any_of_accepts_any_of_task_types() {
         let user = user("user-1", &[TaskType::UnblockUser]);
 
-        assert!(user.is_authorized_to([TaskType::BlockUser, TaskType::UnblockUser]));
-        assert!(user.is_authorized_to([TaskType::UnblockUser]));
-        assert!(!user.is_authorized_to([TaskType::BlockUser, TaskType::RevokeWallet]));
-        assert!(!user.is_authorized_to([]));
+        assert!(
+            user.verify_authorized_to_any_of([TaskType::BlockUser, TaskType::UnblockUser])
+                .is_ok()
+        );
+        assert!(user.verify_authorized_to_any_of([TaskType::UnblockUser]).is_ok());
+        assert!(
+            user.verify_authorized_to_any_of([TaskType::BlockUser, TaskType::RevokeWallet])
+                .is_err()
+        );
+        assert!(user.verify_authorized_to_any_of([]).is_err());
     }
 
     #[tokio::test]

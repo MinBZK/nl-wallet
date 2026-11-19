@@ -19,6 +19,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 
 use super::AdminPortalService;
 use super::LoggedInUser;
+use super::MissingPrivileges;
 use crate::account_server::UserState;
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
@@ -42,8 +43,8 @@ impl From<WalletUserState> for WalletRevocationState {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetWalletRevocationStateError {
-    #[error("missing privilege for any of task types {0:?}")]
-    MissingPrivilege(Vec<TaskType>),
+    #[error(transparent)]
+    MissingPrivilege(MissingPrivileges),
     #[error("wallet not found: {0}")]
     NotFound(WalletId),
     #[error("persistence error: {0}")]
@@ -75,8 +76,8 @@ impl RecoveryCodeSummary {
 
 #[derive(Debug, thiserror::Error)]
 pub enum GetRecoveryCodeSummaryError {
-    #[error("missing privilege for any of task types {0:?}")]
-    MissingPrivilege(Vec<TaskType>),
+    #[error(transparent)]
+    MissingPrivilege(MissingPrivileges),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("error while auditing: {0}")]
@@ -112,10 +113,8 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         TX: Committable,
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
-        let required = [TaskType::BlockUser, TaskType::UnblockUser];
-        if !user.is_authorized_to(required) {
-            return Err(GetRecoveryCodeSummaryError::MissingPrivilege(required.into()));
-        }
+        user.verify_authorized_to_any_of([TaskType::BlockUser, TaskType::UnblockUser])
+            .map_err(GetRecoveryCodeSummaryError::MissingPrivilege)?;
 
         let transaction = user_state
             .repositories
@@ -169,10 +168,8 @@ impl<R, T, U> AdminPortalService<R, T, U> {
         UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
     {
         // Only authorized users with `privilege_revoke_wallet` may check wallet IDs.
-        let required = [TaskType::RevokeWallet];
-        if !user.is_authorized_to(required) {
-            return Err(GetWalletRevocationStateError::MissingPrivilege(required.into()));
-        }
+        user.verify_authorized_to(TaskType::RevokeWallet)
+            .map_err(GetWalletRevocationStateError::MissingPrivilege)?;
 
         let transaction = user_state
             .repositories
@@ -292,7 +289,7 @@ mod tests {
 
         assert_matches!(
             result,
-            Err(GetWalletRevocationStateError::MissingPrivilege(task_types)) if task_types == [TaskType::RevokeWallet]
+            Err(GetWalletRevocationStateError::MissingPrivilege(missing)) if missing.required() == [TaskType::RevokeWallet]
         );
     }
 
@@ -348,8 +345,8 @@ mod tests {
 
         assert_matches!(
             result,
-            Err(GetRecoveryCodeSummaryError::MissingPrivilege(task_types))
-                if task_types == [TaskType::BlockUser, TaskType::UnblockUser]
+            Err(GetRecoveryCodeSummaryError::MissingPrivilege(missing))
+                if missing.required() == [TaskType::BlockUser, TaskType::UnblockUser]
         );
     }
 
