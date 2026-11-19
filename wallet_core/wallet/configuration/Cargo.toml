@@ -32,17 +32,14 @@ chrono = { workspace = true, features = ["serde"] }
 clap = { workspace = true, optional = true, features = ["derive"] }
 derive_more = { workspace = true, features = ["debug"] }
 itertools.workspace = true
-rustls-pki-types.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true, optional = true }
 serde_with = { workspace = true, features = ["base64"] }
-thiserror.workspace = true
 url = { workspace = true, features = ["serde"] }
 
 attestation_data.path = "../../lib/attestation_data"
 attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
-error_category.path = "../../lib/error_category"
 http_utils = { path = "../../lib/http_utils", features = ["client"] }
 jwt.path = "../../lib/jwt"
 openid4vc.path = "../../lib/openid4vc"

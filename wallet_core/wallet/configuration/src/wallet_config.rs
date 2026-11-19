@@ -15,7 +15,6 @@ use crypto::kid::Kid;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
-use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use itertools::Either;
@@ -198,13 +197,6 @@ impl SdJwtPidClaims {
     }
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum PidAttributesConfigurationError {
-    #[category(critical)]
-    #[error("attestation type {0} has no PID configuration")]
-    NoPidConfiguration(String),
-}
-
 impl PidAttributesConfiguration {
     /// The [`CredentialKindRef`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
     pub fn credential_kinds(&self) -> HashSet<CredentialKindRef<'_>> {
@@ -228,17 +220,6 @@ impl PidAttributesConfiguration {
             Format::MsoMdoc => self.mso_mdoc.contains_key(credential_kind.attestation_type),
             Format::SdJwt => self.sd_jwt.contains_key(credential_kind.attestation_type),
         }
-    }
-
-    /// The claim path of the recovery code in the SD-JWT PID of the specified attestation type.
-    pub fn sd_jwt_recovery_code_path(
-        &self,
-        attestation_type: &str,
-    ) -> Result<VecNonEmpty<ClaimPath>, PidAttributesConfigurationError> {
-        self.sd_jwt
-            .get(attestation_type)
-            .map(SdJwtPidClaims::recovery_code_claim_path)
-            .ok_or_else(|| PidAttributesConfigurationError::NoPidConfiguration(attestation_type.to_string()))
     }
 
     /// The key path of the recovery code in the PID of the specified format and attestation type, if configured.
@@ -272,12 +253,10 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
 
 #[cfg(test)]
 mod tests {
-    use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
-    use utils::vec_nonempty;
 
     use super::PidAttributesConfiguration;
 
@@ -309,13 +288,6 @@ mod tests {
                 .unwrap()
                 .collect_vec(),
             ["nested", "recovery_code"]
-        );
-        assert_eq!(
-            config.sd_jwt_recovery_code_path("pid_vct").unwrap(),
-            vec_nonempty![
-                ClaimPath::SelectByKey("nested".to_string()),
-                ClaimPath::SelectByKey("recovery_code".to_string())
-            ]
         );
     }
 

@@ -1,6 +1,3 @@
-use attestation_data::attributes::Attribute;
-use attestation_data::attributes::Attributes;
-use attestation_types::claim_path::ClaimPath;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -13,7 +10,6 @@ use sd_jwt::claims::ObjectClaims;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
-use wallet_configuration::wallet_config::PidAttributesConfigurationError;
 
 use super::Wallet;
 use crate::errors::StorageError;
@@ -44,9 +40,6 @@ pub enum RecoveryCodeError {
     #[error("no PID received")]
     #[category(critical)]
     MissingPid,
-
-    #[error("PID configuration error: {0}")]
-    PidAttributesConfiguration(#[source] PidAttributesConfigurationError),
 }
 
 /// A disclosure of just the recovery code of the issued PID, whose recovery code matches that of the stored PID, if
@@ -138,19 +131,18 @@ where
             .await
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()
-            .map(|stored_copy| -> Result<_, RecoveryCodeError> {
-                let recovery_code_path = pid_config
-                    .sd_jwt_recovery_code_path(stored_copy.attestation_type())
-                    .map_err(RecoveryCodeError::PidAttributesConfiguration)?;
-
-                // The stored PID has to include a recovery code, since this was checked during issuance. However, it is
-                // still possible that the SD-JWT credential kinds or path to the recovery code was changed in the
-                // configuration. This should never happen, making this an error in the "impossible" category.
-                let code = retrieve_recovery_code_from_pid(&stored_copy.into_attributes(), &recovery_code_path)
-                    .ok_or(RecoveryCodeError::MissingStoredRecoveryCode)?
-                    .to_string();
-
-                Ok(code)
+            .map(|stored_copy| {
+                // The stored PID was checked for a recovery code during issuance, so this can only fail if the
+                // PID configuration changed since, which should never happen.
+                pid_config
+                    .sd_jwt
+                    .get(stored_copy.attestation_type())
+                    .zip(stored_copy.sd_jwt_decoded_claims())
+                    .and_then(|(pid_claims, claims)| {
+                        retrieve_recovery_code_from_decoded_claims(claims, &pid_claims.recovery_code_path)
+                    })
+                    .map(ToOwned::to_owned)
+                    .ok_or(RecoveryCodeError::MissingStoredRecoveryCode)
             })
             .transpose()?;
 
@@ -175,18 +167,4 @@ fn retrieve_recovery_code_from_decoded_claims<'a>(
         ClaimValue::String(code) => Some(code.as_str()),
         _ => None,
     }
-}
-
-fn retrieve_recovery_code_from_pid<'a>(
-    attributes: &'a Attributes,
-    recovery_code_path: &VecNonEmpty<ClaimPath>,
-) -> Option<&'a str> {
-    attributes
-        .get(recovery_code_path)
-        .ok()
-        .flatten()
-        .and_then(|attribute| match attribute {
-            Attribute::Text(code) => Some(code.as_str()),
-            _ => None,
-        })
 }

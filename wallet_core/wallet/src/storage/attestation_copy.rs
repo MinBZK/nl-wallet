@@ -231,6 +231,14 @@ impl StoredAttestationCopy {
         CredentialKindRef::new(self.format(), self.attestation_type())
     }
 
+    /// The decoded claims of the SD-JWT attestation, if any.
+    pub fn sd_jwt_decoded_claims(&self) -> Option<&ObjectClaims> {
+        match &self.attestation.data {
+            StoredAttestation::SdJwt(sd_jwt) => Some(sd_jwt.decoded_claims()),
+            StoredAttestation::MsoMdoc(_) => None,
+        }
+    }
+
     pub fn into_attributes(self) -> Attributes {
         match self.attestation.data {
             StoredAttestation::MsoMdoc(mdoc) => {
