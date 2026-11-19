@@ -11,7 +11,6 @@ workspace = true
 doctest = false
 
 [dependencies]
-anyhow.workspace = true
 axum.workspace = true
 base64.workspace = true
 derive_more = { workspace = true, features = ["as_ref", "debug", "from"] }
@@ -28,7 +27,6 @@ attestation_types.path = "../../lib/attestation_types"
 crypto.path = "../../lib/crypto"
 dcql.path = "../../lib/dcql"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
-openid4vc.path = "../../lib/openid4vc"
 token_status_list.path = "../../lib/token_status_list"
 utils.path = "../../lib/utils"
 

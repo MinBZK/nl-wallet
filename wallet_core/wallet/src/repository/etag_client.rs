@@ -131,7 +131,6 @@ where
 #[cfg(test)]
 mod test {
     use std::assert_matches;
-    use std::convert::Infallible;
     use std::str::FromStr;
 
     use http::header;
@@ -147,7 +146,7 @@ mod test {
     struct Stub;
 
     impl FromStr for Stub {
-        type Err = Infallible;
+        type Err = !;
 
         fn from_str(_: &str) -> Result<Self, Self::Err> {
             Ok(Self {})

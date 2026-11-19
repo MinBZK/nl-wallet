@@ -58,4 +58,13 @@
     <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
     <cve>CVE-2015-3362</cve>
   </suppress>
+
+  <suppress until="2027-01-01Z">
+    <notes><![CDATA[
+    `activesupport` is only used by fastlane, cocoapods and slather during builds, and never gets untrusted input.
+    `cocoapods-core` requires `activesupport` < 8, and 7.2 has no fixed release. Also ignored in osv-scanner.toml.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:gem/activesupport@.*$</packageUrl>
+    <cve>CVE-2026-126080</cve>
+  </suppress>
 </suppressions>

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../navigation/secured_page_route.dart';
 import '../../../util/extension/build_context_extension.dart';

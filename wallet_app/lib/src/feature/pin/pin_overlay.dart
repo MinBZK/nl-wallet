@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../data/service/announcement_service.dart';
 import '../../domain/usecase/app/check_is_app_initialized_usecase.dart';

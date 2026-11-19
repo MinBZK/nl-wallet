@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:after_layout/after_layout.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/usecase/notification/observe_os_notifications_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';

@@ -1,6 +1,5 @@
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::marker::PhantomData;
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -453,7 +452,7 @@ where
     K: 'a + AsPublicKeyRef,
 {
     type Key = PublicKeyRef<'a>;
-    type Error = Infallible;
+    type Error = !;
 
     fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         Ok(self.get(kid).map(AsPublicKeyRef::as_public_key_ref))
@@ -462,7 +461,7 @@ where
 
 impl<'a> PublicKeyByKid<'a> for VerifyingKeyWithKid {
     type Key = PublicKeyRef<'a>;
-    type Error = Infallible;
+    type Error = !;
 
     fn find(&'a self, kid: &str) -> Result<Option<Self::Key>, Self::Error> {
         if self.kid.as_ref() == kid {

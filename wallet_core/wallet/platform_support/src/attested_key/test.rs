@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::fmt::Debug;
 use std::mem;
 
@@ -37,7 +36,7 @@ impl<'a> SimpleClientData<'a> {
 }
 
 impl ClientData for SimpleClientData<'_> {
-    type Error = Infallible;
+    type Error = !;
 
     fn hash_data(&self) -> Result<impl AsRef<[u8]>, Self::Error> {
         Ok(self.hash_data)

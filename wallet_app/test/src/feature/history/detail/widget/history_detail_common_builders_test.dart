@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/feature/common/builder/request_detail_common_builders.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 import 'package:wallet/src/feature/common/widget/divider_side.dart';

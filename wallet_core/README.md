@@ -88,7 +88,7 @@ but also with the [nextest](https://nexte.st) runner.
 Install nextest via:
 
 ```sh
-cargo install cargo-nextest --locked
+cargo install cargo-nextest
 ```
 
 and run via `cargo nextest run` instead of `cargo test`.

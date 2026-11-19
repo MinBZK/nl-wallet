@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/usecase/permission/request_permission_usecase.dart';
 import '../../../navigation/wallet_routes.dart';

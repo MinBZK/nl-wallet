@@ -15,7 +15,6 @@ import org.junitpioneer.jupiter.RetryingTest
 import screen.card.CardDataScreen
 import screen.card.CardDetailScreen
 import screen.dashboard.DashboardScreen
-import screen.error.AttributesMissingErrorScreen
 import screen.issuance.CardIssuanceScreen
 import screen.issuance.DisclosureIssuanceScreen
 import screen.menu.MenuScreen
@@ -34,7 +33,6 @@ class RevokeCardTests : TestBase() {
     private lateinit var pinScreen: PinScreen
     private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
     private lateinit var dashboardScreen: DashboardScreen
-    private lateinit var attributesMissingErrorScreen: AttributesMissingErrorScreen
     private lateinit var revocationHelper: RevocationHelper
     private lateinit var tasData: TasDataHelper
     private lateinit var cardDetailScreen: CardDetailScreen
@@ -50,7 +48,6 @@ class RevokeCardTests : TestBase() {
         disclosureForIssuanceScreen = DisclosureIssuanceScreen()
         cardIssuanceScreen = CardIssuanceScreen()
         dashboardScreen = DashboardScreen()
-        attributesMissingErrorScreen = AttributesMissingErrorScreen()
         revocationHelper = RevocationHelper()
         cardDetailScreen = CardDetailScreen()
         cardDataScreen = CardDataScreen()
@@ -86,10 +83,7 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickHollandUniversityMdocButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        assertTrue(
-            attributesMissingErrorScreen.attributesMissingMessageVisible(),
-            "Error screen is not visible"
-        )
+        assertTrue(disclosureForIssuanceScreen.shareButtonVisible(), "Disclosure screen with revoked card not visible")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -131,9 +125,6 @@ class RevokeCardTests : TestBase() {
         indexWebPage.clickJobFinderButton()
         issuerWebPage.openSameDeviceWalletFlow()
         disclosureForIssuanceScreen.switchToNativeContext()
-        assertTrue(
-            attributesMissingErrorScreen.attributesMissingMessageVisible(),
-            "Error screen is not visible"
-        )
+        assertTrue(disclosureForIssuanceScreen.shareButtonVisible(), "Disclosure screen with revoked card not visible")
     }
 }

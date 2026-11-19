@@ -65,7 +65,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
 
   Future<void> _disableBiometrics(BiometricSettingsLoaded currentState, Emitter<BiometricSettingsState> emit) async {
     emit(const BiometricSettingsLoaded(biometricLoginEnabled: false));
-    final result = await setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: false);
+    final result = await setBiometricsUseCase.invoke(enable: false);
     await result.process(
       onSuccess: (_) {},
       onError: (error) {
@@ -111,7 +111,7 @@ class BiometricSettingsBloc extends Bloc<BiometricSettingsEvent, BiometricSettin
       emit(const BiometricSettingsError());
       return;
     }
-    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
+    final result = await setBiometricsUseCase.invoke(enable: true);
     await result.process(
       onSuccess: (_) => emit(const BiometricSettingsLoaded(biometricLoginEnabled: true)),
       onError: (error) => Fimber.e('Failed to enable biometric unlock', ex: error),

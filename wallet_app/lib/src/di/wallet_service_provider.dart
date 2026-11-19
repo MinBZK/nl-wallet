@@ -1,7 +1,7 @@
 import 'package:app_links/app_links.dart';
 import 'package:bluetooth/bluetooth.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../data/service/announcement_service.dart';

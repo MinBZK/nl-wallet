@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/feature/common/widget/button/confirm/vertical_confirm_buttons.dart';
 import 'package:wallet/src/feature/common/widget/button/primary_button.dart';
 import 'package:wallet/src/feature/common/widget/button/secondary_button.dart';

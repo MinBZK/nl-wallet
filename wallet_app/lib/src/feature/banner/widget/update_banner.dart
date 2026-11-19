@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/usecase/update/observe_version_state_usecase.dart';
 import '../../../navigation/wallet_routes.dart';

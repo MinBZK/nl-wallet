@@ -4,6 +4,7 @@ import 'package:test/test.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
+import 'package:wallet/src/domain/usecase/biometrics/biometric_authentication_result.dart';
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/wallet_constants.dart';
@@ -15,12 +16,14 @@ void main() {
   late MockCreateWalletUseCase createWalletUseCase;
   late MockGetAvailableBiometricsUseCase getAvailableBiometricsUseCase;
   late MockSetBiometricsUseCase setBiometricsUseCase;
+  late MockRequestBiometricsUseCase requestBiometricsUseCase;
 
   setUp(() {
     checkIsValidPinUseCase = MockCheckIsValidPinUseCase();
     createWalletUseCase = MockCreateWalletUseCase();
     getAvailableBiometricsUseCase = MockGetAvailableBiometricsUseCase();
     setBiometricsUseCase = MockSetBiometricsUseCase();
+    requestBiometricsUseCase = MockRequestBiometricsUseCase();
   });
 
   SetupSecurityBloc buildBloc() => SetupSecurityBloc(
@@ -28,6 +31,7 @@ void main() {
     createWalletUseCase,
     getAvailableBiometricsUseCase,
     setBiometricsUseCase,
+    requestBiometricsUseCase,
   );
 
   blocTest(
@@ -208,9 +212,11 @@ void main() {
     setUp: () async {
       when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.some);
       when(
+        requestBiometricsUseCase.invoke(),
+      ).thenAnswer((_) async => const Result.success(BiometricAuthenticationResult.success));
+      when(
         setBiometricsUseCase.invoke(
           enable: anyNamed('enable'),
-          authenticateBeforeEnabling: anyNamed('authenticateBeforeEnabling'),
         ),
       ).thenAnswer((_) async => const Result.success(null));
     },
@@ -229,8 +235,42 @@ void main() {
       const SetupSecurityConfigureBiometrics(biometrics: Biometrics.some),
       const SetupSecurityCompleted(enabledBiometrics: Biometrics.some),
     ],
-    verify: (bloc) => verify(setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true)).called(1),
+    verify: (bloc) => verify(setBiometricsUseCase.invoke(enable: true)).called(1),
   );
+
+  for (final (result, expectedState) in [
+    (
+      BiometricAuthenticationResult.setupRequired,
+      const SetupSecurityBiometricsSetupRequired(biometrics: Biometrics.face),
+    ),
+    (
+      BiometricAuthenticationResult.lockedOut,
+      const SetupSecurityBiometricsLockedOut(biometrics: Biometrics.face),
+    ),
+  ]) {
+    blocTest(
+      'ltc51 when biometric authentication results in ${result.name}, biometrics are not enabled',
+      build: buildBloc,
+      setUp: () async {
+        when(getAvailableBiometricsUseCase.invoke()).thenAnswer((_) async => Biometrics.face);
+        when(requestBiometricsUseCase.invoke()).thenAnswer((_) async => Result.success(result));
+      },
+      act: (bloc) async {
+        bloc.enterPin('000100');
+        bloc.enterPin('000100');
+        await Future.delayed(const Duration(milliseconds: 10));
+        bloc.add(EnableBiometricsPressed());
+      },
+      skip: 11 /* skip pin & pin confirmation state changes */,
+      expect: () => [
+        const SetupSecurityCreatingWallet(),
+        const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
+        expectedState,
+        const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
+      ],
+      verify: (bloc) => verifyZeroInteractions(setBiometricsUseCase),
+    );
+  }
 
   blocTest(
     'ltc51 when skipping biometric setup, the set biometrics usecase is not invoked',

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/status/card_status_metadata.dart';

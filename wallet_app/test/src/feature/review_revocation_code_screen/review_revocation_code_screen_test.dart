@@ -1,7 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/domain/usecase/revocation/get_revocation_code_usecase.dart';
 import 'package:wallet/src/feature/review_revocation_code_screen/bloc/review_revocation_code_bloc.dart';
 import 'package:wallet/src/feature/review_revocation_code_screen/review_revocation_code_screen.dart';

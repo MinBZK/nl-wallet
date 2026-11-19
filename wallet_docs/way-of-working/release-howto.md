@@ -304,6 +304,12 @@ backend. When the flag is removed (and so becomes a considered-stable release),
 don't forget to remove the `CONDITIONAL_PRE_RELEASE_WARNING` paragraph from the
 release description.
 
+### Step 11: Update Jira releases
+
+After publishing the release, find someone with the required Jira permissions
+and ask them to mark the current version as `Released` and create the next
+release version in Jira.
+
 ## Release Checklists
 
 ### Pre-Approval Checklist (Steps 1-4)
@@ -330,7 +336,7 @@ be used to explain possible exceptions from the different aspects and steps.
 | A11y scan evaluated and issues reported to Jira              |        | Verify Browserstack A11y scan results, actual issues reported as bugs                            |
 | `Nightly performance test` pipeline ran and results accepted |        | Check nightly performance test pipeline results                                                  |
 
-### Final Release Verification Checklist (Steps 5-10)
+### Final Release Verification Checklist (Steps 5-11)
 
 Use this checklist to verify all steps have been completed after release
 execution:
@@ -350,6 +356,8 @@ execution:
 | Release description added to GitHub release |        | Complete release description markdown inserted                                      |
 | Pre-release flag set                        |        | "Set as a pre-release" flag enabled                                                 |
 | GitHub release published                    |        | Release successfully published on GitHub                                            |
+| Jira version marked as Released            |        | Someone with the required Jira permissions marked the current version as `Released` |
+| Next Jira release version created          |        | Someone with the required Jira permissions created the next release version         |
 
 ## References
 

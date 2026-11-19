@@ -18,7 +18,7 @@ required-features = ["integration_test"]
 [features]
 client = ["dep:error_category", "dep:futures", "dep:platform_support", "p256/pem"]
 server = ["dep:apple_app_attest", "p256/pem"]
-integration_test = ["android_attest/mock", "client", "dep:rustls-pki-types", "server"]
+integration_test = ["client", "dep:rustls-pki-types", "server"]
 mock = []
 utoipa = ["dep:utoipa"]
 
@@ -46,7 +46,6 @@ p256 = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
 
-android_attest = { path = "../../lib/android_attest", optional = true }
 apple_app_attest = { path = "../../lib/apple_app_attest", optional = true }
 error_category = { path = "../../lib/error_category", optional = true }
 platform_support = { path = "../../wallet/platform_support", optional = true }
@@ -56,6 +55,7 @@ futures.workspace = true
 rand_core.workspace = true
 rstest.workspace = true
 
+android_attest = { path = "../../lib/android_attest", features = ["mock"] }
 apple_app_attest = { path = "../../lib/apple_app_attest", features = ["mock"] }
 crypto = { path = "../../lib/crypto", features = ["mock_secure_keys"] }
 platform_support = { path = "../../wallet/platform_support", features = ["mock_attested_key_apple"] }

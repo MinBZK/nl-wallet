@@ -127,15 +127,13 @@ extension CloseProximityDisclosure {
                 reason: "Reader message did not contain a device request or status"
             )
         }
-        if let deviceRequest {
-            if isActiveSession(session) {
-                try await session.channel.sendUpdate(
-                    update: CloseProximityDisclosureUpdate.sessionEstablished(
-                        sessionTranscript: encodedSessionTranscript,
-                        deviceRequest: deviceRequest
-                    )
+        if let deviceRequest, isActiveSession(session) {
+            try await session.channel.sendUpdate(
+                update: CloseProximityDisclosureUpdate.sessionEstablished(
+                    sessionTranscript: encodedSessionTranscript,
+                    deviceRequest: deviceRequest
                 )
-            }
+            )
         }
         if let status {
             await finishSession(session, update: status.asCloseProximityDisclosureUpdate)
