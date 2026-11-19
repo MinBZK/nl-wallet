@@ -7,6 +7,7 @@ use platform_support::attested_key::AttestedKeyHolder;
 use sd_jwt::claims::ClaimName;
 use sd_jwt::claims::ClaimValue;
 use sd_jwt::claims::ObjectClaims;
+use sd_jwt::error::ClaimError;
 use sd_jwt::sd_jwt::UnverifiedSdJwt;
 use utils::vec_at_least::VecNonEmpty;
 use wallet_configuration::wallet_config::PidAttributesConfiguration;
@@ -32,7 +33,7 @@ pub enum RecoveryCodeError {
 
     #[error("could not add recovery code disclosure: {0}")]
     #[category(pd)]
-    RecoveryCodeDisclosure(#[source] sd_jwt::error::ClaimError),
+    RecoveryCodeDisclosure(#[source] ClaimError),
 
     #[error("could not query attestations in database: {0}")]
     AttestationQuery(#[source] StorageError),
