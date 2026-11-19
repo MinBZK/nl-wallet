@@ -268,15 +268,12 @@ platform :android do
     UI.user_error!("No ANDROID_SERIAL set") if serial.blank?
 
     Dir.chdir("..") do
-      # AGP 9.5 needs an unqualified install option; existing JVM options can override this default.
-      sh({
-           "ANDROID_NDK_TARGETS" => "arm64-v8a",
-           "JAVA_TOOL_OPTIONS" => "-Dandroid-test.apk-install-options=-g #{ENV['JAVA_TOOL_OPTIONS']}",
-         },
+      # Preinstall with -g; AGP 9.5 drops the install option in the connected-test worker.
+      sh({ "ANDROID_NDK_TARGETS" => "arm64-v8a" },
          "scripts/close_proximity/run_disclosure_android_test.py",
          "--serial", serial, "--require-wallet-test", "--",
          "wallet_app/android/gradlew", "--no-daemon",
-         "-p", "wallet_app/android/wallet-integration-tests", ":connectedDebugAndroidTest")
+         "-p", "wallet_app/android/wallet-integration-tests", ":installDebug", ":connectedDebugAndroidTest")
     end
   end
 
