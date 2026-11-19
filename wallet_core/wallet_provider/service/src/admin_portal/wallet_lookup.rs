@@ -132,8 +132,7 @@ impl<R, T, U> AdminPortalService<R, T, U> {
             .repositories
             .find_recovery_code_is_denied(&transaction, recovery_code)
             .await
-            .map_err(GetRecoveryCodeSummaryError::Storage)?
-            .unwrap_or(false);
+            .map_err(GetRecoveryCodeSummaryError::Storage)?;
 
         transaction
             .commit()
@@ -353,13 +352,13 @@ mod tests {
     #[rstest]
     #[case::counts(
         vec![WalletUserState::Active, WalletUserState::Blocked, WalletUserState::Revoked, WalletUserState::Transferred],
-        None,
+        false,
         RecoveryCodeSummary { active_wallets: 2, inactive_wallets: 2, is_denied: false }
     )]
-    #[case::unknown(vec![], None, RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 0, is_denied: false })]
+    #[case::unknown(vec![], false, RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 0, is_denied: false })]
     #[case::denied(
         vec![WalletUserState::Revoked],
-        Some(true),
+        true,
         RecoveryCodeSummary { active_wallets: 0, inactive_wallets: 1, is_denied: true }
     )]
     #[tokio::test]
@@ -367,7 +366,7 @@ mod tests {
         recovery_code: RecoveryCode,
         #[values(TaskType::BlockUser, TaskType::UnblockUser)] task_type: TaskType,
         #[case] states: Vec<WalletUserState>,
-        #[case] is_denied: Option<bool>,
+        #[case] is_denied: bool,
         #[case] expected: RecoveryCodeSummary,
     ) {
         let block_user = user("user-1", &[task_type]);

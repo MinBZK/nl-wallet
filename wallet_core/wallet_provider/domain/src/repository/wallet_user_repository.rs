@@ -286,7 +286,7 @@ pub trait WalletUserRepository {
         &self,
         transaction: &Self::TransactionType,
         recovery_code: &RecoveryCode,
-    ) -> Result<Option<bool>>;
+    ) -> Result<bool>;
 
     async fn list_denied_recovery_codes(&self, transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>>;
 
@@ -681,8 +681,8 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: &RecoveryCode,
-        ) -> Result<Option<bool>> {
-            Ok(None)
+        ) -> Result<bool> {
+            Ok(false)
         }
 
         async fn list_denied_recovery_codes(&self, _transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>> {

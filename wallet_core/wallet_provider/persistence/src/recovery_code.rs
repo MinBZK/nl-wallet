@@ -76,9 +76,8 @@ where
     Ok(result.is_denied)
 }
 
-/// Returns whether the recovery code is denied, without locking or writing. Returns `None` when the recovery code has
-/// no record.
-pub async fn find_is_denied<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<Option<bool>, PersistenceError>
+/// Returns whether the recovery code is denied, without locking or writing.
+pub async fn find_is_denied<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<bool, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
@@ -90,6 +89,7 @@ where
         .into_tuple::<bool>()
         .one(db.connection())
         .await
+        .map(|is_denied| is_denied.unwrap_or_default())
         .map_err(PersistenceError::Execution)
 }
 

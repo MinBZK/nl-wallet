@@ -57,18 +57,15 @@ async fn test_deny_many_inserts_and_updates_recovery_codes() {
     recovery_code::deny_many(&db, &vec_nonempty![denied_code.clone()].into())
         .await
         .unwrap();
-    assert_eq!(recovery_code::find_is_denied(&db, &new_code).await.unwrap(), None);
+    assert!(!recovery_code::find_is_denied(&db, &new_code).await.unwrap());
 
     let codes = vec_nonempty![new_code, denied_code, allowed_code].into();
     recovery_code::deny_many(&db, &codes).await.unwrap();
 
     for code in &codes {
-        assert_eq!(recovery_code::find_is_denied(&db, code).await.unwrap(), Some(true));
+        assert!(recovery_code::find_is_denied(&db, code).await.unwrap());
     }
-    assert_eq!(
-        recovery_code::find_is_denied(&db, &unrelated_code).await.unwrap(),
-        Some(false)
-    );
+    assert!(!recovery_code::find_is_denied(&db, &unrelated_code).await.unwrap(),);
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -122,22 +119,22 @@ async fn test_find_recovery_code_is_denied() {
     let recovery_code: RecoveryCode = random_string(64).into();
 
     // unknown recovery code has no record, and does not create one
-    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
-    assert_eq!(result, None);
-    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
-    assert_eq!(result, None);
+    let is_denied = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert!(!is_denied);
+    let is_denied = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert!(!is_denied);
 
     // a recovery code that is not denied has a record with `is_denied` false
     recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
-    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
-    assert_eq!(result, Some(false));
+    let is_denied = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert!(!is_denied);
 
     // denied recovery code
     recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .unwrap();
-    let result = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
-    assert_eq!(result, Some(true));
+    let is_denied = recovery_code::find_is_denied(&db, &recovery_code).await.unwrap();
+    assert!(is_denied);
 }
 
 /// This test attempts to expose a race condition / non-repeatable read:
