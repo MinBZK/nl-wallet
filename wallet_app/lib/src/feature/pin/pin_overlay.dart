@@ -43,11 +43,16 @@ class PinOverlay extends StatelessWidget {
           _announceLogout(context);
           DialogHelper.dismissOpenDialogs(context);
         }
-        return Stack(
-          children: [
-            ExcludeSemantics(excluding: isLocked, child: child),
-            if (isLocked) _buildLockedState(),
-          ],
+        // A back press while locked would close the screen hidden below the overlay, and any session it
+        // tries to cancel on close stays active in the core because sessions can't be cancelled while locked.
+        return PopScope(
+          canPop: !isLocked,
+          child: Stack(
+            children: [
+              ExcludeSemantics(excluding: isLocked, child: child),
+              if (isLocked) _buildLockedState(),
+            ],
+          ),
         );
       },
     );
