@@ -219,9 +219,22 @@ names <code class="docutils literal notranslate"><span class="pre">_sd</span></c
 </li>
 </ul>
 </section>
+<section id="interoperability-improvements">
+<h2>Interoperability improvements<a class="headerlink" href="#interoperability-improvements" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>PID issuance and PIN recovery now also work with a PID issuer that does not
+offer credential previews.</p></li>
+<li><p>When renewing the PID or recovering the PIN, the wallet now only detects that
+the user logged in with the DigiD account of someone else after the PIN has
+been entered, and then discards the received PID. This is also the case when
+the PID issuer offers credential previews.</p></li>
+</ul>
+</section>
 <section id="bug-fixes">
 <h2>Bug fixes<a class="headerlink" href="#bug-fixes" title="Link to this heading"></a></h2>
 <ul class="simple">
+<li><p>Cards received without credential previews now renew a matching card in the
+wallet, instead of always being added as a new card.</p></li>
 <li><p>The wallet app no longer freezes on iOS 27.2 and later when it checks the
 notification permission shortly after the device has (re)started, on the
 dashboard or in the notification settings.</p></li>
