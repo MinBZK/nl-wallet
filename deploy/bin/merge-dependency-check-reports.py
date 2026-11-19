@@ -21,7 +21,9 @@ from xml.etree import ElementTree
 
 REPORT = "dependency-check-report"
 XML_LISTS = ("projectReferences", "includedBy", "vulnerabilities")
-HTML = Template("""<!DOCTYPE html>
+HTML_VULN = Template('<a href="https://nvd.nist.gov/vuln/detail/$name">$name</a> $severity')
+HTML_ROW = Template('<tr id="l${index}_${sha1}"><td>$name</td><td>$packages</td><td>$users</td><td>$vulns</td></tr>')
+HTML_OUT = Template("""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -144,25 +146,26 @@ def merge_xml(sources: list[Path]) -> ElementTree.Element:
     return roots[0]
 
 
-def html_vulnerability(vulnerability: Vulnerability) -> str:
-    name = escape(vulnerability["name"])
-    return f'<a href="https://nvd.nist.gov/vuln/detail/{name}">{name}</a> {escape(vulnerability.get("severity", ""))}'
+def html_vuln(vuln: Vulnerability) -> str:
+    return HTML_VULN.substitute(name=escape(vuln["name"]), severity=escape(vuln.get("severity", "")))
 
 
 def html_row(index: int, dependency: Dependency) -> str:
-    packages = "<br>".join(escape(package["id"]) for package in dependency.get("packages", []))
-    users = "<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"])
-    vulnerabilities = "<br>".join(map(html_vulnerability, dependency.get("vulnerabilities", [])))
-    name = escape(dependency["fileName"])
-    anchor = f"l{index}_{escape(dependency.get('sha1', ''))}"
-    return f'<tr id="{anchor}"><td>{name}</td><td>{packages}</td><td>{users}</td><td>{vulnerabilities}</td></tr>'
+    return HTML_ROW.substitute(
+        index=index,
+        sha1=escape(dependency.get("sha1", "")),
+        name=escape(dependency["fileName"]),
+        packages="<br>".join(escape(package["id"]) for package in dependency.get("packages", [])),
+        users="<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"]),
+        vulns="<br>".join(map(html_vuln, dependency.get("vulnerabilities", []))),
+    )
 
 
-def render_html(report: Report) -> str:
+def html_out(report: Report) -> str:
     dependencies = report["dependencies"]
     vulnerable = sum(1 for dependency in dependencies if dependency.get("vulnerabilities"))
     rows = "\n".join(html_row(index, dependency) for index, dependency in enumerate(dependencies, 1))
-    return HTML.substitute(total=len(dependencies), vulnerable=vulnerable, rows=rows)
+    return HTML_OUT.substitute(total=len(dependencies), vulnerable=vulnerable, rows=rows)
 
 
 def main() -> None:
@@ -171,7 +174,7 @@ def main() -> None:
     target, *sources = map(Path, sys.argv[1:])
     report = merge_json([source / f"{REPORT}.json" for source in sources])
     _ = (target / f"{REPORT}.json").write_text(json.dumps(report))
-    _ = (target / f"{REPORT}.html").write_text(render_html(report))
+    _ = (target / f"{REPORT}.html").write_text(html_out(report))
     root = merge_xml([source / f"{REPORT}.xml" for source in sources])
     ElementTree.ElementTree(root).write(target / f"{REPORT}.xml", encoding="UTF-8", xml_declaration=True)
 
