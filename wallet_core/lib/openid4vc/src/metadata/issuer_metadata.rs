@@ -10,7 +10,7 @@ use attestation_data::metadata::ClaimConstraint;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use cose::CoseAlgorithmIdentifier;
 use coset::iana;
 use derive_more::AsRef;
@@ -548,10 +548,10 @@ impl CredentialFormat {
         }
     }
 
-    pub fn credential_kind(&self) -> Option<CredentialKind> {
+    pub fn credential_kind_ref(&self) -> Option<CredentialKindRef<'_>> {
         match self {
-            Self::MsoMdoc { doctype, .. } => Some(CredentialKind::new(Format::MsoMdoc, doctype.to_string())),
-            Self::SdJwt { vct, .. } => Some(CredentialKind::new(Format::SdJwt, vct.to_string())),
+            Self::MsoMdoc { doctype, .. } => Some(CredentialKindRef::new(Format::MsoMdoc, doctype)),
+            Self::SdJwt { vct, .. } => Some(CredentialKindRef::new(Format::SdJwt, vct)),
             Self::Other { .. } => None,
         }
     }

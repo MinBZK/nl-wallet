@@ -495,7 +495,7 @@ where
         presentation_config: &impl AttestationPresentationConfig,
     ) -> Result<Option<VecNonEmpty<VpDisclosableAttestation>>, StorageError> {
         let stored_attestations = storage
-            .fetch_valid_unique_attestations_by_credential_kinds(&request.credential_kinds(), TimeGenerator)
+            .fetch_valid_unique_attestations_by_credential_kinds(request.credential_kinds(), TimeGenerator)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -1265,7 +1265,7 @@ mod tests {
 
         // Create three PID attestations, which differ only in their given name.
         let (mut pid_credential_payload, pid_metadata, holder_key) = example_pid_payload_and_metadata(requested_format);
-        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        let attributes = &mut pid_credential_payload.contents.attributes;
         attributes.overwrite(
             given_name_path.iter().copied(),
             Attribute::Text("Andere Naam".to_string()),
@@ -1279,7 +1279,7 @@ mod tests {
 
         let (pid2, _) = example_pid_stored_attestation_copy(requested_format);
 
-        let attributes = &mut pid_credential_payload.previewable_payload.attributes;
+        let attributes = &mut pid_credential_payload.contents.attributes;
         attributes.overwrite(
             given_name_path.iter().copied(),
             Attribute::Text("Iemand Anders".to_string()),
@@ -1296,7 +1296,7 @@ mod tests {
             &SigningKey::generate(),
         );
 
-        let attributes = &mut address_credential_payload.previewable_payload.attributes;
+        let attributes = &mut address_credential_payload.contents.attributes;
         for (claim, value) in [(PID_RESIDENT_HOUSE_NUMBER, "68"), (PID_RESIDENT_POSTAL_CODE, "2514 GL")] {
             attributes.overwrite(
                 address_group_path.iter().copied().chain([claim]),
@@ -3079,7 +3079,7 @@ mod tests {
 
         // Create a credential payload with an sd claim and 2 non-sd claims
         let holder_key = SigningKey::generate();
-        let previewable_payload = CredentialPayload::example_with_attributes(
+        let contents = CredentialPayload::example_with_attributes(
             my_attestation_type,
             Attributes::example([
                 ([my_sd_claim], Attribute::Text("Some Sd Claim".to_string())),
@@ -3099,7 +3099,7 @@ mod tests {
         // Create an attestation for the above metadata and credential payload
         let attestation = example_stored_attestation_copy(
             Format::SdJwt,
-            previewable_payload,
+            contents,
             StoredAttestationMetadata::TypeMetadata(type_metadata_with_non_selectively_disclocable_claim),
             &holder_key,
         );

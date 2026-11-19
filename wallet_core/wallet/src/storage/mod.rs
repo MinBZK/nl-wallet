@@ -186,7 +186,7 @@ pub trait Storage: Send {
     async fn has_any_attestations(&self) -> StorageResult<bool>;
     async fn has_any_attestations_with_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
     ) -> StorageResult<bool>;
 
     async fn fetch_unique_attestations(&self) -> StorageResult<Vec<StoredAttestationCopy>>;
@@ -196,7 +196,7 @@ pub trait Storage: Send {
     /// are not returned.
     async fn fetch_unique_attestations_by_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>>;
 
     /// Returns a single attestation copy eligible for disclosure for each stored attestation whose attestation type
@@ -210,7 +210,7 @@ pub trait Storage: Send {
     #[cfg_attr(test, mockall::concretize)]
     async fn fetch_valid_unique_attestations_by_credential_kinds<T>(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where

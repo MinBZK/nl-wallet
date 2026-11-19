@@ -16,8 +16,10 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
+use attestation_data::attributes::Attributes;
 use attestation_data::registration_certificate::mock::StaticStatusListClient;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
@@ -1069,7 +1071,26 @@ async fn start_mock_attestation_server(
             .unwrap()
             .serve(
                 Router::new()
-                    .route("/", post(|| async { Json(issuable_documents) }))
+                    .route(
+                        "/",
+                        post(move || {
+                            let documents = issuable_documents
+                                .iter()
+                                .cloned()
+                                .map(|document| {
+                                    let (_, credential_kind, attributes): (_, CredentialKind, Attributes) =
+                                        document.into();
+
+                                    // Use a random id each request, so that the issuer can issue the same document more
+                                    // than once. The issuer uses this id as the batch ID of the status claims, which
+                                    // has to be unique.
+                                    IssuableDocument::try_new_with_random_id(credential_kind, attributes).unwrap()
+                                })
+                                .collect::<Vec<_>>();
+
+                            async { Json(documents) }
+                        }),
+                    )
                     .merge(create_health_router([]))
                     .into_make_service(),
             )

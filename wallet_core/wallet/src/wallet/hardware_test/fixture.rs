@@ -5,8 +5,8 @@ use anyhow::Result;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::Attribute;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::registration_certificate::ParsedRegistrationCertificate;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
 use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
@@ -162,12 +162,12 @@ impl<C> Fixture<C> {
         config.account_server.instruction_result_public_keys =
             HashMap::from([(account_key.kid().try_into()?, (*account_key.verifying_key()).into())]);
 
-        let mut preview = PreviewableCredentialPayload::nl_pid_mdoc_example(&TimeGenerator);
+        let mut preview = CredentialContents::nl_pid_mdoc_example(&TimeGenerator);
         preview.attributes.overwrite(
             [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
             Attribute::Text(EXPECTED_GIVEN_NAME.to_owned()),
         );
-        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        let (issuer_signed, mso) = CredentialPayload::from_contents_unvalidated(
             preview,
             Utc::now(),
             &PublicKeyRef::from(holder_key.verifying_key()),
@@ -179,9 +179,8 @@ impl<C> Fixture<C> {
         )?
         .into_signed_mdoc(&issuer)
         .await?;
-        let expiration = Some((&mso.validity_info.valid_until).try_into()?);
-        let not_before = Some((&mso.validity_info.valid_from).try_into()?);
         let mdoc = Mdoc::new_unverified(mso, issuer_signed);
+        let contents = CredentialContents::from_mdoc(mdoc.clone())?;
         let metadata = CredentialMetadata::new_mdoc_example(
             PID_MDOC_DOCTYPE,
             &[
@@ -202,8 +201,8 @@ impl<C> Fixture<C> {
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow {
-                    valid_from: not_before.map(Into::into),
-                    valid_until: expiration.map(Into::into),
+                    valid_from: contents.not_before.map(Into::into),
+                    valid_until: contents.expires.map(Into::into),
                 },
             },
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
@@ -214,9 +213,7 @@ impl<C> Fixture<C> {
                 key_identifier: HOLDER_KEY_ID.to_owned(),
                 mdoc,
             }]),
-            PID_MDOC_DOCTYPE.to_owned(),
-            expiration,
-            not_before,
+            contents,
             Vec::<String>::new(),
             IssuedCredentialMetadata::CredentialMetadata(metadata),
             issuer_registration,

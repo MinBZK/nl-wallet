@@ -346,11 +346,8 @@ impl FlutterApiErrorFields for IssuanceError {
             | IssuanceError::ChangePin(_)
             | IssuanceError::JwtCredential(_)
             | IssuanceError::Certificate(_)
-            | IssuanceError::MissingPidSdJwt
-            | IssuanceError::RecoveryCodeDisclosure(_)
             | IssuanceError::TransferDataStorage(_)
             | IssuanceError::IssuanceSession(_)
-            | IssuanceError::MissingPidPreviews
             | IssuanceError::RecoveryCode(_) => FlutterApiErrorType::Generic,
         }
     }

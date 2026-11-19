@@ -19,6 +19,7 @@ use rstest::rstest;
 use serial_test::serial;
 use tests_integration::common::*;
 use utils::vec_nonempty;
+use wallet::AttestationIdentity;
 use wallet::AttributeValue;
 use wallet::DisclosureAttestationOptions;
 use wallet::DisclosureBasedIssuanceResult;
@@ -316,4 +317,89 @@ async fn test_disclosure_based_issuance_without_previews(#[values(Format::MsoMdo
         .collect_vec();
     assert_eq!(degrees.len(), 2);
     assert!(degrees.iter().all(|degree| degree.issuer == issuer));
+}
+
+/// Disclosure based issuance of the same degrees twice, against an issuance server with or without the Credential
+/// Preview Endpoint. As the degrees are issued with the same contents, the second issuance renews the stored degrees.
+#[rstest]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+#[serial(hsm)]
+async fn test_disclosure_based_issuance_renewal(#[values(true, false)] credential_preview_endpoint: bool) {
+    let db_setup = DbSetup::create_clean().await;
+    let hsm_setup = HsmSetup::new();
+    let tempdir = tempfile::tempdir().unwrap();
+    let pin: Pin = "112233".into();
+
+    let (mut issuance_server_settings, issuable_documents, di_trust_anchor, di_tls_config) =
+        issuance_server_settings(db_setup.issuance_server_url());
+    issuance_server_settings.issuer_settings.credential_preview_endpoint = credential_preview_endpoint;
+
+    let (mut wallet, _, issuance_urls) = setup_wallet_and_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        update_policy_server_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        pid_issuer_settings(db_setup.pid_issuer_url(), None),
+        (
+            issuance_server_settings,
+            issuable_documents,
+            di_trust_anchor,
+            di_tls_config,
+        ),
+    )
+    .await;
+
+    wallet = do_wallet_registration(wallet, pin.clone()).await;
+    wallet = do_pid_issuance(wallet, pin.clone()).await;
+
+    issue_degrees(&mut wallet, &pin, &issuance_urls, credential_preview_endpoint).await;
+
+    let identities = degree_identities(&mut wallet).await;
+    assert_eq!(identities.len(), 2);
+
+    // Issuing the same degrees again should update the stored degrees, instead of adding new ones.
+    issue_degrees(&mut wallet, &pin, &issuance_urls, credential_preview_endpoint).await;
+
+    let renewed_identities = degree_identities(&mut wallet).await;
+    assert_eq!(renewed_identities.len(), identities.len());
+    assert!(renewed_identities.iter().all(|identity| identities.contains(identity)));
+}
+
+/// Perform disclosure based issuance of the degrees, which should be offered with previews if `expect_previews` is set.
+async fn issue_degrees(wallet: &mut WalletWithStorage, pin: &Pin, issuance_urls: &IssuerData, expect_previews: bool) {
+    let _proposal = wallet
+        .start_disclosure(
+            &universal_link(
+                issuance_urls.issuance_server.public.as_base_url(),
+                &issuance_urls.degree_client_ids,
+                Format::SdJwt,
+            ),
+            DisclosureUriSource::Link,
+        )
+        .await
+        .unwrap();
+
+    match wallet
+        .continue_disclosure_based_issuance(&[0], pin.clone())
+        .await
+        .unwrap()
+    {
+        DisclosureBasedIssuanceResult::Previews(_) => assert!(expect_previews, "expected no previews"),
+        DisclosureBasedIssuanceResult::NoPreviews { .. } => assert!(!expect_previews, "expected previews"),
+        DisclosureBasedIssuanceResult::NoIssuableAttestations => panic!("expected issuable degrees"),
+    }
+
+    wallet.accept_issuance(pin.clone()).await.unwrap();
+}
+
+/// The identities of the degrees stored in the wallet.
+async fn degree_identities(wallet: &mut WalletWithStorage) -> Vec<AttestationIdentity> {
+    wallet_attestations(wallet)
+        .await
+        .into_iter()
+        .filter(|attestation| attestation.attestation_type == "com.example.degree")
+        .map(|attestation| attestation.identity)
+        .collect()
 }
