@@ -116,10 +116,9 @@
 
 ### Login page
 
-| Name             | Description                                               | Value   |
-| ---------------- | --------------------------------------------------------- | ------- |
-| `loginSubjects`  | Selectable mock identities, if empty all persons are used | `[]`    |
-| `loginCustomBsn` | Whether the login page has a custom bsn option            | `false` |
+| Name             | Description                                    | Value   |
+| ---------------- | ---------------------------------------------- | ------- |
+| `loginCustomBsn` | Whether the login page has a custom bsn option | `false` |
 
 ### Wallet redirect uris
 

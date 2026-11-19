@@ -143,9 +143,7 @@ batchSize: 4
 
 ## @section Login page
 ## Parameters for the Login page
-## @param loginSubjects [array] Selectable mock identities, if empty all persons are used
 ## @param loginCustomBsn Whether the login page has a custom bsn option
-loginSubjects: []
 loginCustomBsn: false
 
 ## @section Wallet redirect uris

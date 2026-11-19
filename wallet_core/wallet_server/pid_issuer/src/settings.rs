@@ -37,11 +37,6 @@ pub struct PidIssuerSettings {
     #[serde_as(as = "TryFromInto<PathBuf>")]
     pub person_attributes: JsonFile<Persons>,
 
-    /// Configure the BSNs to be shown in the login page.
-    /// If empty, it will show all BSNs from the person attributes file.
-    #[serde(default)]
-    pub login_subjects: Vec<String>,
-
     /// Whether a custom BSN input field is shown for the login page.
     #[serde(default)]
     pub login_custom_bsn: bool,
@@ -96,7 +91,6 @@ impl ServerSettings for PidIssuerSettings {
             .with_list_parse_key("wptl_trust_anchors")
             .with_list_parse_key("wrpac_trust_anchors")
             .with_list_parse_key("wrprc_trust_anchors")
-            .with_list_parse_key("login_subjects")
             .with_list_parse_key("type_metadata")
             .with_list_parse_key("wallet_redirect_uris")
             .try_parsing(true);

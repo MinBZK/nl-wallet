@@ -40,12 +40,6 @@ use crate::pid::rulebook::sex::RulebookSex;
 #[serde(try_from = "Vec<Person>")]
 pub struct Persons(IndexMap<String, Person>);
 
-impl Persons {
-    pub fn bsns(&self) -> impl Iterator<Item = &String> {
-        self.0.keys()
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
 #[error("duplicate bsn: {0}")]
 pub struct DuplicateBsnError(String);

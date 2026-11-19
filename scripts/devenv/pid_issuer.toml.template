@@ -5,7 +5,6 @@ wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
 
 person_attributes_path = "persons.json"
-login_subjects = ["999991772", "999991905", "950273089", "950269049", "900265462"]
 
 issuing_country = "NL"
 issuing_authority = "Rijksdienst voor Identiteitsgegevens"

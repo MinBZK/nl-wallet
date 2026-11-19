@@ -93,8 +93,6 @@ spec:
                   key: wrprc_trust_anchors
             - name: PID_ISSUER__PERSON_ATTRIBUTES_PATH
               value: "persons.json"
-            - name: PID_ISSUER__LOGIN_SUBJECTS
-              value: {{ .Values.loginSubjects | join "," | quote }}
             - name: PID_ISSUER__LOGIN_CUSTOM_BSN
               value: {{ .Values.loginCustomBsn | quote }}
             - name: PID_ISSUER__WPTL_TRUST_ANCHORS

@@ -32,23 +32,15 @@ async fn main_impl(settings: PidIssuerSettings) -> Result<()> {
         .transpose()?;
     let hsm_checker = hsm.as_ref().map(HsmChecker::new);
 
-    // Use all persons if login subjects is empty
+    // Load persons
     let persons = settings.person_attributes.into_contents();
-    let mut login_subjects = settings.login_subjects;
-    if login_subjects.is_empty() {
-        login_subjects = persons.bsns().cloned().collect();
-    }
 
     // The login page sets its own CSP, whose `form-action` must allow the wallet redirect target.
     // Build it while the redirect URIs are in scope and leak it for the 'static lifetime the
     // response middleware requires (it lives for the process, like the server).
     let csp: &'static str =
         Box::leak(build_login_csp(&settings.authorizing_issuer_settings.wallet_redirect_uris).into_boxed_str());
-    let login_page = LoginPage::new(
-        login_subjects.into_iter().flat_map(|bsn| persons.as_ref().get(&bsn)),
-        settings.login_custom_bsn,
-        csp,
-    );
+    let login_page = LoginPage::new(persons.as_ref().values(), settings.login_custom_bsn, csp);
 
     let recovery_code_secret_key = SecretKeyVariant::from_settings(settings.recovery_code, hsm.clone())?;
     let issuer_metadata = PidIssuerMetadata {
