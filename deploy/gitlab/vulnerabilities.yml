@@ -29,26 +29,21 @@ dependency-check:
         CACHE_POLICY: pull
   needs: []
   variables:
-    # Java needs a UTF-8 locale for file names such as javaslang/λ.class
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
     GRADLE_BUILDS: "wallet_app/android wallet_core/wallet/platform_support/android uiautomation"
   before_script:
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
-    # The pip analyzer cannot parse hashes, so install each project instead
     - for requirements in $(git ls-files '*requirements.txt'); do
         python3 -m pip install --quiet --no-deps --no-compile --target
         "dependency_check_python/$(dirname "$requirements")" --requirement "$requirements";
       done
-    # The Flutter Gradle plugin needs the Flutter packages
     - (cd wallet_app && flutter pub get --enforce-lockfile)
-    # Export the secrets after the installs, for the Gradle plugin
     - export NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
     - export OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
     - export OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
   script:
-    # Run all scans, also when one fails, and fail the job at the end
     - status=0
     - for build in $GRADLE_BUILDS; do
         (cd "$build" && ./gradlew --no-daemon --init-script
@@ -57,10 +52,8 @@ dependency-check:
     - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --out dependency_check_cli --disableNodeJS
       --disablePip --disablePyPkg --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "."
       --exclude ".gradle/**" --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
-    # Quality-time and Sonar read one report, so merge the results
     - deploy/bin/merge-dependency-check-reports.py . dependency_check_cli
         $(printf 'dependency_check_gradle/%s ' $GRADLE_BUILDS)
-    # The merge fails on a missing report, so only complete results get here
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
       qt/quality-time/dependency-check/report.$ext; done
     - exit $status

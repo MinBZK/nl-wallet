@@ -13,7 +13,6 @@ from xml.etree import ElementTree
 
 REPORT = "dependency-check-report"
 
-# Lists to combine for equal dependencies, with the identity of an item
 JSON_LISTS = {
     "projectReferences": lambda item: item,
     "includedBy": lambda item: item["reference"],
@@ -24,7 +23,6 @@ XML_LISTS = ("projectReferences", "includedBy", "vulnerabilities")
 
 
 def deduplicate(dependencies, sha1, combine):
-    """Return the dependencies with one dependency per SHA-1."""
     result = []
     first = {}
     for dependency in dependencies:
@@ -33,7 +31,6 @@ def deduplicate(dependencies, sha1, combine):
             combine(first[key], dependency)
         else:
             result.append(dependency)
-            # Virtual dependencies, such as from pubspec.lock, have no SHA-1
             if key:
                 first[key] = dependency
     return result
@@ -57,7 +54,6 @@ def merge_json(sources):
 
 
 def xml_identity(item):
-    # A vulnerability has a name, a project reference has only text
     return item.findtext("{*}name", item.text)
 
 
@@ -83,7 +79,6 @@ def merge_xml(sources):
     dependencies = list(container)
     for source in sources[1:]:
         source_root = ElementTree.parse(source).getroot()
-        # The root tag contains the namespace of the schema version
         if source_root.tag != root.tag:
             raise SystemExit(f"{source}: schema {source_root.tag} is not {root.tag}")
         dependencies.extend(source_root.iterfind("{*}dependencies/{*}dependency"))
@@ -94,7 +89,6 @@ def merge_xml(sources):
 
 def html_row(dependency):
     packages = "<br>".join(escape(package["id"]) for package in dependency.get("packages", []))
-    # Only the Gradle scans have project references
     users = "<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"])
     vulnerabilities = "<br>".join(
         f'<a href="https://nvd.nist.gov/vuln/detail/{escape(item["name"])}">{escape(item["name"])}</a> '
@@ -106,7 +100,6 @@ def html_row(dependency):
 
 
 def render_html(report):
-    # Vulnerable dependencies first
     dependencies = sorted(
         report["dependencies"],
         key=lambda dependency: (not dependency.get("vulnerabilities"), dependency["fileName"].lower()),
@@ -137,11 +130,10 @@ th, td {{ border: 1px solid #ccc; padding: 4px; text-align: left; vertical-align
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target", type=Path, help="directory to write the merged report to")
     parser.add_argument("sources", type=Path, nargs="+", help="directories with a JSON and XML report")
     args = parser.parse_args()
-    # Write nothing when a scan did not complete
     for source in args.sources:
         for extension in ("json", "xml"):
             if not (source / f"{REPORT}.{extension}").is_file():
