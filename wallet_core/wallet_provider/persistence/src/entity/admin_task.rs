@@ -10,8 +10,9 @@ pub struct Model {
     pub created_at: DateTimeWithTimeZone,
     pub created_by_user_id: String,
     pub created_by_display_name: String,
+    #[sea_orm(column_type = "JsonBinary")]
+    pub task_payload: Json,
     pub task_type: String,
-    pub task_parameters: Json,
     pub task_reason: String,
     pub status: String,
     pub withdrawn_at: Option<DateTimeWithTimeZone>,

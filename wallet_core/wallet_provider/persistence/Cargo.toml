@@ -71,6 +71,7 @@ derive_more = { workspace = true, features = ["as_ref", "from"] }
 metrics.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono"] }
 sea-orm = { workspace = true, features = [
     "macros",
@@ -108,4 +109,3 @@ db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
 rstest.workspace = true
-serde_json.workspace = true

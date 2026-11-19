@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use sea_orm_migration::prelude::*;
 use sea_orm_migration::schema::*;
+use sea_orm_migration::sea_query::extension::postgres::PgExpr;
 
 #[derive(DeriveMigrationName)]
 pub struct Migration;
@@ -17,8 +18,14 @@ impl MigrationTrait for Migration {
                     .col(timestamp_with_time_zone(AdminTask::CreatedAt))
                     .col(string(AdminTask::CreatedByUserId))
                     .col(string(AdminTask::CreatedByDisplayName))
-                    .col(string(AdminTask::TaskType))
-                    .col(json(AdminTask::TaskParameters).default(Expr::cust("'{}'::jsonb")))
+                    // The complete task payload, in the tagged format that `TaskPayload` (de)serializes to.
+                    .col(json_binary(AdminTask::TaskPayload))
+                    // Derived from the payload by the database, so it cannot diverge from it.
+                    .col(
+                        string(AdminTask::TaskType)
+                            .generated(Expr::col(AdminTask::TaskPayload).cast_json_field("taskType"), true)
+                            .take(),
+                    )
                     .col(string(AdminTask::TaskReason))
                     .col(string(AdminTask::Status))
                     .col(timestamp_with_time_zone_null(AdminTask::WithdrawnAt))
@@ -74,8 +81,8 @@ enum AdminTask {
     CreatedAt,
     CreatedByUserId,
     CreatedByDisplayName,
+    TaskPayload,
     TaskType,
-    TaskParameters,
     TaskReason,
     Status,
     WithdrawnAt,
