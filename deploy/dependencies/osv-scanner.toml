@@ -6,7 +6,7 @@ reason = "False positive due to our own crate named `jwt`"
 [[IgnoredVulns]]
 id = "RUSTSEC-2023-0071"
 ignoreUntil = 2027-01-01
-reason = "`rsa` version 0.9 is a transitive dependency of `jsonwebtoken`. Waiting for `jsonwebtoken` to upgrade."
+reason = "`rsa` version 0.9 is a transitive dependency of `gcloud-auth`. Waiting for `gcloud-auth` to upgrade `jsonwebtoken`."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2025-0141"
@@ -31,7 +31,7 @@ reason = "`basic-toml` is only used by `askama`'s `config` feature, which we dis
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0387"
 ignoreUntil = 2027-01-01
-reason = "`crypto-bigint` version 0.5.5 and `p256` and `p384` version 0.13 are transitive dependencies of `jsonwebtoken`. Waiting for `jsonwebtoken` to upgrade."
+reason = "`crypto-bigint` version 0.5.5 are transitive dependencies of `gcloud-auth`. Waiting for `gcloud-auth` to upgrade `jsonwebtoken`."
 
 [[IgnoredVulns]]
 id = "RUSTSEC-2026-0440"

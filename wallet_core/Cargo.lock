@@ -2928,7 +2928,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -3444,7 +3444,7 @@ dependencies = [
  "indexmap 2.12.1",
  "itertools 0.14.0",
  "nutype",
- "pem",
+ "pem 3.0.6",
  "quick-xml",
  "rand_core 0.10.1",
  "regex",
@@ -4533,7 +4533,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -4741,7 +4741,7 @@ dependencies = [
  "js-sys",
  "p256 0.13.2",
  "p384 0.13.1",
- "pem",
+ "pem 3.0.6",
  "rand 0.8.6",
  "rsa 0.9.10",
  "serde",
@@ -4754,24 +4754,23 @@ dependencies = [
 
 [[package]]
 name = "jsonwebtoken"
-version = "11.1.0"
+version = "12.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e75fe14a82d81e5f5af639997db37d8b96045938a7ac6ab18cdbe1c7467e05e1"
+checksum = "f347a975eb5fa8f5c4eadce6c1152c11c326cf32cf839fb64ff12d5cb8f4ce8b"
 dependencies = [
- "base64 0.22.1",
- "ed25519-dalek 2.2.0",
- "getrandom 0.2.16",
- "hmac 0.12.1",
+ "base64 0.23.1",
+ "ed25519-dalek 3.0.0",
+ "getrandom 0.4.2",
+ "hmac 0.13.0",
  "js-sys",
- "p256 0.13.2",
- "p384 0.13.1",
- "pem",
- "rand 0.8.6",
- "rsa 0.9.10",
+ "p256 0.14.0",
+ "p384 0.14.0",
+ "pem 4.0.0",
+ "rsa 0.10.0",
  "serde",
  "serde_json",
- "sha2 0.10.9",
- "signature 2.2.0",
+ "sha2 0.11.1",
+ "signature 3.0.0",
  "simple_asn1",
  "zeroize",
 ]
@@ -4830,7 +4829,7 @@ dependencies = [
  "http_utils",
  "httpmock",
  "itertools 0.14.0",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "p256 0.14.0",
  "p384 0.14.0",
  "rand 0.10.3",
@@ -5151,7 +5150,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "mdoc_derive",
  "nutype",
  "p256 0.14.0",
@@ -5646,7 +5645,7 @@ dependencies = [
  "httpmock",
  "indexmap 2.12.1",
  "josekit",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -5895,7 +5894,7 @@ dependencies = [
  "httpmock",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -6353,6 +6352,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "pem"
+version = "4.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d354a98a3d1251555de99e8fdd8afda05573c31b82f59063a7b0a29b5527f120"
+dependencies = [
+ "base64 0.23.1",
+ "serde_core",
+]
+
+[[package]]
 name = "pem-rfc7468"
 version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6514,7 +6523,7 @@ dependencies = [
  "issuer_common",
  "itertools 0.14.0",
  "josekit",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "jwe",
  "jwk-simple",
  "jwt",
@@ -7039,7 +7048,7 @@ dependencies = [
  "once_cell",
  "socket2",
  "tracing",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7316,7 +7325,7 @@ version = "0.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "75e669e5202259b5314d1ea5397316ad400819437857b90861765f24c4cf80a2"
 dependencies = [
- "pem",
+ "pem 3.0.6",
  "ring",
  "rustls-pki-types",
  "time",
@@ -7331,7 +7340,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5fae430c6b28f1ad601274e78b7dffa0546de0b73b4cd32f46723c0c2a16f7a5"
 dependencies = [
  "aws-lc-rs",
- "pem",
+ "pem 3.0.6",
  "ring",
  "rustls-pki-types",
  "time",
@@ -7767,7 +7776,7 @@ dependencies = [
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -7935,7 +7944,7 @@ dependencies = [
  "http_utils",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "jwt",
  "nutype",
  "p256 0.14.0",
@@ -8846,7 +8855,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.4.1",
+ "heck 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -9430,7 +9439,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
@@ -9528,7 +9537,7 @@ dependencies = [
  "issuance_server",
  "issuer_common",
  "itertools 0.14.0",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "jwt",
  "oauth",
  "openid4vc",
@@ -10811,7 +10820,7 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "p256 0.14.0",
- "pem",
+ "pem 3.0.6",
  "predicates",
  "rand_core 0.10.1",
  "rcgen 0.14.5",
@@ -11020,7 +11029,7 @@ dependencies = [
  "httpmock",
  "indexmap 2.12.1",
  "itertools 0.14.0",
- "jsonwebtoken 11.1.0",
+ "jsonwebtoken 12.0.0",
  "jwt",
  "mockall",
  "nutype",
@@ -11305,7 +11314,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
