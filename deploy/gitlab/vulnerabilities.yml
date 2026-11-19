@@ -8,6 +8,7 @@ dependency-check:
     # On merge requests, only run when files that this job scans change
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
+        - deploy/bin/merge-dependency-check-reports.py
         - deploy/dependencies/dependency-check-suppressions.xml
         - deploy/dependencies/dependency-check.init.gradle
         - deploy/docker-images/ci/dependency-check.sh
@@ -32,6 +33,7 @@ dependency-check:
     LC_ALL: "C.UTF-8"
     LANG: "C.UTF-8"
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+    GRADLE_BUILDS: "wallet_app/android wallet_core/wallet/platform_support/android uiautomation"
   before_script:
     - mkdir -p $CI_PROJECT_DIR/dependency_check_data
     # The pip analyzer cannot parse hashes, so install each project instead
@@ -48,16 +50,16 @@ dependency-check:
   script:
     # Run all scans, also when one fails, and fail the job at the end
     - status=0
-    - for build in wallet_app/android wallet_core/wallet/platform_support/android uiautomation; do
+    - for build in $GRADLE_BUILDS; do
         (cd "$build" && ./gradlew --no-daemon --init-script
         "$CI_PROJECT_DIR/deploy/dependencies/dependency-check.init.gradle" dependencyCheckAggregate) || status=1;
       done
-    - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --disableNodeJS --disablePip --disablePyPkg
-      --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --exclude ".gradle/**" --suppression
-      $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
-    # Quality-time and Sonar read one report, so add the Gradle results
-    - for ext in json xml; do deploy/bin/merge-dependency-check-reports.py dependency-check-report.$ext
-        $(find dependency_check_gradle -name dependency-check-report.$ext); done
+    - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --out dependency_check_cli --disableNodeJS
+      --disablePip --disablePyPkg --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "."
+      --exclude ".gradle/**" --suppression $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
+    # Quality-time and Sonar read one report, so merge the results
+    - deploy/bin/merge-dependency-check-reports.py . dependency_check_cli
+        $(printf 'dependency_check_gradle/%s ' $GRADLE_BUILDS)
     - exit $status
   after_script:
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
@@ -69,6 +71,7 @@ dependency-check:
       - dependency-check-report.json
       - dependency-check-report.html
       - dependency-check-report.xml
+      - dependency_check_cli
       - dependency_check_gradle
   cache:
     - key: dependency-check
