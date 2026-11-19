@@ -1,153 +1,179 @@
 #!/usr/bin/env python3
 """Merge dependency-check reports into one JSON, XML and HTML report.
 
-Dependencies with the same SHA-1 become one dependency, with the project
-references and vulnerabilities of all of them. Vulnerable dependencies
-come first, so the HTML anchors match the Quality-time links of both
-dependencies and security warnings.
+Usage: merge-dependency-check-reports.py TARGET SOURCE...
+
+TARGET is the directory to write the merged report to. Each SOURCE is a
+directory with a JSON and XML report. Dependencies with the same SHA-1
+become one dependency, with the project references and vulnerabilities
+of all of them. Vulnerable dependencies come first, so the HTML anchors
+match the Quality-time links of both dependencies and security warnings.
 """
 
-import argparse
 import json
+import sys
+from collections.abc import Callable, Iterable
 from html import escape
 from pathlib import Path
+from string import Template
+from typing import NotRequired, TypedDict, cast
 from xml.etree import ElementTree
 
 REPORT = "dependency-check-report"
-
-JSON_LISTS = {
-    "projectReferences": lambda item: item,
-    "includedBy": lambda item: item["reference"],
-    "vulnerabilities": lambda item: item["name"],
-    "suppressedVulnerabilities": lambda item: item["name"],
-}
 XML_LISTS = ("projectReferences", "includedBy", "vulnerabilities")
-
-
-def deduplicate(dependencies, sha1, combine):
-    result = []
-    first = {}
-    for dependency in dependencies:
-        key = sha1(dependency)
-        if key in first:
-            combine(first[key], dependency)
-        else:
-            result.append(dependency)
-            if key:
-                first[key] = dependency
-    return result
-
-
-def combine_json(first, other):
-    for name, identity in JSON_LISTS.items():
-        items = first.get(name, [])
-        known = {identity(item) for item in items}
-        items += [item for item in other.get(name, []) if identity(item) not in known]
-        if items:
-            first[name] = items
-
-
-def merge_json(sources):
-    reports = [json.loads(source.read_text()) for source in sources]
-    report = reports[0]
-    dependencies = [dependency for source in reports for dependency in source["dependencies"]]
-    dependencies = deduplicate(dependencies, lambda dependency: dependency.get("sha1"), combine_json)
-    report["dependencies"] = sorted(dependencies, key=lambda dependency: not dependency.get("vulnerabilities"))
-    return report
-
-
-def xml_identity(item):
-    return item.findtext("{*}name", item.text)
-
-
-def combine_xml(first, other):
-    for name in XML_LISTS:
-        items = other.find(f"{{*}}{name}")
-        if items is None:
-            continue
-        target = first.find(f"{{*}}{name}")
-        if target is None:
-            first.append(items)
-            continue
-        known = {xml_identity(item) for item in target}
-        target.extend(item for item in items if xml_identity(item) not in known)
-
-
-def merge_xml(sources):
-    tree = ElementTree.parse(sources[0])
-    root = tree.getroot()
-    container = root.find("{*}dependencies")
-    if container is None:
-        raise SystemExit(f"{sources[0]}: no dependencies element")
-    dependencies = list(container)
-    for source in sources[1:]:
-        source_root = ElementTree.parse(source).getroot()
-        if source_root.tag != root.tag:
-            raise SystemExit(f"{source}: schema {source_root.tag} is not {root.tag}")
-        dependencies.extend(source_root.iterfind("{*}dependencies/{*}dependency"))
-    dependencies = deduplicate(dependencies, lambda dependency: dependency.findtext("{*}sha1"), combine_xml)
-    container[:] = sorted(
-        dependencies, key=lambda dependency: dependency.find("{*}vulnerabilities/{*}vulnerability") is None
-    )
-    ElementTree.register_namespace("", root.tag[1:].split("}")[0])
-    return tree
-
-
-def html_row(index, dependency):
-    packages = "<br>".join(escape(package["id"]) for package in dependency.get("packages", []))
-    users = "<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"])
-    vulnerabilities = "<br>".join(
-        f'<a href="https://nvd.nist.gov/vuln/detail/{escape(item["name"])}">{escape(item["name"])}</a> '
-        f"{escape(item.get('severity', ''))}"
-        for item in dependency.get("vulnerabilities", [])
-    )
-    name = escape(dependency["fileName"])
-    anchor = f"l{index}_{escape(dependency.get('sha1', ''))}"
-    return f'<tr id="{anchor}"><td>{name}</td><td>{packages}</td><td>{users}</td><td>{vulnerabilities}</td></tr>'
-
-
-def render_html(report):
-    dependencies = report["dependencies"]
-    vulnerable = sum(1 for dependency in dependencies if dependency.get("vulnerabilities"))
-    rows = "\n".join(html_row(index, dependency) for index, dependency in enumerate(dependencies, 1))
-    return f"""<!DOCTYPE html>
+HTML = Template("""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Dependency-Check report</title>
 <style>
-body {{ font-family: sans-serif; font-size: small; }}
-table {{ border-collapse: collapse; }}
-th, td {{ border: 1px solid #ccc; padding: 4px; text-align: left; vertical-align: top; }}
+body { font-family: sans-serif; font-size: small; }
+table { border-collapse: collapse; }
+th, td { border: 1px solid #ccc; padding: 4px; text-align: left; vertical-align: top; }
 </style>
 </head>
 <body>
 <h1>Dependency-Check report</h1>
-<p>{len(dependencies)} dependencies, {vulnerable} with vulnerabilities.</p>
+<p>$total dependencies, $vulnerable with vulnerabilities.</p>
 <table>
 <tr><th>Dependency</th><th>Packages</th><th>Used by</th><th>Vulnerabilities</th></tr>
-{rows}
+$rows
 </table>
 </body>
 </html>
-"""
+""")
 
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("target", type=Path, help="directory to write the merged report to")
-    parser.add_argument("sources", type=Path, nargs="+", help="directories with a JSON and XML report")
-    args = parser.parse_args()
-    for source in args.sources:
-        for extension in ("json", "xml"):
-            if not (source / f"{REPORT}.{extension}").is_file():
-                raise SystemExit(f"{source}: no {REPORT}.{extension}")
+class Vulnerability(TypedDict):
+    name: str
+    severity: NotRequired[str]
 
-    report = merge_json([source / f"{REPORT}.json" for source in args.sources])
-    (args.target / f"{REPORT}.json").write_text(json.dumps(report))
-    (args.target / f"{REPORT}.html").write_text(render_html(report))
-    tree = merge_xml([source / f"{REPORT}.xml" for source in args.sources])
-    tree.write(args.target / f"{REPORT}.xml", encoding="UTF-8", xml_declaration=True)
+
+class Package(TypedDict):
+    id: str
+
+
+class Reference(TypedDict):
+    reference: str
+
+
+class Dependency(TypedDict):
+    fileName: str
+    filePath: str
+    sha1: NotRequired[str]
+    packages: NotRequired[list[Package]]
+    projectReferences: NotRequired[list[str]]
+    includedBy: NotRequired[list[Reference]]
+    vulnerabilities: NotRequired[list[Vulnerability]]
+    suppressedVulnerabilities: NotRequired[list[Vulnerability]]
+
+
+class Report(TypedDict):
+    dependencies: list[Dependency]
+
+
+def deduplicate[T](items: Iterable[T], sha1: Callable[[T], str | None], combine: Callable[[T, T], None]) -> list[T]:
+    first: dict[object, T] = {}
+    for item in items:
+        kept = first.setdefault(sha1(item) or id(item), item)
+        if kept is not item:
+            combine(kept, item)
+    return list(first.values())
+
+
+def union[T](items: list[T], others: list[T], key: Callable[[T], str]) -> list[T]:
+    known = {key(item) for item in items}
+    return items + [item for item in others if key(item) not in known]
+
+
+def combine_json(first: Dependency, other: Dependency) -> None:
+    first["projectReferences"] = union(first.get("projectReferences", []), other.get("projectReferences", []), str)
+    first["includedBy"] = union(
+        first.get("includedBy", []), other.get("includedBy", []), lambda item: item["reference"]
+    )
+    for name in ("vulnerabilities", "suppressedVulnerabilities"):
+        first[name] = union(first.get(name, []), other.get(name, []), lambda item: item["name"])
+
+
+def merge_json(sources: list[Path]) -> Report:
+    reports = [cast(Report, json.loads(source.read_text())) for source in sources]
+    dependencies = deduplicate(
+        (dependency for report in reports for dependency in report["dependencies"]),
+        lambda dependency: dependency.get("sha1"),
+        combine_json,
+    )
+    report = reports[0]
+    report["dependencies"] = sorted(dependencies, key=lambda dependency: not dependency.get("vulnerabilities"))
+    return report
+
+
+def xml_identity(item: ElementTree.Element) -> str | None:
+    return item.findtext("{*}name", item.text)
+
+
+def combine_xml(first: ElementTree.Element, other: ElementTree.Element) -> None:
+    for name in XML_LISTS:
+        items = other.find(f"{{*}}{name}")
+        target = first.find(f"{{*}}{name}")
+        if items is None:
+            continue
+        if target is None:
+            first.append(items)
+        else:
+            known = {xml_identity(item) for item in target}
+            target.extend(item for item in items if xml_identity(item) not in known)
+
+
+def merge_xml(sources: list[Path]) -> ElementTree.Element:
+    roots = [ElementTree.parse(source).getroot() for source in sources]
+    for source, root in zip(sources, roots):
+        if root.tag != roots[0].tag:
+            raise SystemExit(f"{source}: schema {root.tag} is not {roots[0].tag}")
+    container = roots[0].find("{*}dependencies")
+    if container is None:
+        raise SystemExit(f"{sources[0]}: no dependencies element")
+    dependencies = deduplicate(
+        (dependency for root in roots for dependency in root.iterfind("{*}dependencies/{*}dependency")),
+        lambda dependency: dependency.findtext("{*}sha1"),
+        combine_xml,
+    )
+    container[:] = sorted(
+        dependencies, key=lambda dependency: dependency.find("{*}vulnerabilities/{*}vulnerability") is None
+    )
+    ElementTree.register_namespace("", roots[0].tag[1:].split("}")[0])
+    return roots[0]
+
+
+def html_vulnerability(vulnerability: Vulnerability) -> str:
+    name = escape(vulnerability["name"])
+    return f'<a href="https://nvd.nist.gov/vuln/detail/{name}">{name}</a> {escape(vulnerability.get("severity", ""))}'
+
+
+def html_row(index: int, dependency: Dependency) -> str:
+    packages = "<br>".join(escape(package["id"]) for package in dependency.get("packages", []))
+    users = "<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"])
+    vulnerabilities = "<br>".join(map(html_vulnerability, dependency.get("vulnerabilities", [])))
+    name = escape(dependency["fileName"])
+    anchor = f"l{index}_{escape(dependency.get('sha1', ''))}"
+    return f'<tr id="{anchor}"><td>{name}</td><td>{packages}</td><td>{users}</td><td>{vulnerabilities}</td></tr>'
+
+
+def render_html(report: Report) -> str:
+    dependencies = report["dependencies"]
+    vulnerable = sum(1 for dependency in dependencies if dependency.get("vulnerabilities"))
+    rows = "\n".join(html_row(index, dependency) for index, dependency in enumerate(dependencies, 1))
+    return HTML.substitute(total=len(dependencies), vulnerable=vulnerable, rows=rows)
+
+
+def main() -> None:
+    if len(sys.argv) < 3:
+        raise SystemExit(__doc__)
+    target, *sources = map(Path, sys.argv[1:])
+    report = merge_json([source / f"{REPORT}.json" for source in sources])
+    _ = (target / f"{REPORT}.json").write_text(json.dumps(report))
+    _ = (target / f"{REPORT}.html").write_text(render_html(report))
+    root = merge_xml([source / f"{REPORT}.xml" for source in sources])
+    ElementTree.ElementTree(root).write(target / f"{REPORT}.xml", encoding="UTF-8", xml_declaration=True)
 
 
 if __name__ == "__main__":
