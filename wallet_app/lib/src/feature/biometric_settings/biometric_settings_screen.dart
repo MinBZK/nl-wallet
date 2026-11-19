@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:app_settings/app_settings.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -11,6 +10,7 @@ import '../../util/extension/build_context_extension.dart';
 import '../../util/extension/string_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
+import '../common/dialog/biometrics_setup_required_dialog.dart';
 import '../common/dialog/locked_out_dialog.dart';
 import '../common/screen/confirm_with_pin_screen.dart';
 import '../common/screen/terminal_screen.dart';
@@ -22,7 +22,6 @@ import '../common/widget/page_illustration.dart';
 import '../common/widget/paragraphed_sliver_list.dart';
 import '../common/widget/setting/switch_setting_row.dart';
 import '../common/widget/spacer/sliver_sized_box.dart';
-import '../common/widget/text/dialog_title_text.dart';
 import '../common/widget/text/title_text.dart';
 import '../common/widget/wallet_app_bar.dart';
 import '../error/error_screen.dart';
@@ -87,7 +86,7 @@ class BiometricSettingScreen extends StatelessWidget {
       // Refresh state, relevant when confirmation failed.
       bloc.add(const BiometricLoadTriggered());
     } else if (state is BiometricSettingsSetupRequired) {
-      await _showSetupRequiredDialog(context);
+      await BiometricsSetupRequiredDialog.show(context, bloc.supportedBiometrics);
     } else if (state is BiometricSettingsLockedOut) {
       await LockedOutDialog.show(context);
     }
@@ -200,43 +199,6 @@ class BiometricSettingScreen extends StatelessWidget {
             ),
             preferVerticalButtonLayout: false,
           ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showSetupRequiredDialog(BuildContext context) async {
-    final supportedBiometricsText = context.bloc.supportedBiometrics.prettyPrint(context);
-    final title = context.l10n.biometricSettingsScreenSetupDialogTitle(supportedBiometricsText);
-
-    return showDialog<void>(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          scrollable: true,
-          title: DialogTitleText(title),
-          content: Text.rich(
-            context.l10n.biometricSettingsScreenSetupDialogDescription(supportedBiometricsText).toTextSpan(context),
-          ),
-          actions: <Widget>[
-            TextButton(
-              child: Text.rich(context.l10n.generalDialogCloseCta.toTextSpan(context)),
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-            TextButton(
-              child: Text.rich(context.l10n.biometricSettingsScreenSetupDialogOpenSettingsCta.toTextSpan(context)),
-              onPressed: () {
-                // NOTE: Plugins to open biometric settings seem flaky (i.e. don't work on my Pixel 6 Pro),
-                // NOTE: we could likely roll our own but falling back to generic settings for now.
-                // NOTE: Also note that this dialog is already a fallback, normally a system dialog should
-                // NOTE: redirect the user to the correct place. This dialog can however be triggered on e.g.
-                // NOTE: a Pixel 6 Pro by enrolling fingerprints but disabling 'allow apps to verify your identity'
-                // NOTE: in the device's biometric settings.
-                AppSettings.openAppSettings(type: AppSettingsType.device, asAnotherTask: true);
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
         );
       },
     );

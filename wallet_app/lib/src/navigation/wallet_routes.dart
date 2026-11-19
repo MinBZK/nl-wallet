@@ -312,6 +312,7 @@ Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<S
     context.read(),
     context.read(),
     context.read(),
+    context.read(),
   ),
   child: const SetupSecurityScreen(),
 );

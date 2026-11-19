@@ -1,6 +1,3 @@
-import 'dart:ui';
-
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
@@ -12,71 +9,25 @@ import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late MockLocalAuthentication localAuthentication;
-  late MockActiveLocaleProvider localeProvider;
   late MockBiometricRepository biometricRepository;
   late SetBiometricsUseCase setBiometricsUseCase;
 
   setUp(() {
     localAuthentication = MockLocalAuthentication();
-    localeProvider = MockActiveLocaleProvider();
-    when(localeProvider.activeLocale).thenReturn(const Locale('en'));
     biometricRepository = MockBiometricRepository();
-    setBiometricsUseCase = SetBiometricsUseCaseImpl(
-      localAuthentication,
-      TargetPlatform.android,
-      localeProvider,
-      biometricRepository,
-    );
+    setBiometricsUseCase = SetBiometricsUseCaseImpl(localAuthentication, biometricRepository);
   });
 
   test('Verify device is checked for compatibility when enabling', () async {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
-    await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
+    await setBiometricsUseCase.invoke(enable: true);
     verify(localAuthentication.canCheckBiometrics).called(1);
-  });
-
-  test('Verify authentication is requested when authenticateBeforeEnabling is true', () async {
-    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
-    when(
-      localAuthentication.authenticate(
-        authMessages: anyNamed('authMessages'),
-        localizedReason: anyNamed('localizedReason'),
-        biometricOnly: anyNamed('biometricOnly'),
-      ),
-    ).thenAnswer((_) async => true);
-    await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
-    verify(
-      localAuthentication.authenticate(
-        authMessages: anyNamed('authMessages'),
-        localizedReason: anyNamed('localizedReason'),
-        biometricOnly: anyNamed('biometricOnly'),
-      ),
-    ).called(1);
-  });
-
-  test('Verify authentication is NOT requested when authenticateBeforeEnabling is false', () async {
-    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
-    when(
-      localAuthentication.authenticate(
-        authMessages: anyNamed('authMessages'),
-        localizedReason: anyNamed('localizedReason'),
-        biometricOnly: anyNamed('biometricOnly'),
-      ),
-    ).thenAnswer((_) async => true);
-    await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
-    verifyNever(
-      localAuthentication.authenticate(
-        authMessages: anyNamed('authMessages'),
-        localizedReason: anyNamed('localizedReason'),
-        biometricOnly: anyNamed('biometricOnly'),
-      ),
-    );
   });
 
   test('Verify setting to true fails when device is not supported', () async {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => false);
 
-    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
+    final result = await setBiometricsUseCase.invoke(enable: true);
     expect(
       result,
       isA<Error>().having(
@@ -89,38 +40,15 @@ void main() {
     verifyNever(biometricRepository.enableBiometricLogin());
   });
 
-  test('Verify setting to true fails when authentication fails', () async {
-    when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
-    when(
-      localAuthentication.authenticate(
-        authMessages: anyNamed('authMessages'),
-        localizedReason: anyNamed('localizedReason'),
-        biometricOnly: anyNamed('biometricOnly'),
-      ),
-    ).thenAnswer((_) async => false);
-
-    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
-    expect(result, isA<Error>().having((Error e) => e.error, 'Expecting a GenericError', isA<GenericError>()));
-
-    verifyNever(biometricRepository.enableBiometricLogin());
-  });
-
-  test('Verify setting to false succeeds even when device is not supported and auth is requested and fails', () async {
+  test('Verify setting to false succeeds even when device is not supported', () async {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => false);
-    when(
-      localAuthentication.authenticate(
-        authMessages: anyNamed('authMessages'),
-        localizedReason: anyNamed('localizedReason'),
-        biometricOnly: anyNamed('biometricOnly'),
-      ),
-    ).thenAnswer((_) async => false);
-    await setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: true);
+    await setBiometricsUseCase.invoke(enable: false);
     verify(biometricRepository.disableBiometricLogin()).called(1);
   });
 
-  test('Verify setting to true succeeds when auth is not requested', () async {
+  test('Verify setting to true enables biometric login without authenticating', () async {
     when(localAuthentication.canCheckBiometrics).thenAnswer((_) async => true);
-    await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false);
+    await setBiometricsUseCase.invoke(enable: true);
     verifyNever(
       localAuthentication.authenticate(
         authMessages: anyNamed('authMessages'),
