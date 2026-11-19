@@ -141,6 +141,9 @@ impl<R, T, U> AdminPortalService<R, T, U> {
             .await
             .map_err(GetRecoveryCodeSummaryError::Storage)?;
 
+        // This is determined for display purposes, "Active" here means "not Revoked or Transferred", i.e. the wallet
+        // still has keys. This is not WalletUserState::Active. Blocked (too many wrong PINs) counts because PIN
+        // recovery can still restore it.
         let active_wallets = wallet_states
             .iter()
             .filter(|state| !matches!(state, WalletUserState::Revoked | WalletUserState::Transferred))
