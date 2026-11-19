@@ -6,6 +6,7 @@ use pacf_issuance_server::offer::OfferRequest;
 use pacf_issuance_server::offer::OfferResponse;
 use serial_test::serial;
 use tests_integration::common::*;
+use utils::generator::TimeGenerator;
 use utils::vec_nonempty;
 use wallet::IssuanceStartResult;
 use wallet::Pin;
@@ -19,7 +20,14 @@ async fn test_pre_authorized_code_issuance() {
 
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        TimeGenerator,
+    )
+    .await;
     let pacf_issuance_server = setup_pre_auth_env(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 

@@ -24,8 +24,9 @@ use serde::de::DeserializeOwned;
 use status_lists::postgres::PostgresStatusListService;
 use tokio::task::AbortHandle;
 use tracing::info;
+use utils::generator::Generator;
 use utils::generator::TimeGenerator;
-use utils::generator::UuidV4AndTimeGenerator;
+use uuid::Uuid;
 use wallet_account::NL_WALLET_CLIENT_ID;
 use wallet_account::messages::instructions::HwSignedInstruction;
 use wallet_account::messages::instructions::Instruction;
@@ -66,7 +67,26 @@ pub(crate) type ProductionUserState = UserState<
     PostgresStatusListService<HsmEcdsaKey, WalletRepoFlags<Repositories>>,
 >;
 
-pub struct RouterState<GRC, PIC> {
+/// Generates v4 UUIDs, and timestamps using the wrapped time generator.
+#[derive(Debug, Clone)]
+pub struct UuidV4AndTime<T>(T);
+
+impl<T> Generator<DateTime<Utc>> for UuidV4AndTime<T>
+where
+    T: Generator<DateTime<Utc>>,
+{
+    fn generate(&self) -> DateTime<Utc> {
+        self.0.generate()
+    }
+}
+
+impl<T> Generator<Uuid> for UuidV4AndTime<T> {
+    fn generate(&self) -> Uuid {
+        Uuid::new_v4()
+    }
+}
+
+pub struct RouterState<GRC, PIC, T> {
     pub account_server: AccountServer<GRC, PIC>,
     pub audit_log: DbAuditLog<PostgresAuditLogRepository, UuidV7Generator>,
     pub pin_policy: PinPolicy,
@@ -75,10 +95,11 @@ pub struct RouterState<GRC, PIC> {
     pub user_state: Arc<ProductionUserState>,
     pub max_transfer_upload_size_in_bytes: usize,
     pub wallet_transfer_concurrency_limit: usize,
+    pub generators: UuidV4AndTime<T>,
     status_list_refresh_task: AbortHandle,
 }
 
-impl<GRC, PIC> Drop for RouterState<GRC, PIC> {
+impl<GRC, PIC, T> Drop for RouterState<GRC, PIC, T> {
     fn drop(&mut self) {
         self.status_list_refresh_task.abort();
     }
@@ -118,13 +139,17 @@ impl InstructionResultSigningKeyIdentifier {
     }
 }
 
-impl<GRC, PIC> RouterState<GRC, PIC> {
+impl<GRC, PIC, T> RouterState<GRC, PIC, T>
+where
+    T: Generator<DateTime<Utc>>,
+{
     pub async fn new_from_settings(
         settings: Settings,
         wallet_user_hsm: Pkcs11Hsm,
         google_crl_client: GRC,
         play_integrity_client: PIC,
-    ) -> Result<RouterState<GRC, PIC>, Box<dyn Error>> {
+        time_generator: T,
+    ) -> Result<Self, Box<dyn Error>> {
         let wc_signing_key_identifier = certificate_signing_key_identifier(&settings.current_certificate_kid);
 
         let certificate_signing_key = WalletCertificateSigning {
@@ -297,6 +322,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             pin_policy,
             max_transfer_upload_size_in_bytes: settings.max_transfer_upload_size_in_bytes,
             wallet_transfer_concurrency_limit: settings.wallet_transfer_concurrency_limit,
+            generators: UuidV4AndTime(time_generator),
             user_state: Arc::new(UserState {
                 repositories,
                 flags,
@@ -333,7 +359,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             .handle_instruction(
                 instruction,
                 &self.instruction_result_signing_key,
-                &UuidV4AndTimeGenerator,
+                &self.generators,
                 &self.pin_policy,
                 &self.user_state,
             )
@@ -357,7 +383,7 @@ impl<GRC, PIC> RouterState<GRC, PIC> {
             .handle_hw_signed_instruction(
                 instruction,
                 &self.instruction_result_signing_key,
-                &UuidV4AndTimeGenerator,
+                &self.generators,
                 &self.user_state,
             )
             .await?;

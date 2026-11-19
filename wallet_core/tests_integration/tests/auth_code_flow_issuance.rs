@@ -25,6 +25,7 @@ use reqwest::redirect::Policy;
 use serial_test::serial;
 use tests_integration::common::*;
 use url::Url;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
 use wallet::IssuanceContinueResult;
@@ -151,7 +152,14 @@ async fn test_acf_demo_issuer_wallet_issuance() {
     let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        TimeGenerator,
+    )
+    .await;
     let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
@@ -204,7 +212,14 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
     let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        TimeGenerator,
+    )
+    .await;
     let acf = setup_auth_code_env(&db_setup, None).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 
@@ -248,7 +263,14 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let wallet = setup_wallet_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
+    let wallet = setup_wallet_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        TimeGenerator,
+    )
+    .await;
     let acf = setup_auth_code_env_with_previews(&db_setup).await;
     let mut wallet = do_wallet_registration(wallet, pin.clone()).await;
 

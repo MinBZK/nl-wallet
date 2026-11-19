@@ -1,10 +1,13 @@
 use std::error::Error;
 use std::net::SocketAddr;
 
+use chrono::DateTime;
+use chrono::Utc;
 use hsm::service::Pkcs11Hsm;
 use tokio::net::TcpListener;
 use tracing::info;
 use utils::built_info::version_string;
+use utils::generator::Generator;
 use wallet_provider_service::account_server::GoogleCrlProvider;
 use wallet_provider_service::account_server::IntegrityTokenDecoder;
 
@@ -12,30 +15,42 @@ use super::router;
 use super::router_state::RouterState;
 use super::settings::Settings;
 
-pub async fn serve<GRC, PIC>(
+pub async fn serve<GRC, PIC, T>(
     settings: Settings,
     hsm: Pkcs11Hsm,
     google_crl_client: GRC,
     play_integrity_client: PIC,
+    time_generator: T,
 ) -> Result<(), Box<dyn Error>>
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let listener = TcpListener::bind(SocketAddr::new(settings.webserver.ip, settings.webserver.port)).await?;
-    serve_with_listener(listener, settings, hsm, google_crl_client, play_integrity_client).await
+    serve_with_listener(
+        listener,
+        settings,
+        hsm,
+        google_crl_client,
+        play_integrity_client,
+        time_generator,
+    )
+    .await
 }
 
-pub async fn serve_with_listener<GRC, PIC>(
+pub async fn serve_with_listener<GRC, PIC, T>(
     listener: TcpListener,
     settings: Settings,
     hsm: Pkcs11Hsm,
     google_crl_client: GRC,
     play_integrity_client: PIC,
+    time_generator: T,
 ) -> Result<(), Box<dyn Error>>
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     info!("{}", version_string());
     let addr = listener.local_addr()?;
@@ -45,7 +60,8 @@ where
     let tls_config = settings.tls_config.clone();
     let revoke_solution_enabled = settings.revoke_solution_enabled;
     let admin_portal = settings.admin_portal.clone();
-    let router_state = RouterState::new_from_settings(settings, hsm, google_crl_client, play_integrity_client).await?;
+    let router_state =
+        RouterState::new_from_settings(settings, hsm, google_crl_client, play_integrity_client, time_generator).await?;
     let app = router::router(router_state, revoke_solution_enabled, admin_portal)?;
 
     if let Some(tls_config) = tls_config {

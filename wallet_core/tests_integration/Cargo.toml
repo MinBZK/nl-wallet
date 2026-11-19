@@ -140,6 +140,7 @@ test_common = [
     "dep:android_attest",
     "dep:audit_log",
     "dep:axum-server",
+    "dep:chrono",
     "dep:crypto",
     "dep:ctor",
     "dep:db_test",
@@ -233,6 +234,7 @@ integration_test = [
     "tokio/rt-multi-thread",
     "tokio/sync",
     "tokio/time",
+    "utils?/mock_time",
     "wallet_account/client",
 ]
 
