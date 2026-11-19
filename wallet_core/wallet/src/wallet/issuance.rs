@@ -2043,13 +2043,24 @@ mod tests {
                 }])
             });
 
-        setup_mock_recovery_code_instructions(&mut wallet);
+        // During enrollment, the transfer session id returned by the Wallet Provider should be stored.
+        let transfer_session_id = Uuid::new_v4();
+        setup_mock_recovery_code_instructions(&mut wallet, Some(transfer_session_id));
+
+        wallet
+            .mut_storage()
+            .expect_insert_data::<TransferData>()
+            .withf(move |data| data.transfer_session_id == transfer_session_id.into() && data.key_data.is_none())
+            .times(1)
+            .returning(|_| Ok(()));
 
         // Accept the PID issuance with the PIN.
-        wallet
+        let result = wallet
             .accept_issuance(PIN.clone())
             .await
             .expect("Could not accept PID issuance");
+
+        assert_eq!(result.transfer_session_id, Some(transfer_session_id.into()));
 
         {
             // Test which `Attestation` instances we have received through the callback.
@@ -2089,16 +2100,15 @@ mod tests {
         assert_matches!(err, IssuanceError::PidAlreadyPresent);
     }
 
-    fn setup_mock_recovery_code_instructions(wallet: &mut TestWalletMockStorage) {
+    /// Have the Wallet Provider accept the disclosure of the recovery code, returning `transfer_session_id`.
+    fn setup_mock_recovery_code_instructions(wallet: &mut TestWalletMockStorage, transfer_session_id: Option<Uuid>) {
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
             .expect_instruction_challenge()
             .once()
             .returning(|_, _| Ok(crypto::utils::random_bytes(32)));
 
-        let wp_result = create_wp_result(DiscloseRecoveryCodeResult {
-            transfer_session_id: None,
-        });
+        let wp_result = create_wp_result(DiscloseRecoveryCodeResult { transfer_session_id });
 
         Arc::get_mut(&mut wallet.account_provider_client)
             .unwrap()
@@ -2291,9 +2301,11 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
+        // During PID renewal, a transfer session id returned by the Wallet Provider should be ignored.
         if purpose.is_some() {
-            setup_mock_recovery_code_instructions(&mut wallet);
+            setup_mock_recovery_code_instructions(&mut wallet, Some(Uuid::new_v4()));
         }
+        wallet.mut_storage().expect_insert_data::<TransferData>().never();
 
         let updated_credentials = Arc::new(parking_lot::Mutex::new(Vec::new()));
         wallet.mut_storage().expect_update_credentials().returning({
@@ -2323,10 +2335,12 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(|| Ok(vec![]));
 
-        wallet
+        let result = wallet
             .accept_issuance(PIN.clone())
             .await
             .expect("accepting issuance without previews should succeed");
+
+        assert!(result.transfer_session_id.is_none());
 
         // Every credential should be paired with the attestation presentation of the same format, which carries the
         // identity of the stored attestation it renews, if any.
@@ -2744,7 +2758,7 @@ mod tests {
             .expect_upsert_data::<InstructionData>()
             .returning(|_| Ok(()));
 
-        setup_mock_recovery_code_instructions(&mut wallet);
+        setup_mock_recovery_code_instructions(&mut wallet, None);
 
         // Accepting PID issuance should result in an error.
         let error = wallet
