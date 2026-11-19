@@ -2,7 +2,9 @@
 """Merge dependency-check reports into one JSON, XML and HTML report.
 
 Dependencies with the same SHA-1 become one dependency, with the project
-references and vulnerabilities of all of them.
+references and vulnerabilities of all of them. Vulnerable dependencies
+come first, so the HTML anchors match the Quality-time links of both
+dependencies and security warnings.
 """
 
 import argparse
@@ -49,7 +51,8 @@ def merge_json(sources):
     reports = [json.loads(source.read_text()) for source in sources]
     report = reports[0]
     dependencies = [dependency for source in reports for dependency in source["dependencies"]]
-    report["dependencies"] = deduplicate(dependencies, lambda dependency: dependency.get("sha1"), combine_json)
+    dependencies = deduplicate(dependencies, lambda dependency: dependency.get("sha1"), combine_json)
+    report["dependencies"] = sorted(dependencies, key=lambda dependency: not dependency.get("vulnerabilities"))
     return report
 
 
@@ -82,12 +85,15 @@ def merge_xml(sources):
         if source_root.tag != root.tag:
             raise SystemExit(f"{source}: schema {source_root.tag} is not {root.tag}")
         dependencies.extend(source_root.iterfind("{*}dependencies/{*}dependency"))
-    container[:] = deduplicate(dependencies, lambda dependency: dependency.findtext("{*}sha1"), combine_xml)
+    dependencies = deduplicate(dependencies, lambda dependency: dependency.findtext("{*}sha1"), combine_xml)
+    container[:] = sorted(
+        dependencies, key=lambda dependency: dependency.find("{*}vulnerabilities/{*}vulnerability") is None
+    )
     ElementTree.register_namespace("", root.tag[1:].split("}")[0])
     return tree
 
 
-def html_row(dependency):
+def html_row(index, dependency):
     packages = "<br>".join(escape(package["id"]) for package in dependency.get("packages", []))
     users = "<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"])
     vulnerabilities = "<br>".join(
@@ -96,16 +102,14 @@ def html_row(dependency):
         for item in dependency.get("vulnerabilities", [])
     )
     name = escape(dependency["fileName"])
-    return f"<tr><td>{name}</td><td>{packages}</td><td>{users}</td><td>{vulnerabilities}</td></tr>"
+    anchor = f"l{index}_{escape(dependency.get('sha1', ''))}"
+    return f'<tr id="{anchor}"><td>{name}</td><td>{packages}</td><td>{users}</td><td>{vulnerabilities}</td></tr>'
 
 
 def render_html(report):
-    dependencies = sorted(
-        report["dependencies"],
-        key=lambda dependency: (not dependency.get("vulnerabilities"), dependency["fileName"].lower()),
-    )
+    dependencies = report["dependencies"]
     vulnerable = sum(1 for dependency in dependencies if dependency.get("vulnerabilities"))
-    rows = "\n".join(map(html_row, dependencies))
+    rows = "\n".join(html_row(index, dependency) for index, dependency in enumerate(dependencies, 1))
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
