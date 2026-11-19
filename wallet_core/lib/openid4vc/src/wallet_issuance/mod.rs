@@ -3,6 +3,7 @@ mod authorization_endpoints;
 pub mod credential;
 mod credential_request_encryption;
 pub mod discovery;
+mod dpop;
 pub mod issuance_session;
 pub mod issuer_registration;
 
@@ -35,6 +36,7 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
 use oauth::dpop::DpopError;
+use oauth::dpop::DpopNonce;
 use oauth::dpop::DpopNonceInvalid;
 use oauth::errors::RemoteErrorResponse;
 use oauth::issuer_identifier::IssuerIdentifier;
@@ -85,6 +87,14 @@ const SUPPORTED_MDOC_ISSUER_ALGORITHMS: &[iana::Algorithm] = &[
 pub enum WalletIssuanceError {
     #[error("DPoP error: {0}")]
     Dpop(#[from] DpopError),
+
+    #[error("server requires a new DPoP nonce")]
+    #[category(expected)]
+    UseDpopNonce(DpopNonce),
+
+    #[error("response contains multiple DPoP-Nonce headers")]
+    #[category(pd)]
+    MultipleDpopNonceHeaders,
 
     #[error("failed to convert JWK to public key: {0}")]
     JwkConversion(#[from] JwkConversionError),

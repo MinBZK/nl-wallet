@@ -105,6 +105,8 @@ pub enum ParErrorCode {
     InvalidRequest,
     // Authorization error code.
     ServerError,
+    // RFC 9449, Section 8.
+    UseDpopNonce,
 
     /// Invalid Client Attestation / WIA.
     /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
@@ -119,7 +121,7 @@ impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
-            Self::InvalidRequest => StatusCode::BAD_REQUEST,
+            Self::InvalidRequest | Self::UseDpopNonce => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
         }
@@ -138,6 +140,8 @@ pub enum VciTokenErrorCode {
     UnauthorizedClient,
     UnsupportedGrantType,
     InvalidScope,
+    // RFC 9449, Section 8.
+    UseDpopNonce,
 
     /// Invalid Client Attestation / WIA.
     /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
@@ -160,7 +164,8 @@ impl ErrorStatusCode for VciTokenErrorCode {
             | Self::InvalidGrant
             | Self::UnauthorizedClient
             | Self::UnsupportedGrantType
-            | Self::InvalidScope => StatusCode::BAD_REQUEST,
+            | Self::InvalidScope
+            | Self::UseDpopNonce => StatusCode::BAD_REQUEST,
             Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
                 StatusCode::UNAUTHORIZED
             }
@@ -346,6 +351,7 @@ pub enum CredentialErrorCode {
 
     // From RFC 9449, Section 7.1.
     InvalidDpopProof,
+    UseDpopNonce,
 
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the spec, but then again the entire HTTP response in case
@@ -365,7 +371,7 @@ impl ErrorStatusCode for CredentialErrorCode {
             | Self::CredentialRequestDenied
             | Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::InvalidToken | Self::InvalidDpopProof => StatusCode::UNAUTHORIZED,
+            Self::InvalidToken | Self::InvalidDpopProof | Self::UseDpopNonce => StatusCode::UNAUTHORIZED,
 
             Self::InsufficientScope => StatusCode::FORBIDDEN,
 
@@ -388,6 +394,8 @@ impl ErrorWithCode for CredentialRequestError {
             | Self::IssuanceError(IssuanceError::UnknownSession(_)) => CredentialErrorCode::InvalidToken,
 
             Self::IssuanceError(IssuanceError::DpopInvalid(_)) => CredentialErrorCode::InvalidDpopProof,
+
+            Self::MissingDpopNonce => CredentialErrorCode::UseDpopNonce,
 
             Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 

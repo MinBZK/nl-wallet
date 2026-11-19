@@ -1763,6 +1763,72 @@ async fn pre_authorized_code_flow_credential_request() {
         .parse::<Url>()
         .unwrap();
 
+    // A missing nonce only produces a challenge after validating the DPoP key and access-token binding.
+    let wrong_key = SigningKey::generate();
+    let wrong_proof = Dpop::new(
+        &wrong_key,
+        credential_url.clone(),
+        &Method::POST,
+        Some(&token_response.oauth_response.access_token),
+        None,
+    )
+    .unwrap();
+    let response = http_client
+        .post(credential_url.clone())
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
+        .header(DPOP_HEADER_NAME, wrong_proof.to_string())
+        .body(credential_request_jwe.clone())
+        .send()
+        .await
+        .unwrap();
+    assert!(!response.headers().contains_key(DPOP_NONCE_HEADER_NAME));
+    assert_invalid_dpop_response(response).await;
+
+    let proof_without_nonce = Dpop::new(
+        &dpop_key,
+        credential_url.clone(),
+        &Method::POST,
+        Some(&token_response.oauth_response.access_token),
+        None,
+    )
+    .unwrap();
+    let response = http_client
+        .post(credential_url.clone())
+        .header(
+            AUTHORIZATION,
+            format!("DPoP {}", token_response.oauth_response.access_token.as_ref()),
+        )
+        .header(DPOP_HEADER_NAME, proof_without_nonce.to_string())
+        .body(credential_request_jwe.clone())
+        .send()
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        response.headers().get(header::WWW_AUTHENTICATE).unwrap(),
+        "DPoP error=\"use_dpop_nonce\", algs=\"ES256\""
+    );
+    assert_eq!(response.headers().get(header::CACHE_CONTROL).unwrap(), "no-store");
+    let challenge_nonce: DpopNonce = response
+        .headers()
+        .get(DPOP_NONCE_HEADER_NAME)
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .parse()
+        .unwrap();
+    assert_eq!(
+        response
+            .json::<ErrorResponse<CredentialErrorCode>>()
+            .await
+            .unwrap()
+            .error,
+        CredentialErrorCode::UseDpopNonce
+    );
+
     let dpop_header = Dpop::new(
         &dpop_key,
         credential_url.clone(),
@@ -1808,7 +1874,7 @@ async fn pre_authorized_code_flow_credential_request() {
         .unwrap();
     assert_invalid_dpop_response(response).await;
 
-    let (_, fresh_dpop_nonce) = request_issuance_nonces(&http_client, &nonce_url).await;
+    let fresh_dpop_nonce = challenge_nonce;
     assert_ne!(dpop_nonce, fresh_dpop_nonce);
     let dpop_header = Dpop::new(
         &dpop_key,

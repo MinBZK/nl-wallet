@@ -247,6 +247,9 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
+    #[error("a DPoP nonce is required")]
+    MissingDpopNonce,
+
     #[error("could not check DPoP nonce against nonce storage: {0}")]
     DpopNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
@@ -1423,9 +1426,7 @@ impl Session<AccessTokenIssued> {
                 Some(access_token),
             )
             .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(
-                DpopError::IncorrectNonce,
-            )))?;
+            .ok_or(CredentialRequestError::MissingDpopNonce)?;
 
         // Only consume the nonce after verifying the proof and its binding to this access token. The store checks
         // expiry and removes it atomically, so concurrent requests cannot reuse the same nonce.
@@ -2236,6 +2237,7 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::from_ca(wptl_ca),
             &oauth_metadata.oauth_metadata.issuer,
+            Default::default(),
         )
         .await
         .unwrap();
@@ -2308,6 +2310,7 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.oauth_metadata.issuer,
+            Default::default(),
         )
         .await
         .err()
@@ -2874,7 +2877,6 @@ mod tests {
 
     #[rstest]
     #[case(CredentialRequestFailure::WrongDpopNonce)]
-    #[case(CredentialRequestFailure::MissingDpopNonce)]
     #[case(CredentialRequestFailure::ProofNonceAsDpopNonce)]
     #[tokio::test]
     async fn test_process_credential_request_error_dpop_invalid(#[case] failure: CredentialRequestFailure) {
@@ -2892,6 +2894,21 @@ mod tests {
             error,
             CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::IncorrectNonce))
         );
+    }
+
+    #[tokio::test]
+    async fn test_missing_dpop_nonce_requires_challenge_before_processing_credential_proof() {
+        let (issuer, _, access_token, dpop, _, credential_request) = setup_mock_issuer_and_credential_request(
+            Format::SdJwt,
+            NonZeroUsize::MIN,
+            CredentialRequestFailure::MissingDpopNonce,
+        );
+        let error = issuer
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
+            .await
+            .unwrap_err();
+        assert_eq!(error.error_code(), CredentialErrorCode::UseDpopNonce);
+        assert_matches!(error, CredentialRequestError::MissingDpopNonce);
     }
 
     #[tokio::test]

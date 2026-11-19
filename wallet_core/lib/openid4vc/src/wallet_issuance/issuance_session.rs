@@ -34,9 +34,7 @@ use mdoc::utils::serialization::TaggedBytes;
 use nonempty_collections::NEMap;
 use nonempty_collections::NESet;
 use oauth::dpop::DPOP_HEADER_NAME;
-use oauth::dpop::DPOP_NONCE_HEADER_NAME;
 use oauth::dpop::Dpop;
-use oauth::dpop::DpopError;
 use oauth::dpop::DpopNonce;
 use oauth::errors::RemoteErrorCode;
 use oauth::errors::RemoteErrorResponse;
@@ -45,9 +43,7 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::scope::Scope;
 use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
-use p256::elliptic_curve::Generate;
-use reqwest::Method;
-use reqwest::Response;
+use reqwest::StatusCode;
 use reqwest::header::AUTHORIZATION;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::DecodedSdJwt;
@@ -84,6 +80,10 @@ use super::credential::IssuedCredentialMetadata;
 use super::credential::MdocCopy;
 use super::credential::SdJwtCopy;
 use super::credential_request_encryption::CredentialRequestEncryptionParameters;
+use super::dpop::DpopState;
+use super::dpop::nonce_from_headers;
+use super::dpop::request_with_dpop_retry;
+use super::dpop::resource_nonce_challenge;
 use super::issuer_registration::IssuerRegistration;
 use crate::authorization_details::CredentialId;
 use crate::authorization_details::IssuerAuthorizationDetails;
@@ -119,7 +119,7 @@ pub struct HttpIssuanceSession<H = HttpVcMessageClient> {
 /// Part of the method signature of `VcMessageClient::request_credential()`, which allows either an unencrypted or
 /// encrypted Credential Request to be sent to the Issuer. Note that the ownership is different for both variants, as
 /// the canonical implementation of `request_credential()` only requires ownership of the encrypted variant.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum CredentialRequestBody<'a> {
     Plain(&'a CredentialRequest),
     Encrypted(String),
@@ -167,24 +167,6 @@ impl HttpVcMessageClient {
         Self { http_client }
     }
 
-    fn dpop_nonce(response: &Response) -> Result<Option<DpopNonce>, WalletIssuanceError> {
-        let dpop_nonce = response
-            .headers()
-            .get(DPOP_NONCE_HEADER_NAME)
-            .map(|header| -> Result<_, WalletIssuanceError> {
-                let dpop_nonce = header
-                    .to_str()
-                    .map_err(WalletIssuanceError::DpopNonceHeader)?
-                    .parse()
-                    .map_err(WalletIssuanceError::DpopNonce)?;
-
-                Ok(dpop_nonce)
-            })
-            .transpose()?;
-
-        Ok(dpop_nonce)
-    }
-
     fn dpop_auth_header(access_token: &AccessToken) -> String {
         format!("DPoP {}", access_token.as_ref())
     }
@@ -212,14 +194,21 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
 
                 if status.is_client_error() || status.is_server_error() {
+                    let nonce = nonce_from_headers(response.headers());
                     let error = response
                         .json::<RemoteErrorResponse<VciTokenErrorCode>>()
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
+                    if status == StatusCode::BAD_REQUEST
+                        && error.error == RemoteErrorCode::Known(VciTokenErrorCode::UseDpopNonce)
+                        && let Some(nonce) = nonce?
+                    {
+                        return Err(WalletIssuanceError::UseDpopNonce(nonce));
+                    }
                     Err(WalletIssuanceError::VciTokenRequest(Box::new(error)))
                 } else {
-                    let dpop_nonce = Self::dpop_nonce(&response)?;
+                    let dpop_nonce = nonce_from_headers(response.headers())?;
                     let deserialized = response
                         .json::<VciTokenResponse>()
                         .await
@@ -284,7 +273,7 @@ impl VcMessageClient for HttpVcMessageClient {
             .error_for_status()
             .map_err(WalletIssuanceError::NonceHttp)?;
 
-        let dpop_nonce = Self::dpop_nonce(&response)?;
+        let dpop_nonce = nonce_from_headers(response.headers())?;
         let nonce_response = response.json().await.map_err(WalletIssuanceError::NonceHttp)?;
 
         Ok((nonce_response, dpop_nonce))
@@ -316,6 +305,9 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
 
                 if status.is_client_error() || status.is_server_error() {
+                    if let Some(nonce) = resource_nonce_challenge(&response)? {
+                        return Err(WalletIssuanceError::UseDpopNonce(nonce));
+                    }
                     let error = response
                         .json::<RemoteErrorResponse<CredentialErrorCode>>()
                         .await
@@ -669,7 +661,6 @@ struct IssuanceState {
     issuer_registration: IssuerRegistration,
     #[debug(skip)]
     dpop_signing_key: SigningKey,
-    dpop_nonce: Option<DpopNonce>,
 }
 
 #[derive(Debug)]
@@ -764,20 +755,6 @@ impl OfferedCredential {
     }
 }
 
-impl IssuanceState {
-    fn dpop_header(&self, url: Url, method: &Method, dpop_nonce: Option<DpopNonce>) -> Result<Dpop, DpopError> {
-        let dpop_header = Dpop::new(
-            &self.dpop_signing_key,
-            url,
-            method,
-            Some(&self.access_token),
-            dpop_nonce,
-        )?;
-
-        Ok(dpop_header)
-    }
-}
-
 /// Detects if an issuance error that occurred during a token request is a PreAuthorizedCodeExpired error.
 ///
 /// In the pre-authorized-code flow, an `invalid_grant` response at the token endpoint can only mean the code is no
@@ -822,9 +799,12 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         token_request: VciTokenRequest,
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
+        dpop: DpopState,
     ) -> Result<Self, WalletIssuanceError> {
-        let dpop_signing_key = SigningKey::generate();
-        let dpop_header = Dpop::new(&dpop_signing_key, token_endpoint.clone(), &Method::POST, None, None)?;
+        let DpopState {
+            signing_key: dpop_signing_key,
+            nonce,
+        } = dpop;
 
         let challenge = match client_auth_challenge {
             ClientAttestationChallengeMechanism::None => None,
@@ -839,8 +819,13 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .await
             .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
 
-        let (token_response, dpop_nonce) = message_client
-            .request_token(token_endpoint, &token_request, &dpop_header, &wia)
+        // Authorization-server nonces must not be used at the credential endpoint (RFC 9449, Section 9).
+        let ((token_response, _), _) =
+            request_with_dpop_retry(&dpop_signing_key, &token_endpoint, None, nonce, async |proof| {
+                message_client
+                    .request_token(token_endpoint.clone(), &token_request, &proof, &wia)
+                    .await
+            })
             .await
             .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
@@ -896,7 +881,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             metadata,
             issuer_registration,
             dpop_signing_key,
-            dpop_nonce,
         };
 
         let issuance_client = Self {
@@ -1065,7 +1049,6 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             .credential_endpoint
             .clone()
             .into_url();
-        let dpop_header = self.session_state.dpop_header(url.clone(), &Method::POST, dpop_nonce)?;
 
         // Encrypt the Credential Request if the Issuer Metadata allows or mandates it.
         let credential_request = CredentialRequest::new(offered_credential.to_request_identifier(), key_attestation);
@@ -1087,15 +1070,23 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             None => CredentialRequestBody::Plain(&credential_request),
         };
 
-        let credential_response = self
-            .message_client
-            .request_credential(
-                url,
-                credential_request_body,
-                &dpop_header,
-                &self.session_state.access_token,
-            )
-            .await?;
+        let (credential_response, _) = request_with_dpop_retry(
+            &self.session_state.dpop_signing_key,
+            &url,
+            Some(&self.session_state.access_token),
+            dpop_nonce,
+            async |proof| {
+                self.message_client
+                    .request_credential(
+                        url.clone(),
+                        credential_request_body.clone(),
+                        &proof,
+                        &self.session_state.access_token,
+                    )
+                    .await
+            },
+        )
+        .await?;
 
         // Extract the credentials from the request and verify each of the copies.
         let credentials = credential_response
@@ -1227,20 +1218,12 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         let (proof_nonces, dpop_nonces): (Vec<_>, Vec<_>) =
             try_join_all((0..credential_count).map(async |_| -> Result<_, WalletIssuanceError> {
                 let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
-                    None => {
-                        // There is no nonce endpoint available, so use the DPoP nonce from the Token Response, if
-                        // provided.
-                        (None, self.session_state.dpop_nonce.clone())
-                    }
+                    None => (None, None),
                     Some(nonce_endpoint) => {
                         let (NonceResponse { c_nonce }, dpop_nonce) = self
                             .message_client
                             .request_nonce(nonce_endpoint.clone().into_url())
                             .await?;
-
-                        // If the nonce endpoint response included a "DPoP-Nonce" header, return that value as the DPoP
-                        // nonce. Otherwise, use the value received in the Token Response, if any.
-                        let dpop_nonce = dpop_nonce.or_else(|| self.session_state.dpop_nonce.clone());
 
                         (Some(c_nonce), dpop_nonce)
                     }
@@ -1653,6 +1636,8 @@ mod tests {
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::metadata::well_known::WellKnownMetadata;
     use oauth::token::TokenType;
+    use p256::elliptic_curve::Generate;
+    use reqwest::Method;
     use rstest::rstest;
     use sd_jwt::builder::SignedSdJwt;
     use sd_jwt::claims::ClaimName;
@@ -1797,6 +1782,7 @@ mod tests {
             VciTokenRequest::new_mock(),
             &wia_client,
             &oauth_metadata.oauth_metadata.issuer,
+            Default::default(),
         )
         .now_or_never()
         .unwrap()
@@ -1931,6 +1917,7 @@ mod tests {
             VciTokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.oauth_metadata.issuer,
+            Default::default(),
         )
         .now_or_never()
         .unwrap()
@@ -2866,7 +2853,6 @@ mod tests {
             metadata,
             issuer_registration: IssuerRegistration::new_mock(),
             dpop_signing_key: SigningKey::generate(),
-            dpop_nonce: Some("dpop_nonce".parse().unwrap()),
         }
     }
 
@@ -3221,7 +3207,7 @@ mod tests {
     fn check_credential_endpoint_input(
         url: &Url,
         dpop_signing_key: &SigningKey,
-        dpop_nonce: &DpopNonce,
+        dpop_nonce: Option<&DpopNonce>,
         dpop_header: Dpop,
         access_token: &AccessToken,
     ) {
@@ -3235,7 +3221,7 @@ mod tests {
                 Some(&"access_token".to_string().into()),
             )
             .unwrap();
-        assert_eq!(verified_nonce.as_ref(), Some(dpop_nonce));
+        assert_eq!(verified_nonce.as_ref(), dpop_nonce);
     }
 
     fn create_mock_wscd() -> (IssuanceMockRemoteWscd, TrustAnchors) {
@@ -3310,16 +3296,12 @@ mod tests {
         let issuer_trust_anchors = signer.issuer_trust_anchors.clone();
 
         let (mut mock_msg_client, has_nonce_endpoint, expected_dpop_nonce) = match nonce_endpoint {
-            TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, "dpop_nonce".parse().unwrap()),
-            TestNonceEndpoint::Present => (
-                mock_openid_message_client_nonce(None, credential_count),
-                true,
-                "dpop_nonce".parse().unwrap(),
-            ),
+            TestNonceEndpoint::Absent => (MockVcMessageClient::new(), false, None),
+            TestNonceEndpoint::Present => (mock_openid_message_client_nonce(None, credential_count), true, None),
             TestNonceEndpoint::PresentWithDpopNonce => (
                 mock_openid_message_client_nonce(Some("new_dpop_nonce"), credential_count),
                 true,
-                "new_dpop_nonce".parse().unwrap(),
+                Some("new_dpop_nonce".parse().unwrap()),
             ),
         };
 
@@ -3341,7 +3323,7 @@ mod tests {
                 check_credential_endpoint_input(
                     &url,
                     &dpop_signing_key,
-                    &expected_dpop_nonce,
+                    expected_dpop_nonce.as_ref(),
                     dpop_header.clone(),
                     access_token,
                 );

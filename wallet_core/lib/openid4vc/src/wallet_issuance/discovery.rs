@@ -796,6 +796,7 @@ where
             token_request,
             wia_client,
             authorization_server,
+            Default::default(),
         )
         .await
     }
