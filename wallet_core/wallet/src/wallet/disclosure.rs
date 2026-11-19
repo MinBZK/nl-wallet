@@ -8,7 +8,6 @@ use attestation_data::disclosure::AttestationRequest;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
 use attestation_types::claim_path::ClaimPath;
-use attestation_types::credential_kind::CredentialKind;
 use chrono::Utc;
 use dcql::CredentialQueryIdentifier;
 use dcql::normalized::NormalizedCredentialRequest;
@@ -495,12 +494,8 @@ where
         request: &impl AttestationRequest,
         presentation_config: &impl AttestationPresentationConfig,
     ) -> Result<Option<VecNonEmpty<VpDisclosableAttestation>>, StorageError> {
-        let credential_kinds = request.credential_kinds();
         let stored_attestations = storage
-            .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds.iter().map(CredentialKind::as_ref).collect(),
-                TimeGenerator,
-            )
+            .fetch_valid_unique_attestations_by_credential_kinds(request.credential_kinds(), TimeGenerator)
             .await?;
 
         let candidate_attestations = stored_attestations
@@ -994,7 +989,7 @@ mod tests {
     use attestation_data::organization::Organization;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
-    use attestation_types::credential_kind::CredentialKindRef;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_ADDRESS_GROUP;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
@@ -1324,7 +1319,8 @@ mod tests {
                 .mut_storage()
                 .expect_fetch_valid_unique_attestations_by_credential_kinds()
                 .withf(move |credential_kinds, _| {
-                    *credential_kinds == HashSet::from([CredentialKindRef::new(requested_format, attestation_type)])
+                    *credential_kinds
+                        == HashSet::from([CredentialKind::new(requested_format, attestation_type.to_owned())])
                 })
                 .times(1)
                 .return_once(move |_, _| Ok(attestations));
@@ -1833,7 +1829,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .withf(move |credential_kinds, _| {
-                *credential_kinds == HashSet::from([CredentialKindRef::new(Format::MsoMdoc, PID_MDOC_DOCTYPE)])
+                *credential_kinds == HashSet::from([CredentialKind::new(Format::MsoMdoc, PID_MDOC_DOCTYPE.to_owned())])
             })
             .times(1)
             .return_once(move |_, _| Ok(vec![expectation_attestation_copy.clone()]));
@@ -3114,7 +3110,7 @@ mod tests {
             .mut_storage()
             .expect_fetch_valid_unique_attestations_by_credential_kinds()
             .withf(move |credential_kinds, _| {
-                *credential_kinds == HashSet::from([CredentialKindRef::new(Format::SdJwt, attestation_type)])
+                *credential_kinds == HashSet::from([CredentialKind::new(Format::SdJwt, attestation_type.to_owned())])
             })
             .times(1)
             .return_once(move |_, _| Ok(attestations));

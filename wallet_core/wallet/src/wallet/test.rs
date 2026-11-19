@@ -252,14 +252,14 @@ pub fn create_preview_from_payload(
 /// `expected`. The predicate has to be `'static`, so `expected` is converted to owned [`CredentialKind`]s up front.
 pub fn eq_credential_kinds(
     expected: &HashSet<CredentialKindRef<'_>>,
-) -> impl Fn(&HashSet<CredentialKindRef<'_>>) -> bool + 'static {
+) -> impl Fn(&HashSet<CredentialKind>) -> bool + 'static {
     let expected = expected
         .iter()
         .copied()
         .map(CredentialKindRef::into_owned)
-        .collect::<HashSet<CredentialKind>>();
+        .collect::<HashSet<_>>();
 
-    move |actual| expected.iter().map(CredentialKind::as_ref).collect::<HashSet<_>>() == *actual
+    move |actual| *actual == expected
 }
 
 pub fn create_example_pid_credential_payload(

@@ -290,7 +290,12 @@ where
         self.storage
             .read()
             .await
-            .has_any_attestations_with_credential_kinds(&pid_credential_kinds)
+            .has_any_attestations_with_credential_kinds(
+                pid_credential_kinds
+                    .into_iter()
+                    .map(CredentialKindRef::into_owned)
+                    .collect(),
+            )
             .await
     }
 }
@@ -569,14 +574,14 @@ where
     ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
         let preview_attestation_types_and_formats = credential_previews
             .iter()
-            .map(|preview| CredentialKindRef::new(preview.format, &preview.credential_payload.attestation_type))
+            .map(|preview| preview.credential_kind().into_owned())
             .collect();
 
         let stored = self
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_credential_kinds(&preview_attestation_types_and_formats)
+            .fetch_unique_attestations_by_credential_kinds(preview_attestation_types_and_formats)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -618,14 +623,14 @@ where
     ) -> Result<Vec<AttestationPresentation>, IssuanceError> {
         let issued_credential_kinds = credentials
             .iter()
-            .map(|credential| credential.credential_kind())
+            .map(|credential| credential.credential_kind().into_owned())
             .collect();
 
         let stored = self
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_credential_kinds(&issued_credential_kinds)
+            .fetch_unique_attestations_by_credential_kinds(issued_credential_kinds)
             .await
             .map_err(IssuanceError::AttestationQuery)?;
 
@@ -902,6 +907,7 @@ mod tests {
     use attestation_data::credential_payload::CredentialPayload;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::credential_format::Format;
+    use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::PID_ATTESTATION_TYPE;
     use attestation_types::pid_constants::PID_GIVEN_NAME;
     use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
@@ -1684,8 +1690,8 @@ mod tests {
         );
 
         let expected_types_and_formats = HashSet::from([
-            CredentialKindRef::new(Format::SdJwt, "sd_jwt_attestation_type"),
-            CredentialKindRef::new(Format::MsoMdoc, "mdoc_attestation_type"),
+            CredentialKind::new(Format::SdJwt, "sd_jwt_attestation_type".to_string()),
+            CredentialKind::new(Format::MsoMdoc, "mdoc_attestation_type".to_string()),
         ]);
 
         wallet
@@ -2277,7 +2283,7 @@ mod tests {
             .returning(move |credential_kinds| {
                 Ok(stored
                     .iter()
-                    .filter(|copy| credential_kinds.contains(&copy.credential_kind()))
+                    .filter(|copy| credential_kinds.contains(&copy.credential_kind().into_owned()))
                     .cloned()
                     .collect())
             });

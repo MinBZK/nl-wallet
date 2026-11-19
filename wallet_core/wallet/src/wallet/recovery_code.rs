@@ -1,3 +1,4 @@
+use attestation_types::credential_kind::CredentialKindRef;
 use error_category::ErrorCategory;
 use openid4vc::disclosure_session::DisclosureClient;
 use openid4vc::wallet_issuance::IssuanceDiscovery;
@@ -128,7 +129,13 @@ where
             .storage
             .read()
             .await
-            .fetch_unique_attestations_by_credential_kinds(&pid_config.sd_jwt_credential_kinds())
+            .fetch_unique_attestations_by_credential_kinds(
+                pid_config
+                    .sd_jwt_credential_kinds()
+                    .into_iter()
+                    .map(CredentialKindRef::into_owned)
+                    .collect(),
+            )
             .await
             .map_err(RecoveryCodeError::AttestationQuery)?
             .pop()
