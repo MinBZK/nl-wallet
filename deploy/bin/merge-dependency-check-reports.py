@@ -141,6 +141,12 @@ def main():
     parser.add_argument("target", type=Path, help="directory to write the merged report to")
     parser.add_argument("sources", type=Path, nargs="+", help="directories with a JSON and XML report")
     args = parser.parse_args()
+    # Write nothing when a scan did not complete
+    for source in args.sources:
+        for extension in ("json", "xml"):
+            if not (source / f"{REPORT}.{extension}").is_file():
+                raise SystemExit(f"{source}: no {REPORT}.{extension}")
+
     report = merge_json([source / f"{REPORT}.json" for source in args.sources])
     (args.target / f"{REPORT}.json").write_text(json.dumps(report))
     (args.target / f"{REPORT}.html").write_text(render_html(report))

@@ -60,10 +60,10 @@ dependency-check:
     # Quality-time and Sonar read one report, so merge the results
     - deploy/bin/merge-dependency-check-reports.py . dependency_check_cli
         $(printf 'dependency_check_gradle/%s ' $GRADLE_BUILDS)
-    - exit $status
-  after_script:
+    # The merge fails on a missing report, so only complete results get here
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
       qt/quality-time/dependency-check/report.$ext; done
+    - exit $status
   artifacts:
     name: dependency-check
     when: always
