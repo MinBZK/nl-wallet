@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::sync::Arc;
 use std::sync::LazyLock;
@@ -13,8 +12,6 @@ use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
-use attestation_types::credential_kind::CredentialKindRef;
 use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
 use attestation_types::pid_constants::PID_AGE_OVER_18;
 use attestation_types::pid_constants::PID_BIRTH_DATE;
@@ -246,20 +243,6 @@ pub fn create_preview_from_payload(
         format,
         credential_payload: credential_payload.contents,
     }
-}
-
-/// Returns a predicate for use with mockall's `withf()`, which matches a set of credential kinds that is equal to
-/// `expected`. The predicate has to be `'static`, so `expected` is converted to owned [`CredentialKind`]s up front.
-pub fn eq_credential_kinds(
-    expected: &HashSet<CredentialKindRef<'_>>,
-) -> impl Fn(&HashSet<CredentialKind>) -> bool + 'static {
-    let expected = expected
-        .iter()
-        .copied()
-        .map(CredentialKindRef::into_owned)
-        .collect::<HashSet<_>>();
-
-    move |actual| *actual == expected
 }
 
 pub fn create_example_pid_credential_payload(

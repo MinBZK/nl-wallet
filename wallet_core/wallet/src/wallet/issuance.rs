@@ -14,6 +14,7 @@ use error_category::ErrorCategory;
 use error_category::sentry_capture_error;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls;
+use itertools::Either;
 use itertools::Itertools;
 use jwt::error::JwtVerifyError;
 use openid4vc::disclosure_session::DisclosureClient;
@@ -283,18 +284,15 @@ where
         format: PidAttestationFormat,
     ) -> Result<bool, StorageError> {
         let pid_credential_kinds = match format {
-            PidAttestationFormat::Either => config.credential_kinds(),
-            PidAttestationFormat::SdJwt => config.sd_jwt_credential_kinds(),
+            PidAttestationFormat::Either => Either::Left(config.credential_kinds()),
+            PidAttestationFormat::SdJwt => Either::Right(config.sd_jwt_credential_kinds()),
         };
 
         self.storage
             .read()
             .await
             .has_any_attestations_with_credential_kinds(
-                pid_credential_kinds
-                    .into_iter()
-                    .map(CredentialKindRef::into_owned)
-                    .collect(),
+                pid_credential_kinds.map(CredentialKindRef::into_owned).collect(),
             )
             .await
     }
@@ -971,7 +969,6 @@ mod tests {
     use crate::wallet::test::create_preview_from_payload;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
-    use crate::wallet::test::eq_credential_kinds;
     use crate::wallet::test::example_pid_payload_and_metadata;
     use crate::wallet::test::example_stored_attestation_copy;
     use crate::wallet::test::mock_issuance_session;
@@ -1004,13 +1001,18 @@ mod tests {
 
         // PID issuance considers a PID in either format, so all of the configured PID credential kinds
         // should be requested from storage.
-        let expected_credential_kinds =
-            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.credential_kinds());
+        let expected_credential_kinds = wallet
+            .config_repository
+            .get()
+            .pid_attributes
+            .credential_kinds()
+            .map(CredentialKindRef::into_owned)
+            .collect::<HashSet<_>>();
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_credential_kinds()
-            .withf(expected_credential_kinds)
+            .with(eq(expected_credential_kinds))
             .return_once(move |_| Ok(pid_present));
         wallet
             .mut_storage()
@@ -2162,13 +2164,13 @@ mod tests {
 
         // Without previews, the stored attestations to renew are looked up by the kinds of the issued credentials.
         let expected_credential_kinds = HashSet::from([
-            CredentialKindRef::new(Format::SdJwt, pid_attestation_type(Format::SdJwt)),
-            CredentialKindRef::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc)),
+            CredentialKind::new(Format::SdJwt, pid_attestation_type(Format::SdJwt).to_string()),
+            CredentialKind::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc).to_string()),
         ]);
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .withf(eq_credential_kinds(&expected_credential_kinds))
+            .with(eq(expected_credential_kinds))
             .times(1)
             .return_once(|_| Ok(vec![]));
 
@@ -2820,13 +2822,13 @@ mod tests {
         // Have the storage return an error when looking up the stored attestations that the issued credentials renew.
         // As this happens before the recovery code is compared, the stored PID is not looked up for that.
         let issued_credential_kinds = HashSet::from([
-            CredentialKindRef::new(Format::SdJwt, pid_attestation_type(Format::SdJwt)),
-            CredentialKindRef::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc)),
+            CredentialKind::new(Format::SdJwt, pid_attestation_type(Format::SdJwt).to_string()),
+            CredentialKind::new(Format::MsoMdoc, pid_attestation_type(Format::MsoMdoc).to_string()),
         ]);
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .withf(eq_credential_kinds(&issued_credential_kinds))
+            .with(eq(issued_credential_kinds))
             .times(1)
             .return_once(|_| Err(StorageError::AlreadyOpened));
 

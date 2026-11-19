@@ -132,7 +132,6 @@ where
             .fetch_unique_attestations_by_credential_kinds(
                 pid_config
                     .sd_jwt_credential_kinds()
-                    .into_iter()
                     .map(CredentialKindRef::into_owned)
                     .collect(),
             )

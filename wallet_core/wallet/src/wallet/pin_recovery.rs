@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::num::NonZeroU8;
 use std::sync::Arc;
@@ -153,7 +154,7 @@ where
             .ok_or_else(|| PinRecoveryError::NotRegistered)?;
 
         info!("Fetching issuer metadata to discover authorization server");
-        let credential_kinds = config.pid_attributes.sd_jwt_credential_kinds();
+        let credential_kinds = config.pid_attributes.sd_jwt_credential_kinds().collect::<HashSet<_>>();
         let authorization_session = self
             .issuance_discovery
             .start_authorization_code_flow(
@@ -480,6 +481,7 @@ mod tests {
     use attestation_types::pid_constants::PID_RECOVERY_CODE;
     use jwt::UnverifiedJwt;
     use jwt::nonce::Nonce;
+    use mockall::predicate::eq;
     use openid4vc::wallet_issuance::CredentialSelection;
     use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::authorization::OAuthError;
@@ -527,7 +529,6 @@ mod tests {
     use crate::wallet::test::create_example_pid_sd_jwt;
     use crate::wallet::test::create_wp_result;
     use crate::wallet::test::decoded_sd_jwt_from_credential_payload;
-    use crate::wallet::test::eq_credential_kinds;
     use crate::wallet::test::mock_issuance_session;
     use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
@@ -564,14 +565,19 @@ mod tests {
 
         // PIN recovery requires a PID in the SD-JWT format, so only the SD-JWT PID credential kinds
         // should be requested from storage.
-        let expected_credential_kinds =
-            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.sd_jwt_credential_kinds());
+        let expected_credential_kinds = wallet
+            .config_repository
+            .get()
+            .pid_attributes
+            .sd_jwt_credential_kinds()
+            .map(CredentialKindRef::into_owned)
+            .collect::<HashSet<_>>();
 
         wallet
             .mut_storage()
             .expect_has_any_attestations_with_credential_kinds()
             .once()
-            .withf(expected_credential_kinds)
+            .with(eq(expected_credential_kinds))
             .return_once(|_| Ok(true));
         wallet
             .mut_storage()
@@ -921,13 +927,18 @@ mod tests {
 
     /// Have the storage contain the example SD-JWT PID, whose recovery code is compared against that of the issued PID.
     fn setup_stored_sd_jwt_pid(wallet: &mut TestWalletMockStorage) {
-        let pid_credential_kinds =
-            eq_credential_kinds(&wallet.config_repository.get().pid_attributes.sd_jwt_credential_kinds());
+        let pid_credential_kinds = wallet
+            .config_repository
+            .get()
+            .pid_attributes
+            .sd_jwt_credential_kinds()
+            .map(CredentialKindRef::into_owned)
+            .collect::<HashSet<_>>();
 
         wallet
             .mut_storage()
             .expect_fetch_unique_attestations_by_credential_kinds()
-            .withf(pid_credential_kinds)
+            .with(eq(pid_credential_kinds))
             .once()
             .return_once(|_| {
                 Ok(vec![StoredAttestationCopy::new(

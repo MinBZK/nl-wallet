@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::ops::Range;
 use std::time::Duration;
 
@@ -199,20 +198,16 @@ impl SdJwtPidClaims {
 
 impl PidAttributesConfiguration {
     /// The [`CredentialKindRef`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
-    pub fn credential_kinds(&self) -> HashSet<CredentialKindRef<'_>> {
+    pub fn credential_kinds(&self) -> impl Iterator<Item = CredentialKindRef<'_>> {
         self.mso_mdoc
             .keys()
             .map(|doc_type| CredentialKindRef::new(Format::MsoMdoc, doc_type))
             .chain(self.sd_jwt_credential_kinds())
-            .collect()
     }
 
     /// The [`CredentialKindRef`]s of the configured PID attestations in the SD-JWT format.
-    pub fn sd_jwt_credential_kinds(&self) -> HashSet<CredentialKindRef<'_>> {
-        self.sd_jwt
-            .keys()
-            .map(|vct| CredentialKindRef::new(Format::SdJwt, vct))
-            .collect()
+    pub fn sd_jwt_credential_kinds(&self) -> impl Iterator<Item = CredentialKindRef<'_>> {
+        self.sd_jwt.keys().map(|vct| CredentialKindRef::new(Format::SdJwt, vct))
     }
 
     pub fn contains_credential_kind(&self, credential_kind: CredentialKindRef<'_>) -> bool {
