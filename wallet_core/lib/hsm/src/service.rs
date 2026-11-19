@@ -192,7 +192,7 @@ impl AesKeyUsage {
     }
 }
 
-pub trait Pkcs11Client {
+pub(crate) trait Pkcs11Client {
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn get_secret_key_handle(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
@@ -235,7 +235,7 @@ pub trait Pkcs11Client {
 }
 
 #[cfg(feature = "test")]
-pub trait TestPkcs11Client: Pkcs11Client {
+pub(crate) trait TestPkcs11Client: Pkcs11Client {
     async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle>;
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;

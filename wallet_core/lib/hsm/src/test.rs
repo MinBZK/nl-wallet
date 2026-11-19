@@ -9,7 +9,6 @@ use std::sync::atomic::AtomicBool;
 
 use config::Config;
 use config::ConfigError;
-use crypto::aes_siv::AesSivBackend;
 use crypto::aes_siv::AesSivKey;
 use crypto::aes_siv::aes_siv_decrypt;
 use crypto::aes_siv::aes_siv_encrypt;
@@ -38,6 +37,7 @@ use crate::model::mock::MockPkcs11Client;
 use crate::service::AES_BLOCK_SIZE;
 use crate::service::AesKeyUsage;
 use crate::service::HsmError;
+use crate::service::Pkcs11Client;
 use crate::service::Pkcs11Hsm;
 use crate::service::SecretKeyHandle;
 use crate::service::TestPkcs11Client;
@@ -257,59 +257,6 @@ impl<H> TestCase<H> {
         assert_eq!(verifying_key, decrypted);
     }
 
-    pub async fn encrypt_ctr(self: TestCase<H>)
-    where
-        H: TestPkcs11Client,
-    {
-        let (hsm, identifier) = self.test_params();
-
-        let key_handle = hsm.generate_aes_key(&identifier, AesKeyUsage::Encrypt).await.unwrap();
-
-        let data = random_bytes(32);
-        let counter_block: [u8; AES_BLOCK_SIZE] = random_bytes(AES_BLOCK_SIZE).try_into().unwrap();
-        let encrypted = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
-        assert_ne!(data, encrypted);
-
-        // When encrypting something with the same key and same counter block, CTR encryption should be
-        // deterministic.
-        let encrypted_again = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
-        assert_eq!(encrypted_again, encrypted);
-
-        // CTR turns the block cipher into a stream cipher, so there is no padding and the
-        // ciphertext is exactly as long as the plaintext.
-        assert_eq!(data.len(), encrypted.len());
-
-        // AES-CTR is symmetric, so encrypting the ciphertext under the same counter block returns
-        // the plaintext.
-        let decrypted = hsm.encrypt_ctr(&key_handle, counter_block, encrypted).await.unwrap();
-        assert_eq!(data, decrypted);
-    }
-
-    pub async fn cmac(self: TestCase<H>)
-    where
-        H: TestPkcs11Client,
-    {
-        let (hsm, identifier) = self.test_params();
-
-        // Note that a CMAC key is generated here, not an encryption key: the two usages are
-        // mutually exclusive. SoftHSM does not enforce CKA_SIGN, so it would accept an encryption
-        // key here, but a stricter HSM will not.
-        let key_handle = hsm.generate_aes_key(&identifier, AesKeyUsage::Cmac).await.unwrap();
-
-        let data = random_bytes(32);
-
-        // The length is checked by the return type: a CMAC is exactly one block.
-        let cmac: [u8; 16] = hsm.cmac(&key_handle, data.clone()).await.unwrap();
-
-        // The same message under the same key gives the same tag, ...
-        let cmac_again = hsm.cmac(&key_handle, data).await.unwrap();
-        assert_eq!(cmac, cmac_again);
-
-        // ... and a different message a different one.
-        let other_cmac = hsm.cmac(&key_handle, random_bytes(32)).await.unwrap();
-        assert_ne!(cmac, other_cmac);
-    }
-
     pub async fn wrap_key_and_sign(self: TestCase<H>)
     where
         H: TestHsm,
@@ -334,11 +281,63 @@ impl<H> TestCase<H> {
 
         public_key.verify(&message, &signature).unwrap();
     }
+}
 
-    pub async fn aes_siv(self: TestCase<H>)
-    where
-        H: TestPkcs11Client + AesSivBackend<MacKey = SecretKeyHandle, EncryptionKey = SecretKeyHandle>,
-    {
+// These tests are not generic over `H`, unlike those above, because they use the crate-private
+// `Pkcs11Client` API directly, or need to import keys with known values. Only `Pkcs11Hsm` can do either.
+impl TestCase<Pkcs11Hsm> {
+    pub async fn encrypt_ctr(self: TestCase<Pkcs11Hsm>) {
+        let (hsm, identifier) = self.test_params();
+
+        let key_handle = TestPkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
+            .await
+            .unwrap();
+
+        let data = random_bytes(32);
+        let counter_block: [u8; AES_BLOCK_SIZE] = random_bytes(AES_BLOCK_SIZE).try_into().unwrap();
+        let encrypted = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
+        assert_ne!(data, encrypted);
+
+        // When encrypting something with the same key and same counter block, CTR encryption should be
+        // deterministic.
+        let encrypted_again = hsm.encrypt_ctr(&key_handle, counter_block, data.clone()).await.unwrap();
+        assert_eq!(encrypted_again, encrypted);
+
+        // CTR turns the block cipher into a stream cipher, so there is no padding and the
+        // ciphertext is exactly as long as the plaintext.
+        assert_eq!(data.len(), encrypted.len());
+
+        // AES-CTR is symmetric, so encrypting the ciphertext under the same counter block returns
+        // the plaintext.
+        let decrypted = hsm.encrypt_ctr(&key_handle, counter_block, encrypted).await.unwrap();
+        assert_eq!(data, decrypted);
+    }
+
+    pub async fn cmac(self: TestCase<Pkcs11Hsm>) {
+        let (hsm, identifier) = self.test_params();
+
+        // Note that a CMAC key is generated here, not an encryption key: the two usages are
+        // mutually exclusive. SoftHSM does not enforce CKA_SIGN, so it would accept an encryption
+        // key here, but a stricter HSM will not.
+        let key_handle = TestPkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Cmac)
+            .await
+            .unwrap();
+
+        let data = random_bytes(32);
+
+        // The length is checked by the return type: a CMAC is exactly one block.
+        let cmac: [u8; 16] = hsm.cmac(&key_handle, data.clone()).await.unwrap();
+
+        // The same message under the same key gives the same tag, ...
+        let cmac_again = hsm.cmac(&key_handle, data).await.unwrap();
+        assert_eq!(cmac, cmac_again);
+
+        // ... and a different message a different one.
+        let other_cmac = hsm.cmac(&key_handle, random_bytes(32)).await.unwrap();
+        assert_ne!(cmac, other_cmac);
+    }
+
+    pub async fn aes_siv(self: TestCase<Pkcs11Hsm>) {
         let mac_key_id = self.new_identifier();
         let enc_key_id = self.new_identifier();
 
@@ -346,8 +345,12 @@ impl<H> TestCase<H> {
 
         // Note the usages: CMAC needs CKA_SIGN, CTR needs CKA_ENCRYPT, and the two halves of K
         // must be distinct keys.
-        let mac_key = hsm.generate_aes_key(&mac_key_id, AesKeyUsage::Cmac).await.unwrap();
-        let encryption_key = hsm.generate_aes_key(&enc_key_id, AesKeyUsage::Encrypt).await.unwrap();
+        let mac_key = TestPkcs11Client::generate_aes_key(hsm, &mac_key_id, AesKeyUsage::Cmac)
+            .await
+            .unwrap();
+        let encryption_key = TestPkcs11Client::generate_aes_key(hsm, &enc_key_id, AesKeyUsage::Encrypt)
+            .await
+            .unwrap();
 
         let key = AesSivKey::try_new(mac_key, encryption_key).unwrap();
 
@@ -368,11 +371,7 @@ impl<H> TestCase<H> {
             );
         }
     }
-}
 
-// This test is not generic over `H`, unlike those above, because it needs to import keys with known
-// values, which only `Pkcs11Hsm` can do.
-impl TestCase<Pkcs11Hsm> {
     /// Runs the pinned AES-SIV vectors from the `crypto` crate through the HSM, checking that the
     /// PKCS#11 primitives produce RFC 5297 output rather than merely output they agree with
     /// themselves on.
