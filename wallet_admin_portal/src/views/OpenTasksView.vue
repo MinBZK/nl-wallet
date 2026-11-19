@@ -5,6 +5,7 @@
     v-else
     variant="open"
     :tasks="tasks ?? []"
+    action-label="BEOORDEEL"
     empty-title="Geen openstaande taken gevonden"
     empty-description="Controleer je zoekcriteria. Pas je filters aan en probeer het opnieuw."
   />

@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:app_settings/app_settings.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../domain/usecase/biometrics/biometrics.dart';
 import '../../navigation/wallet_routes.dart';

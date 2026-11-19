@@ -20,6 +20,7 @@
             class="search-input"
             :class="{ invalid: errorMessage }"
             type="text"
+            maxlength="32"
             placeholder="Vul Wallet-ID in"
             autocomplete="off"
             aria-required="true"

@@ -76,6 +76,9 @@ spec:
                 secretKeyRef:
                   name: {{ .Values.keycloak.admin.existingSecret.name }}
                   key: {{ .Values.keycloak.admin.existingSecret.passwordKey }}
+            # Mitigate CVE-2026-114938 until the image has a fixed JDK
+            - name: JAVA_OPTS_APPEND
+              value: "-XX:-UseBASE64Intrinsics"
           {{- with .Values.keycloak.extraEnv }}
           {{- toYaml . | nindent 12 }}
           {{- end }}

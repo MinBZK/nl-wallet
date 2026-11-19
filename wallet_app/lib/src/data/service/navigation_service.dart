@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../domain/app_event/app_event_listener.dart';
 import '../../domain/model/update/update_notification.dart';

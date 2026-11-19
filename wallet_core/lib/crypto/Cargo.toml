@@ -16,7 +16,7 @@ examples = ["dep:anyhow", "dep:hex-literal"]
 # Include code for generating certificates and keys
 generate = ["der/derive", "der/oid", "dep:time", "rcgen/aws_lc_rs", "rcgen/x509-parser"]
 # Include mock implementations and constructors for testing
-mock = ["dep:parking_lot", "dep:rand_core"]
+mock = ["dep:parking_lot", "dep:rand_core", "derive_more/constructor"]
 # Implement SecureEcdsaKey and EphemeralEcdsaKey on p256 key
 mock_secure_keys = []
 # Expose AES-SIV test vectors

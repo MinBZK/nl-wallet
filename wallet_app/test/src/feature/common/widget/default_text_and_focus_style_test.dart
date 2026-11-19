@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/feature/common/widget/default_text_and_focus_style.dart';
 import 'package:wallet/src/theme/light_wallet_theme.dart';
 

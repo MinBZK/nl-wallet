@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'wallet_bloc_provider.dart';
 import 'wallet_datasource_provider.dart';

@@ -1,5 +1,5 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 
 /// When this Widget is part of the current WidgetTree the screen will be boosted to max brightness

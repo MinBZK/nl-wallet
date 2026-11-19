@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/feature/common/widget/button/link_button.dart';
 import 'package:wallet/src/feature/common/widget/button/list_button.dart';
 import 'package:wallet/src/feature/common/widget/list/compact_list_item.dart';

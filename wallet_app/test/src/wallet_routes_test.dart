@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/navigation/secured_page_route.dart';
 import 'package:wallet/src/navigation/sentry_navigation_observer.dart';
 import 'package:wallet/src/navigation/wallet_routes.dart';

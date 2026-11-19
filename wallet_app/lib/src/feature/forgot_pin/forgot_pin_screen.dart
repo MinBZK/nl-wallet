@@ -1,6 +1,6 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
 import '../../navigation/wallet_routes.dart';

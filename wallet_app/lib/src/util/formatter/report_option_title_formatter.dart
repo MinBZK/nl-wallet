@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import '../../feature/report_issue/reporting_option.dart';
 import '../extension/build_context_extension.dart';

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../domain/model/flow_progress.dart';
 import '../../../../util/extension/build_context_extension.dart';
