@@ -34,8 +34,9 @@ class RequestBiometricsUsecaseImpl extends RequestBiometricsUseCase {
       if (e.code == LocalAuthExceptionCode.noBiometricHardware ||
           e.code == LocalAuthExceptionCode.biometricHardwareTemporarilyUnavailable) {
         Fimber.e('Not available. Supports biometrics: $canCheckBiometrics', ex: e);
-        // "if" check to cover issue where android reports not available due to incorrect system setting (https://github.com/flutter/flutter/issues/96646)
-        if (canCheckBiometrics && _targetPlatform == TargetPlatform.android) {
+        // Present but unusable: a system setting on Android (https://github.com/flutter/flutter/issues/96646),
+        // a denied Face ID permission on iOS. Only the device settings can fix that.
+        if (canCheckBiometrics) {
           return const Result.success(BiometricAuthenticationResult.setupRequired);
         }
       } else if (e.code == LocalAuthExceptionCode.noBiometricsEnrolled) {

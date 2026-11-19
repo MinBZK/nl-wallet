@@ -11,6 +11,8 @@ import '../../util/extension/biometrics_extension.dart';
 import '../../util/extension/build_context_extension.dart';
 import '../../wallet_assets.dart';
 import '../../wallet_constants.dart';
+import '../common/dialog/biometrics_setup_required_dialog.dart';
+import '../common/dialog/locked_out_dialog.dart';
 import '../common/page/generic_loading_page.dart';
 import '../common/page/terminal_page.dart';
 import '../common/widget/button/animated_visibility_back_button.dart';
@@ -123,6 +125,10 @@ class SetupSecurityScreen extends StatelessWidget {
         PinConfirmationErrorDialog.show(context, retryAllowed: state.retryAllowed).then((_) {
           bloc.add(state.retryAllowed ? PinBackspacePressed() : SetupSecurityRetryPressed());
         });
+      case SetupSecurityBiometricsSetupRequired(:final biometrics):
+        BiometricsSetupRequiredDialog.show(context, biometrics);
+      case SetupSecurityBiometricsLockedOut():
+        LockedOutDialog.show(context);
       default:
         break;
     }

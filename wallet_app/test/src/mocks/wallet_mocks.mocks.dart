@@ -7612,30 +7612,18 @@ class MockResetWalletUseCase extends _i1.Mock implements _i159.ResetWalletUseCas
 /// See the documentation for Mockito's code generation for more information.
 class MockSetBiometricsUseCase extends _i1.Mock implements _i160.SetBiometricsUseCase {
   @override
-  _i9.Future<_i77.Result<void>> invoke({
-    required bool? enable,
-    required bool? authenticateBeforeEnabling,
-  }) => (super.noSuchMethod(
-    Invocation.method(#invoke, [], {
-      #enable: enable,
-      #authenticateBeforeEnabling: authenticateBeforeEnabling,
-    }),
+  _i9.Future<_i77.Result<void>> invoke({required bool? enable}) => (super.noSuchMethod(
+    Invocation.method(#invoke, [], {#enable: enable}),
     returnValue: _i9.Future<_i77.Result<void>>.value(
       _i11.dummyValue<_i77.Result<void>>(
         this,
-        Invocation.method(#invoke, [], {
-          #enable: enable,
-          #authenticateBeforeEnabling: authenticateBeforeEnabling,
-        }),
+        Invocation.method(#invoke, [], {#enable: enable}),
       ),
     ),
     returnValueForMissingStub: _i9.Future<_i77.Result<void>>.value(
       _i11.dummyValue<_i77.Result<void>>(
         this,
-        Invocation.method(#invoke, [], {
-          #enable: enable,
-          #authenticateBeforeEnabling: authenticateBeforeEnabling,
-        }),
+        Invocation.method(#invoke, [], {#enable: enable}),
       ),
     ),
   ) as _i9.Future<_i77.Result<void>>);

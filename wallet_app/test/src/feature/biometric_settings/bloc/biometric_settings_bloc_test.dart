@@ -114,7 +114,7 @@ void main() {
     setUp: () {
       bool biometricsEnabled = false;
       when(isBiometricLoginEnabledUseCase.invoke()).thenAnswer((_) async => biometricsEnabled);
-      when(setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false)).thenAnswer((_) async {
+      when(setBiometricsUseCase.invoke(enable: true)).thenAnswer((_) async {
         biometricsEnabled = true;
         return const Result.success(null);
       });
@@ -139,7 +139,7 @@ void main() {
     ],
     verify: (bloc) {
       // Verify biometrics are being enabled
-      verify(setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: false)).called(1);
+      verify(setBiometricsUseCase.invoke(enable: true)).called(1);
     },
   );
 
@@ -201,7 +201,7 @@ void main() {
       const BiometricSettingsLoaded(biometricLoginEnabled: false),
     ],
     verify: (bloc) {
-      verify(setBiometricsUseCase.invoke(enable: false, authenticateBeforeEnabling: false)).called(1);
+      verify(setBiometricsUseCase.invoke(enable: false)).called(1);
     },
   );
 
