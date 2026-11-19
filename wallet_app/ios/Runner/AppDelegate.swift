@@ -113,13 +113,11 @@ private let breadcrumbMessagePattern = try! NSRegularExpression(pattern: "^[a-z0
   }
 
   fileprivate func initializeLocalNotifications() {
-    if #available(iOS 10.0, *) {
-      UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
-    }
+    UNUserNotificationCenter.current().delegate = self
     // Make sure notifications don't persist through re-installs
     let notificationInitializedKey = "local_notifications_initialized"
     if (!UserDefaults.standard.bool(forKey: notificationInitializedKey)) {
-      UIApplication.shared.cancelAllLocalNotifications()
+      UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
       UserDefaults.standard.set(true, forKey: notificationInitializedKey)
     }
   }
@@ -134,7 +132,7 @@ private let breadcrumbMessagePattern = try! NSRegularExpression(pattern: "^[a-z0
     // Schedule hourly background-sync task
     WorkmanagerPlugin.registerPeriodicTask(
       withIdentifier: "nl.edi.wallet.background-sync",
-      frequency: NSNumber(value: 3600) // 1 hour
+      earliestBeginInSeconds: NSNumber(value: 3600) // 1 hour
     )
   }
 
