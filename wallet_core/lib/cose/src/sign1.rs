@@ -200,9 +200,9 @@ impl<T> TypedCose<CoseSign1, T> {
     /// [`CoseTyp::TYP`] on the protected `typ` header, then deserialize the authenticated payload. This is the
     /// counterpart of [`Self::sign_with_typ_and_certificate`].
     ///
-    /// Requiring a protected `x5chain` integrity protects the end-entity certificate, as RFC 9360 requires and as ISO
-    /// 18013-5 (second edition, 12.3.6.3) requires for the MSO revocation list. Note that this differs from mdoc
-    /// `IssuerAuth`, which ISO 18013-5 puts in the unprotected header.
+    /// Requires `x5chain` in the protected header, as the working draft ISO 18013-5 second edition v4 (12.3.6.3)
+    /// requires for the MSO revocation list; the 2021 edition does not define revocation lists. Note that this differs
+    /// from mdoc `IssuerAuth`, which the same draft (12.3.4) puts in the unprotected header.
     ///
     /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
     /// must not itself be a trust anchor.
