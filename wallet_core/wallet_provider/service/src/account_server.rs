@@ -47,7 +47,6 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
-use hsm::service::Pkcs11Client;
 use itertools::Itertools;
 use jwt::JwtSub;
 use jwt::JwtTyp;
@@ -1082,8 +1081,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1118,7 +1116,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         I: HandleInstruction<Result = IR> + InstructionAndResult + ValidateInstruction + Serialize + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client + Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
+        H: Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
     {
         if user_state.flags.solution_is_revoked() {
             return Err(InstructionError::WalletSolutionRevoked);
@@ -1207,8 +1205,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1297,8 +1294,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1372,7 +1368,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
+        H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
         if user_state.flags.solution_is_revoked() {
             return Err(InstructionError::WalletSolutionRevoked);
@@ -1418,8 +1414,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {

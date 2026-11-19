@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::io::Read;
 use std::io::Write;
+use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -37,7 +38,6 @@ use crate::model::mock::MockPkcs11Client;
 use crate::service::AES_BLOCK_SIZE;
 use crate::service::AesKeyUsage;
 use crate::service::HsmError;
-use crate::service::Pkcs11Client;
 use crate::service::Pkcs11Hsm;
 use crate::service::SecretKeyHandle;
 use crate::service::TestPkcs11Client;
@@ -312,23 +312,25 @@ impl<H> TestCase<H> {
 
     pub async fn wrap_key_and_sign(self: TestCase<H>)
     where
-        H: TestPkcs11Client,
+        H: TestHsm,
     {
         let (hsm, identifier) = self.test_params();
 
-        let _ = TestPkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
+        TestHsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
             .await
             .unwrap();
 
-        let wrapped = hsm.generate_wrapped_key(&identifier).await.unwrap();
+        let (_, wrapped) = hsm
+            .generate_wrapped_keys(&identifier, NonZeroUsize::MIN)
+            .await
+            .unwrap()
+            .into_first();
         let public_key = *wrapped.public_key();
 
         // Sign the SHA-256 digest of a message, so that the signature verifies as a normal ECDSA signature
         // over the message itself.
         let message = random_bytes(32);
-        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, sha256(&message))
-            .await
-            .unwrap();
+        let signature = hsm.sign_wrapped(&identifier, wrapped, sha256(&message)).await.unwrap();
 
         public_key.verify(&message, &signature).unwrap();
     }
