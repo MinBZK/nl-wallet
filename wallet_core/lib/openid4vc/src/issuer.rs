@@ -2600,7 +2600,7 @@ mod tests {
             Some("unknown_nonce".to_string().into())
         } else if failure == CredentialRequestFailure::DpopNonceAsProofNonce {
             let nonce = issuer.generate_dpop_nonce().now_or_never().unwrap().unwrap();
-            Some(dpop_nonce_storage_key(&nonce))
+            Some(Nonce::from(nonce.to_string()))
         } else {
             Some(issuer.generate_nonce().now_or_never().unwrap().unwrap())
         };
