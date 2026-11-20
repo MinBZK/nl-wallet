@@ -2,9 +2,6 @@
   extends: [ .env-k8s, .ruby-cache ]
   stage: qa
   rules: !reference [ .default-branch, rules ]
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
   before_script:
     - BROWSERSTACK_USER=$(kubectl get secret nl-wallet-browserstack -o jsonpath='{.data.user}' | base64 --decode)
     - export BROWSERSTACK_USER

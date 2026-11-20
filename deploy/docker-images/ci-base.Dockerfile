@@ -2,6 +2,9 @@ ARG DOCKER_HUB_PROXY
 # trixie-20261104-slim
 FROM ${DOCKER_HUB_PROXY}library/debian@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
 
+# Use a UTF-8 locale by default
+ENV LANG=C.UTF-8
+
 COPY apt.sh /tmp/
 RUN /tmp/apt.sh
 

@@ -29,8 +29,6 @@ dependency-check:
         CACHE_POLICY: pull
   needs: []
   variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
     GRADLE_BUILDS: "wallet_app/android wallet_core/wallet/platform_support/android uiautomation"
   before_script:
