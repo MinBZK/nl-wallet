@@ -50,13 +50,16 @@ fn deserialize_signing_key<'de, D: Deserializer<'de>>(deserializer: D) -> Result
 
 /// Retry only a nonce challenge, once, with a newly signed proof for the same key, URI, method and access token.
 /// Return the last nonce used so authorization-server nonces can be retained between PAR and token requests.
-pub(super) async fn request_with_dpop_retry<T>(
+pub(super) async fn request_with_dpop_retry<T, Fut>(
     signing_key: &SigningKey,
     url: &Url,
     access_token: Option<&AccessToken>,
     mut nonce: Option<DpopNonce>,
-    mut request: impl AsyncFnMut(Dpop) -> Result<T, WalletIssuanceError>,
-) -> Result<(T, Option<DpopNonce>), WalletIssuanceError> {
+    mut request: impl FnMut(Dpop) -> Fut,
+) -> Result<(T, Option<DpopNonce>), WalletIssuanceError>
+where
+    Fut: Future<Output = Result<T, WalletIssuanceError>>,
+{
     let proof = Dpop::new(signing_key, url.clone(), &Method::POST, access_token, nonce.clone())?;
     let response = match request(proof).await {
         Err(WalletIssuanceError::UseDpopNonce(new_nonce)) => {
@@ -163,6 +166,7 @@ fn is_nonce_error(value: &str) -> bool {
 #[cfg(test)]
 pub(super) mod tests {
     use std::assert_matches;
+    use std::future::ready;
 
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
@@ -227,13 +231,13 @@ pub(super) mod tests {
             &url,
             Some(&access_token),
             initial_nonce.map(|nonce| nonce.parse().unwrap()),
-            async |proof| {
+            |proof| {
                 proofs.push(proof);
-                if proofs.len() == 1 {
+                ready(if proofs.len() == 1 {
                     Err(WalletIssuanceError::UseDpopNonce("new_nonce".parse().unwrap()))
                 } else {
                     Ok(())
-                }
+                })
             },
         )
         .await
@@ -262,13 +266,13 @@ pub(super) mod tests {
         let key = SigningKey::generate();
         let url = "https://issuer.example/token".parse().unwrap();
         let mut requests = 0;
-        let result: Result<((), _), _> = request_with_dpop_retry(&key, &url, None, None, async |_| {
+        let result: Result<((), _), _> = request_with_dpop_retry(&key, &url, None, None, |_| {
             requests += 1;
-            if challenge {
+            ready(if challenge {
                 Err(WalletIssuanceError::UseDpopNonce("nonce".parse().unwrap()))
             } else {
                 Err(WalletIssuanceError::PreAuthorizedCodeExpired)
-            }
+            })
         })
         .await;
         assert!(result.is_err());
@@ -343,10 +347,14 @@ pub(super) mod tests {
         let key = SigningKey::generate();
         let request = VciTokenRequest::new_pre_authorized("code".to_string().into());
         let wia = MockWiaClient::new().issue_wia(server.base_url(), None).await.unwrap();
-        let ((response, _), _) = request_with_dpop_retry(&key, &url, None, None, async |proof| {
-            client.request_token(url.clone(), &request, &proof, &wia).await
+        let ((response, _), _) = tokio::spawn(async move {
+            request_with_dpop_retry(&key, &url, None, None, async |proof| {
+                client.request_token(url.clone(), &request, &proof, &wia).await
+            })
+            .await
         })
         .await
+        .unwrap()
         .unwrap();
         assert_eq!(response.oauth_response.access_token.as_ref(), "token");
         first.assert_calls_async(1).await;
