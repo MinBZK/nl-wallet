@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import '../revocation_code_store.dart';
 import '../shared_preferences_provider.dart';

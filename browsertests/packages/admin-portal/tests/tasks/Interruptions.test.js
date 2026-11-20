@@ -2,7 +2,7 @@ import { expect } from "@playwright/test"
 import { USERS } from "../../data/users.js"
 import {
   aTask,
-  loginAndGoToReasonStep,
+  openAndGoToReasonStep,
   mockTaskLists,
   openTaskToReview,
   ownTask,
@@ -34,7 +34,7 @@ test.describe("Admin portal tasks", () => {
       const createUrl = "**/admin-portal/tasks"
       await page.route(createUrl, (route) => route.fulfill({ status: 201, json: aTask() }))
       await page.route(createUrl, (route) => route.fulfill({ status: 500, json: {} }), { times: 1 })
-      await loginAndGoToReasonStep(adminPortal)
+      await openAndGoToReasonStep(adminPortal)
       await adminPortal.fillReasonAndGoToCheckStep("Browsertest")
       await adminPortal.submitTask()
       await expect(adminPortal.retryButton).toBeVisible()
@@ -48,7 +48,7 @@ test.describe("Admin portal tasks", () => {
 
   test.describe("Cancelling", () => {
     test("The create-task popup closes without starting the wizard", async ({ page, adminPortal }) => {
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
       await adminPortal.openCreateTaskDialog()
 
       await adminPortal.createTaskDialogCancelButton.click()
@@ -60,7 +60,7 @@ test.describe("Admin portal tasks", () => {
     test("The wizard returns to the list without creating a task, from every step", async ({ page, adminPortal }) => {
       const writes = recordWrites(page)
 
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
       await adminPortal.openCreateTaskDialog()
       await adminPortal.selectTaskAction("Gebruiker deblokkeren")
       await adminPortal.wizardCancelButton.click()
@@ -79,7 +79,7 @@ test.describe("Admin portal tasks", () => {
     })
 
     test("Going back in the wizard keeps the reason", async ({ adminPortal }) => {
-      await loginAndGoToReasonStep(adminPortal)
+      await openAndGoToReasonStep(adminPortal)
       await adminPortal.fillReasonAndGoToCheckStep("Browsertest")
 
       await adminPortal.previousStepButton.click()
@@ -111,7 +111,7 @@ test.describe("Admin portal tasks", () => {
       const task = ownTask()
       const writes = recordWrites(page)
       await mockTaskLists(page, { open: [task] })
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
       await adminPortal.navMyTasks.click()
       await adminPortal.openTaskDetails(task.taskId)
 

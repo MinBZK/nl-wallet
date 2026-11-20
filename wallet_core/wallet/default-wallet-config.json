@@ -37,8 +37,8 @@
     },
     "sd_jwt": {
       "urn:eudi:pid:nl:1": {
-        "login": "bsn",
-        "recovery_code": "recovery_code"
+        "login_path": ["bsn"],
+        "recovery_code_path": ["recovery_code"]
       }
     }
   },

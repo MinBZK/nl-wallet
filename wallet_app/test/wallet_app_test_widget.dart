@@ -1,7 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import 'package:wallet/l10n/generated/app_localizations.dart';
@@ -37,7 +37,7 @@ class WalletAppTestWidget extends StatelessWidget {
         navigatorKey: navigatorKey,
         theme: brightness == Brightness.light ? WalletTheme.light : WalletTheme.dark,
         debugShowCheckedModeBanner: false,
-        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        localizationsDelegates: const [AppLocalizations.delegate, ...GlobalMaterialLocalizations.delegates],
         supportedLocales: AppLocalizations.supportedLocales,
         locale: locale,
         onUnknownRoute: (RouteSettings settings) => PageRouteBuilder(

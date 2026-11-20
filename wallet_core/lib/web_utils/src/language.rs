@@ -79,7 +79,7 @@ impl<S> FromRequestParts<S> for Language
 where
     S: Send + Sync,
 {
-    type Rejection = std::convert::Infallible;
+    type Rejection = !;
 
     async fn from_request_parts(parts: &mut Parts, state: &S) -> std::result::Result<Self, Self::Rejection> {
         let lang = Query::<LanguageParam>::from_request_parts(parts, state)

@@ -154,7 +154,6 @@ where
 mod tests {
     use std::assert_matches;
     use std::collections::HashSet;
-    use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::sync::Arc;
 
@@ -219,7 +218,7 @@ mod tests {
     }
 
     impl AttributesFetcher for TestAttributesFetcher {
-        type Error = Infallible;
+        type Error = !;
 
         async fn attributes(
             &self,
@@ -243,7 +242,7 @@ mod tests {
     pub struct MockAttributesFetcher(pub Vec<IssuableDocument>);
 
     impl AttributesFetcher for MockAttributesFetcher {
-        type Error = Infallible;
+        type Error = !;
 
         async fn attributes(
             &self,

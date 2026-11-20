@@ -5,8 +5,8 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesTraversalBehaviour;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
@@ -693,7 +693,7 @@ impl From<CredentialRequestEncryptionParameters> for CredentialRequestEncrypter 
 enum OfferedCredentials {
     /// The issuer provided a preview for each offered credential. Maintains the order as received from the Credential
     /// Preview endpoint.
-    WithPreviews(VecNonEmpty<(OfferedCredential, PreviewableCredentialPayload)>),
+    WithPreviews(VecNonEmpty<(OfferedCredential, CredentialContents)>),
 
     /// The issuer does not have a Credential Preview endpoint. The offered credentials have no meaningful order.
     WithoutPreviews(NESet<OfferedCredential>),
@@ -708,7 +708,7 @@ impl OfferedCredentials {
     }
 
     /// Iterate over the offered credentials and optional previews.
-    fn iter(&self) -> impl Iterator<Item = (&OfferedCredential, Option<&PreviewableCredentialPayload>)> {
+    fn iter(&self) -> impl Iterator<Item = (&OfferedCredential, Option<&CredentialContents>)> {
         match self {
             OfferedCredentials::WithPreviews(creds) => Either::Left(
                 creds
@@ -1034,7 +1034,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
     async fn fetch_credential<'a, G>(
         &self,
         offered_credential: &OfferedCredential,
-        credential_preview: Option<&PreviewableCredentialPayload>,
+        credential_preview: Option<&CredentialContents>,
         key_result: IssuanceKeyResult,
         dpop_nonce: Option<DpopNonce>,
         trust_anchors: AcceptIssuanceTrustAnchors<'a>,
@@ -1193,9 +1193,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
 
         let credential_with_metadata = CredentialWithMetadata::new(
             credential_copies,
-            first_credential_payload.previewable_payload.attestation_type,
-            first_credential_payload.previewable_payload.expires,
-            first_credential_payload.previewable_payload.not_before,
+            first_credential_payload.contents,
             extended_attestation_types,
             issued_metadata,
             self.session_state.issuer_registration.clone(),
@@ -1410,7 +1408,7 @@ impl Credentials {
 
                 if let OfferedCredentialMetadata::TypeMetadata { normalized, .. } = metadata {
                     let issued_claims = issued_credential_payload
-                        .previewable_payload
+                        .contents
                         .attributes
                         .claim_paths(AttributesTraversalBehaviour::OnlyLeaves);
 
@@ -1524,16 +1522,17 @@ fn verify_payloads_consistency(
 ) -> Result<CredentialPayload, WalletIssuanceError> {
     let (first, rest) = credential_payloads.split_first();
     let CredentialPayload {
-        previewable_payload: first_previewable_payload,
+        contents: first_contents,
         vct_integrity: first_vct_integrity,
         issued_at: _,
         confirmation_key: _,
         status: _,
     } = first;
 
-    if rest.iter().any(|payload| {
-        payload.previewable_payload != *first_previewable_payload || payload.vct_integrity != *first_vct_integrity
-    }) {
+    if rest
+        .iter()
+        .any(|payload| payload.contents != *first_contents || payload.vct_integrity != *first_vct_integrity)
+    {
         return Err(WalletIssuanceError::CredentialCopiesInconsistent);
     }
 
@@ -1589,7 +1588,7 @@ fn validate_attributes(
     metadata: &impl AttestationClaims,
 ) -> Result<(), WalletIssuanceError> {
     payload
-        .previewable_payload
+        .contents
         .attributes
         .validate(metadata)
         .map_err(WalletIssuanceError::AttributesVerification)
@@ -1599,12 +1598,12 @@ fn validate_attributes(
 /// attributes and validity information the issuer said it would have.
 fn verify_preview(
     credential_payload: &CredentialPayload,
-    preview: &PreviewableCredentialPayload,
+    contents: &CredentialContents,
 ) -> Result<(), WalletIssuanceError> {
-    if credential_payload.previewable_payload != *preview {
+    if credential_payload.contents != *contents {
         return Err(WalletIssuanceError::IssuedCredentialMismatch {
-            actual: Box::new(credential_payload.previewable_payload.clone()),
-            expected: Box::new(preview.clone()),
+            actual: Box::new(credential_payload.contents.clone()),
+            expected: Box::new(contents.clone()),
         });
     }
 
@@ -1615,7 +1614,6 @@ fn verify_preview(
 mod tests {
     use std::assert_matches;
     use std::borrow::Cow;
-    use std::convert::Infallible;
     use std::num::NonZeroU8;
     use std::sync::Arc;
     use std::time::Duration;
@@ -1623,7 +1621,7 @@ mod tests {
 
     use attestation_data::attributes::Attribute;
     use attestation_data::attributes::Attributes;
-    use attestation_data::credential_payload::PreviewableCredentialPayload;
+    use attestation_data::credential_payload::CredentialContents;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
     use attestation_types::pid_constants::ADDRESS_ATTESTATION_TYPE;
@@ -1821,12 +1819,7 @@ mod tests {
 
     fn test_start_issuance(
         issuer_metadata: IssuerMetadata,
-        preview_payloads: Vec<(
-            CredentialId,
-            CredentialConfigurationId,
-            Format,
-            PreviewableCredentialPayload,
-        )>,
+        preview_payloads: Vec<(CredentialId, CredentialConfigurationId, Format, CredentialContents)>,
         type_metadata: TypeMetadata,
         token_response_fields: &TokenResponseFields,
         expect_preview_request: bool,
@@ -1985,7 +1978,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
@@ -2103,13 +2096,13 @@ mod tests {
                     "credential_id".to_string().into(),
                     CredentialConfigurationId::from("mdoc_config_id".to_string()),
                     Format::MsoMdoc,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
                     "credential_id".to_string().into(),
                     CredentialConfigurationId::from("sd_jwt_config_id".to_string()),
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
             ],
             TypeMetadata::pid_example(),
@@ -2149,7 +2142,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::AuthorizationDetails(vec![("unknown_config_id", vec!["credential_id"])]),
@@ -2178,7 +2171,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Scope(vec![]),
@@ -2203,7 +2196,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 CredentialConfigurationId::from("config_id".to_string()),
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Scope(vec!["unknown_config_id_scope"]),
@@ -2233,7 +2226,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
-                PreviewableCredentialPayload::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default()),
+                CredentialContents::example_empty(PID_ATTESTATION_TYPE, &MockTimeGenerator::default()),
             )],
             TypeMetadata::empty_example_with_attestation_type("other_attestation_type"),
             &TokenResponseFields::Neither,
@@ -2270,7 +2263,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id.clone(),
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
@@ -2337,7 +2330,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id.clone(),
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
@@ -2370,7 +2363,7 @@ mod tests {
                 "unsupported_credential_id".to_string().into(),
                 unsupported_config_id,
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &token_response_fields,
@@ -2407,7 +2400,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
@@ -2447,7 +2440,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
@@ -2497,7 +2490,7 @@ mod tests {
                 "credential_id".to_string().into(),
                 config_id,
                 Format::SdJwt,
-                PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
             )],
             TypeMetadata::pid_example(),
             &TokenResponseFields::Neither,
@@ -2615,13 +2608,13 @@ mod tests {
                     "pid_credential_id".to_string().into(),
                     pid_config_id,
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
                     "address_credential_id".to_string().into(),
                     address_config_id,
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_address_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_address_example(&MockTimeGenerator::default()),
                 ),
             ],
             TypeMetadata::pid_example(),
@@ -2680,13 +2673,13 @@ mod tests {
                     "credential_id_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
                     "credential_id_3".to_string().into(),
                     CredentialConfigurationId::from("config_id_3".to_string()),
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
             ],
             TypeMetadata::pid_example(),
@@ -2740,25 +2733,25 @@ mod tests {
                     "credential_id_1_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::MsoMdoc,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
                     "credential_id_1_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
                     "credential_id_2_1".to_string().into(),
                     CredentialConfigurationId::from("config_id_2".to_string()),
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
                 (
                     "credential_id_1_2".to_string().into(),
                     CredentialConfigurationId::from("config_id_1".to_string()),
                     Format::SdJwt,
-                    PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+                    CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
                 ),
             ],
             TypeMetadata::pid_example(),
@@ -2899,10 +2892,10 @@ mod tests {
         credential_request_decrypter: Option<(JweDecrypter, RequestEncryptionCompression)>,
         metadata_integrity: Integrity,
         /// mdoc attributes, namespaced (namespace, element).
-        mdoc_previewable_payload: PreviewableCredentialPayload,
-        /// The same attributes as `previewable_payload` (without mdoc namesapce) and matching
+        mdoc_contents: CredentialContents,
+        /// The same attributes as `mdoc_contents` (without mdoc namespace) and matching
         /// `NormalizedTypeMetadata`.
-        sd_jwt_previewable_payload: PreviewableCredentialPayload,
+        sd_jwt_contents: CredentialContents,
         normalized_metadata: NormalizedTypeMetadata,
         pub random_metadata_integrity_index: Option<usize>,
         pub first_copy_expires_later: bool,
@@ -2936,10 +2929,8 @@ mod tests {
             Vec<CredentialPreview>,
             HashMap<CredentialConfigurationId, OfferedCredentialMetadata>,
         ) {
-            let sd_jwt_preview_payload =
-                PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
-            let mdoc_preview_payload =
-                PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default());
+            let sd_jwt_preview_payload = CredentialContents::example_family_name(&MockTimeGenerator::default());
+            let mdoc_preview_payload = CredentialContents::example_family_name_mdoc(&MockTimeGenerator::default());
             let type_metadata =
                 TypeMetadata::example_with_claim_name(&sd_jwt_preview_payload.attestation_type, "family_name");
 
@@ -2957,8 +2948,8 @@ mod tests {
         fn from_metadata_and_preview(
             formats_by_credential_id: HashMap<CredentialId, Format>,
             type_metadata: TypeMetadata,
-            mdoc_previewable_payload: PreviewableCredentialPayload,
-            sd_jwt_previewable_payload: PreviewableCredentialPayload,
+            mdoc_contents: CredentialContents,
+            sd_jwt_contents: CredentialContents,
             sd_jwt_metadata_usage: SdJwtMetadataUsage,
             use_credential_request_encryption: Option<RequestEncryptionCompression>,
         ) -> (
@@ -2993,8 +2984,8 @@ mod tests {
                     config_id: Self::config_id_for_format(*format),
                     format: *format,
                     credential_payload: match format {
-                        Format::MsoMdoc => mdoc_previewable_payload.clone(),
-                        Format::SdJwt => sd_jwt_previewable_payload.clone(),
+                        Format::MsoMdoc => mdoc_contents.clone(),
+                        Format::SdJwt => sd_jwt_contents.clone(),
                     },
                 })
                 .collect_vec();
@@ -3034,8 +3025,8 @@ mod tests {
                 first_copy_expires_later: false,
                 non_selectively_disclosable_copy_index: None,
                 other_issuer_key: None,
-                mdoc_previewable_payload,
-                sd_jwt_previewable_payload,
+                mdoc_contents,
+                sd_jwt_contents,
                 normalized_metadata,
             };
 
@@ -3122,10 +3113,10 @@ mod tests {
                 .expect("requested credential identifier is not correct");
 
             // An mdoc lays its attributes out in a name space, while an SD-JWT carries them as its metadata
-            // prescribes, so each format signs its own previewable payload.
-            let previewable_payload = match format {
-                Format::MsoMdoc => &self.mdoc_previewable_payload,
-                Format::SdJwt => &self.sd_jwt_previewable_payload,
+            // prescribes, so each format signs its own contents.
+            let contents = match format {
+                Format::MsoMdoc => &self.mdoc_contents,
+                Format::SdJwt => &self.sd_jwt_contents,
             };
 
             // Type Metadata describes an SD-JWT, so only that format binds to an integrity digest.
@@ -3141,15 +3132,15 @@ mod tests {
                         }
                     });
 
-                    let mut previewable_payload = previewable_payload.clone();
+                    let mut contents = contents.clone();
                     if self.first_copy_expires_later && index == 0 {
-                        previewable_payload.expires = previewable_payload
+                        contents.expires = contents
                             .expires
                             .map(|expires| (*expires.as_ref() + chrono::Duration::days(1)).into());
                     }
 
-                    CredentialPayload::from_previewable_credential_payload_unvalidated(
-                        previewable_payload,
+                    CredentialPayload::from_contents_unvalidated(
+                        contents.clone(),
                         Utc::now(),
                         holder_pubkey,
                         metadata_integrity,
@@ -3184,7 +3175,7 @@ mod tests {
                 }
                 Format::SdJwt => {
                     let non_sd_metadata = family_name_type_metadata(
-                        &self.sd_jwt_previewable_payload.attestation_type,
+                        &self.sd_jwt_contents.attestation_type,
                         ClaimSelectiveDisclosureMetadata::Never,
                     );
 
@@ -3535,7 +3526,7 @@ mod tests {
     }
 
     impl IssuanceWscd for DuplicateKeyMockRemoteWscd {
-        type Error = Infallible;
+        type Error = !;
 
         async fn perform_issuance(
             &self,
@@ -3905,8 +3896,8 @@ mod tests {
 
     #[rstest]
     fn test_accept_issuance_error_attributes_verification(#[values(Format::MsoMdoc, Format::SdJwt)] format: Format) {
-        let mut mdoc_payload = PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default());
-        let mut sd_jwt_payload = PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default());
+        let mut mdoc_payload = CredentialContents::example_family_name_mdoc(&MockTimeGenerator::default());
+        let mut sd_jwt_payload = CredentialContents::example_family_name(&MockTimeGenerator::default());
 
         // Issue (and announce) an attribute that the metadata does not describe, so that only the attributes check
         // can reject the credential.
@@ -3973,8 +3964,8 @@ mod tests {
                     .iter()
                     .map(|issuer_key| {
                         // An mdoc lays its attributes out in a name space, unlike the example SD-JWT payload.
-                        let (issuer_signed, _) = CredentialPayload::from_previewable_credential_payload_unvalidated(
-                            PreviewableCredentialPayload::example_family_name_mdoc(&MockTimeGenerator::default()),
+                        let (issuer_signed, _) = CredentialPayload::from_contents_unvalidated(
+                            CredentialContents::example_family_name_mdoc(&MockTimeGenerator::default()),
                             Utc::now(),
                             &PublicKey::from(*SigningKey::generate().verifying_key()),
                             None,
@@ -4003,7 +3994,7 @@ mod tests {
             ),
             Format::SdJwt => {
                 let type_metadata = family_name_type_metadata(
-                    &example_credential_payload().previewable_payload.attestation_type,
+                    &example_credential_payload().contents.attestation_type,
                     ClaimSelectiveDisclosureMetadata::Always,
                 );
 
@@ -4125,7 +4116,7 @@ mod tests {
         let issuer_key = ca.generate_pid_issuer_mock().unwrap();
         let trust_anchors = TrustAnchors::try_from_trust_anchors([ca.to_borrowing_trust_anchor()]).unwrap();
 
-        let attestation_type = example_credential_payload().previewable_payload.attestation_type;
+        let attestation_type = example_credential_payload().contents.attestation_type;
         let sd_metadata = family_name_type_metadata(&attestation_type, ClaimSelectiveDisclosureMetadata::Always);
         let non_sd_metadata = family_name_type_metadata(&attestation_type, ClaimSelectiveDisclosureMetadata::Never);
 
@@ -4150,8 +4141,8 @@ mod tests {
     }
 
     fn example_credential_payload() -> CredentialPayload {
-        CredentialPayload::from_previewable_credential_payload_unvalidated(
-            PreviewableCredentialPayload::example_family_name(&MockTimeGenerator::default()),
+        CredentialPayload::from_contents_unvalidated(
+            CredentialContents::example_family_name(&MockTimeGenerator::default()),
             Utc::now(),
             &PublicKey::from(*SigningKey::generate().verifying_key()),
             Some(Integrity::from(crypto::utils::random_bytes(32))),
@@ -4188,7 +4179,7 @@ mod tests {
     #[test]
     fn test_validate_attributes() {
         let payload = example_credential_payload();
-        let metadata = normalized_metadata_with_claim(&payload.previewable_payload.attestation_type, "family_name");
+        let metadata = normalized_metadata_with_claim(&payload.contents.attestation_type, "family_name");
 
         validate_attributes(&payload, &metadata).expect("attributes should match metadata");
     }
@@ -4198,7 +4189,7 @@ mod tests {
         let payload = example_credential_payload();
 
         // The metadata does not describe the `family_name` attribute of the payload.
-        let metadata = normalized_metadata_with_claim(&payload.previewable_payload.attestation_type, "other_name");
+        let metadata = normalized_metadata_with_claim(&payload.contents.attestation_type, "other_name");
 
         let error = validate_attributes(&payload, &metadata).expect_err("attributes should not match metadata");
 
@@ -4208,27 +4199,27 @@ mod tests {
     #[test]
     fn test_verify_preview() {
         let payload = example_credential_payload();
-        let preview = payload.previewable_payload.clone();
+        let preview = payload.contents.clone();
 
         verify_preview(&payload, &preview).expect("payload should match preview");
     }
 
     #[rstest]
-    #[case::attributes(|preview: &mut PreviewableCredentialPayload| {
+    #[case::attributes(|preview: &mut CredentialContents| {
         preview.attributes = Attributes::example([(["family_name"], Attribute::Text(String::from("De Vries")))]);
     })]
-    #[case::attestation_type(|preview: &mut PreviewableCredentialPayload| {
+    #[case::attestation_type(|preview: &mut CredentialContents| {
         preview.attestation_type = String::from("other.attestation_type");
     })]
-    #[case::expires(|preview: &mut PreviewableCredentialPayload| {
+    #[case::expires(|preview: &mut CredentialContents| {
         preview.expires = None;
     })]
-    #[case::not_before(|preview: &mut PreviewableCredentialPayload| {
+    #[case::not_before(|preview: &mut CredentialContents| {
         preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
     })]
-    fn test_verify_preview_error(#[case] modify: fn(&mut PreviewableCredentialPayload)) {
+    fn test_verify_preview_error(#[case] modify: fn(&mut CredentialContents)) {
         let payload = example_credential_payload();
-        let mut preview = payload.previewable_payload.clone();
+        let mut preview = payload.contents.clone();
         modify(&mut preview);
 
         let error = verify_preview(&payload, &preview).expect_err("payload should not match preview");
@@ -4247,17 +4238,17 @@ mod tests {
 
     #[rstest]
     #[case::attributes(|payload: &mut CredentialPayload| {
-        payload.previewable_payload.attributes =
+        payload.contents.attributes =
             Attributes::example([(["family_name"], Attribute::Text(String::from("De Vries")))]);
     })]
     #[case::attestation_type(|payload: &mut CredentialPayload| {
-        payload.previewable_payload.attestation_type = String::from("other.attestation_type");
+        payload.contents.attestation_type = String::from("other.attestation_type");
     })]
     #[case::expires(|payload: &mut CredentialPayload| {
-        payload.previewable_payload.expires = None;
+        payload.contents.expires = None;
     })]
     #[case::not_before(|payload: &mut CredentialPayload| {
-        payload.previewable_payload.not_before = None;
+        payload.contents.not_before = None;
     })]
     #[case::vct_integrity(|payload: &mut CredentialPayload| {
         payload.vct_integrity = Some(Integrity::from(crypto::utils::random_bytes(32)));
@@ -4538,7 +4529,7 @@ mod tests {
     }
 
     #[rstest]
-    #[case::attributes(|preview: &mut PreviewableCredentialPayload, format: Format| {
+    #[case::attributes(|preview: &mut CredentialContents, format: Format| {
         let attestation_type = preview.attestation_type.clone();
         preview.attributes = match format {
             Format::MsoMdoc => Attributes::example([
@@ -4551,14 +4542,14 @@ mod tests {
             ]),
         };
     })]
-    #[case::attestation_type(|preview: &mut PreviewableCredentialPayload, _format: Format| {
+    #[case::attestation_type(|preview: &mut CredentialContents, _format: Format| {
         preview.attestation_type = String::from("other.attestation_type");
     })]
-    #[case::not_before(|preview: &mut PreviewableCredentialPayload, _format: Format| {
+    #[case::not_before(|preview: &mut CredentialContents, _format: Format| {
         preview.not_before = Some((Utc::now() + chrono::Duration::days(1)).into());
     })]
     fn test_accept_issuance_error_issued_credential_mismatch(
-        #[case] modify_preview: fn(&mut PreviewableCredentialPayload, Format),
+        #[case] modify_preview: fn(&mut CredentialContents, Format),
         #[values(Format::MsoMdoc, Format::SdJwt)] format: Format,
     ) {
         let (signer, _encrypter, mut previews, metadata) = MockCredentialSigner::new(

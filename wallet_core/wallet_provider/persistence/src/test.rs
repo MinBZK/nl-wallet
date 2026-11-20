@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::time::Duration;
 
 use android_attest::attestation_extension::key_attestation::OsVersion;
@@ -59,7 +58,7 @@ async fn db_from_url(url: Url) -> Db {
 
 pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
     Encrypter::<VerifyingKey>::encrypt(
-        &MockPkcs11Client::<Infallible>::default(),
+        &MockPkcs11Client::<!>::default(),
         identifier,
         *SigningKey::generate().verifying_key(),
     )

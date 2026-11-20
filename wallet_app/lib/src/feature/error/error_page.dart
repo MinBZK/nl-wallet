@@ -1,5 +1,5 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../domain/model/result/application_error.dart';
 import '../../util/extension/build_context_extension.dart';

@@ -27,6 +27,7 @@ const historyTask: TaskHistoryEntry = {
 async function mountTable(props: {
   variant: 'open' | 'history'
   tasks: (Task | TaskHistoryEntry)[]
+  actionLabel?: string
 }) {
   await router.push('/')
   await router.isReady()
@@ -56,6 +57,16 @@ describe('TasksTable', () => {
       'Fleur Bakker',
       'BEKIJK DETAILS',
     ])
+  })
+
+  it('renders a custom action label when provided', async () => {
+    const wrapper = await mountTable({
+      variant: 'open',
+      tasks: [openTask],
+      actionLabel: 'BEOORDEEL',
+    })
+
+    expect(wrapper.find('a.details').text()).toBe('BEOORDEEL')
   })
 
   it('renders the history columns and cells for task history entries', async () => {

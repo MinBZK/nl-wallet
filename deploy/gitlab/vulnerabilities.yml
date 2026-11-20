@@ -1,24 +1,60 @@
-# Disabled because of https://github.com/dependency-check/DependencyCheck/issues/8618
-.dependency-check:
+dependency-check:
   image: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-ci-quality:${BUILD_TAG}"
   extends: .env-k8s
   stage: qa
   rules:
     - !reference [.on-schedule-scan, rules]
-    - !reference [.default-or-merge-request, rules]
+    - !reference [.default-branch, rules]
+    # On merge requests, only run when files that this job scans change
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - deploy/bin/merge-dependency-check-reports.py
+        - deploy/dependencies/dependency-check-suppressions.xml
+        - deploy/dependencies/dependency-check.init.gradle
+        - deploy/docker-images/ci/dependency-check.sh
+        - deploy/gitlab/vulnerabilities.yml
+        - "**/*.gradle.kts"
+        - "**/*.jar"
+        - "**/*.podspec"
+        - "**/Gemfile.lock"
+        - "**/Package.resolved"
+        - "**/Package.swift"
+        - "**/pnpm-lock.yaml"
+        - "**/Podfile.lock"
+        - "**/pubspec.lock"
+        - "**/pubspec.yaml"
+        - "**/requirements.txt"
+      interruptible: true
+      variables:
+        CACHE_POLICY: pull
   needs: []
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle"
+    GRADLE_BUILDS: "wallet_app/android wallet_core/wallet/platform_support/android uiautomation"
   before_script:
-    - NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
-    - OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
-    - OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
-    - mkdir -p $CI_PROJECT_DIR/dependency_check_data
+    - mkdir -p dependency_check_data dependency_check_cli
+    - for requirements in $(git ls-files '*requirements.txt'); do
+        python3 -m pip install --quiet --no-deps --no-compile --target
+        "dependency_check_python/$(dirname "$requirements")" --requirement "$requirements";
+      done
+    - (cd wallet_app && flutter pub get --enforce-lockfile)
+    - export NVD_API_KEY="$(kubectl get secret nl-wallet-nist-nvd -o jsonpath='{.data.api-key}' | base64 --decode)"
+    - export OSS_INDEX_USERNAME=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.username}' | base64 --decode)
+    - export OSS_INDEX_PASSWORD=$(kubectl get secret nl-wallet-oss-index -o jsonpath='{.data.password}' | base64 --decode)
   script:
-    - dependency-check.sh --data $CI_PROJECT_DIR/dependency_check_data --disableDart --disableAssembly
-      --disableYarnAudit --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "." --suppression
-      $CI_PROJECT_DIR/deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1
-  after_script:
+    - status=0
+    - for build in $GRADLE_BUILDS; do
+        (cd "$build" && ./gradlew --no-daemon --init-script
+        "$CI_PROJECT_DIR/deploy/dependencies/dependency-check.init.gradle" dependencyCheckAggregate) || status=1;
+      done
+    - dependency-check.sh --data dependency_check_data --out dependency_check_cli --disableNodeJS
+      --disablePip --disablePyPkg --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "."
+      --exclude ".gradle/**" --suppression deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
+    - deploy/bin/merge-dependency-check-reports.py . dependency_check_cli
+        $(printf 'dependency_check_gradle/%s ' $GRADLE_BUILDS)
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
       qt/quality-time/dependency-check/report.$ext; done
+    - exit $status
   artifacts:
     name: dependency-check
     when: always
@@ -26,12 +62,20 @@
       - dependency-check-report.json
       - dependency-check-report.html
       - dependency-check-report.xml
+      - dependency_check_cli
+      - dependency_check_gradle
   cache:
-    key: dependency-check
-    when: always
-    paths:
-      - $CI_PROJECT_DIR/dependency_check_data
-    policy: $CACHE_POLICY
+    - key: dependency-check
+      when: always
+      paths:
+        - dependency_check_data
+      policy: $CACHE_POLICY
+    - key: dependency-check-gradle
+      when: always
+      paths:
+        - .gradle/caches/modules-2
+        - .gradle/wrapper
+      policy: $CACHE_POLICY
   allow_failure: true
 
 osv-scanner:

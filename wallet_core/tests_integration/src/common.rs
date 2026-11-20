@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::io;
 use std::net::IpAddr;
 use std::path::Path;
@@ -17,8 +16,10 @@ use android_attest::root_public_key::RootPublicKey;
 use apple_app_attest::AppIdentifier;
 use apple_app_attest::AttestationEnvironment;
 use apple_app_attest::MockAttestationCa;
+use attestation_data::attributes::Attributes;
 use attestation_data::registration_certificate::mock::StaticStatusListClient;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKind;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
@@ -1070,7 +1071,26 @@ async fn start_mock_attestation_server(
             .unwrap()
             .serve(
                 Router::new()
-                    .route("/", post(|| async { Json(issuable_documents) }))
+                    .route(
+                        "/",
+                        post(move || {
+                            let documents = issuable_documents
+                                .iter()
+                                .cloned()
+                                .map(|document| {
+                                    let (_, credential_kind, attributes): (_, CredentialKind, Attributes) =
+                                        document.into();
+
+                                    // Use a random id each request, so that the issuer can issue the same document more
+                                    // than once. The issuer uses this id as the batch ID of the status claims, which
+                                    // has to be unique.
+                                    IssuableDocument::try_new_with_random_id(credential_kind, attributes).unwrap()
+                                })
+                                .collect::<Vec<_>>();
+
+                            async { Json(documents) }
+                        }),
+                    )
                     .merge(create_health_router([]))
                     .into_make_service(),
             )
@@ -1247,7 +1267,7 @@ pub async fn start_acf_demo_issuer_server(mut settings: AcfDemoIssuerSettings) -
     let (issuer, _, _, server_settings) = settings
         .authorizing_issuer_settings
         .into_authorizing_issuer(None, |store_connection| {
-            Ok::<_, Infallible>(DemoAuthorizationCodeFlow::new(
+            Ok::<_, !>(DemoAuthorizationCodeFlow::new(
                 store_connection,
                 consent_base_url,
                 usecases,
@@ -1317,7 +1337,7 @@ where
 
     let (issuer, _, _, server_settings) = pid_settings
         .authorizing_issuer_settings
-        .into_authorizing_issuer(hsm, |_| Ok::<_, Infallible>(flow))
+        .into_authorizing_issuer(hsm, |_| Ok::<_, !>(flow))
         .await
         .unwrap();
 

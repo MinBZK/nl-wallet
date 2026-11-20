@@ -1,9 +1,10 @@
 use attestation_data::attributes::Attributes;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKindRef;
 use crypto::x509::KeyIdentifier;
 use mdoc::IssuerSigned;
 use mdoc::holder::Mdoc;
@@ -225,6 +226,19 @@ impl StoredAttestationCopy {
         self.attestation.data.attestation_type()
     }
 
+    /// The combination of the format and the attestation type of this attestation.
+    pub fn credential_kind(&self) -> CredentialKindRef<'_> {
+        CredentialKindRef::new(self.format(), self.attestation_type())
+    }
+
+    /// The decoded claims of the SD-JWT attestation, if any.
+    pub fn sd_jwt_decoded_claims(&self) -> Option<&ObjectClaims> {
+        match &self.attestation.data {
+            StoredAttestation::SdJwt(sd_jwt) => Some(sd_jwt.decoded_claims()),
+            StoredAttestation::MsoMdoc(_) => None,
+        }
+    }
+
     pub fn into_attributes(self) -> Attributes {
         match self.attestation.data {
             StoredAttestation::MsoMdoc(mdoc) => {
@@ -238,11 +252,11 @@ impl StoredAttestationCopy {
 
     /// Convert the stored attestation into a [`PreivewableCredentialPayload`], to be able to compare it to a received
     /// preview.
-    pub fn into_previewable_credential_payload(self) -> PreviewableCredentialPayload {
+    pub fn into_credential_contents(self) -> CredentialContents {
         match self.attestation.data {
-            StoredAttestation::MsoMdoc(mdoc) => PreviewableCredentialPayload::from_mdoc(mdoc)
+            StoredAttestation::MsoMdoc(mdoc) => CredentialContents::from_mdoc(mdoc)
                 .expect("a stored mdoc attestation should convert to CredentialPayload without errors"),
-            StoredAttestation::SdJwt(sd_jwt) => PreviewableCredentialPayload::from_sd_jwt(sd_jwt)
+            StoredAttestation::SdJwt(sd_jwt) => CredentialContents::from_sd_jwt(sd_jwt)
                 .expect("a stored SD-JWT attestation should convert to CredentialPayload without errors"),
         }
     }
@@ -434,8 +448,8 @@ mod test {
 mod tests {
     use std::sync::LazyLock;
 
+    use attestation_data::credential_payload::CredentialContents;
     use attestation_data::credential_payload::CredentialPayload;
-    use attestation_data::credential_payload::PreviewableCredentialPayload;
     use attestation_data::validity::ValidityWindow;
     use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
@@ -473,10 +487,10 @@ mod tests {
     static ATTESTATION_ID: LazyLock<Uuid> = LazyLock::new(Uuid::new_v4);
 
     fn mdoc_stored_attestation_copy(issuer_keypair: &KeyPair) -> (StoredAttestationCopy, VecNonEmpty<ClaimPath>) {
-        let payload_preview = PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
+        let payload_preview = CredentialContents::nl_pid_mdoc_example(&MockTimeGenerator::default());
 
         let holder_privkey = SigningKey::generate();
-        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        let (issuer_signed, mso) = CredentialPayload::from_contents_unvalidated(
             payload_preview,
             Utc::now(),
             &PublicKeyRef::from(holder_privkey.verifying_key()),

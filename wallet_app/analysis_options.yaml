@@ -7,6 +7,7 @@ analyzer:
   exclude:
     - "pub/core_domain/lib/src/core_domain/**.dart"
     - "**/**.g.dart"
+    - lib/l10n/generated/**
     - build/**
     - android/**
     - ios/**

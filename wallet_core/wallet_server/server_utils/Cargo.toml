@@ -28,7 +28,7 @@ postgres = [
     "sea-orm/with-json",
 ]
 # Include and run integration tests that depend on an external PostgreSQL database
-db_test = ["dep:db_test", "dep:parking_lot", "openid4vc/test", "postgres", "test", "utils/mock_time"]
+db_test = ["dep:parking_lot", "openid4vc/test", "postgres", "test", "utils/mock_time"]
 
 test = ["tokio/macros", "tokio/rt-multi-thread"]
 
@@ -66,7 +66,7 @@ oauth.path = "../../lib/oauth"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 utils.path = "../../lib/utils"
 
-db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
 attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
+db_test.path = "../../lib/db_test"

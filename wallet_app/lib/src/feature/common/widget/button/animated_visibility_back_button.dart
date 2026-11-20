@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../wallet_constants.dart';
 import 'icon/back_icon_button.dart';

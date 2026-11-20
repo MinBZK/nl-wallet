@@ -7,7 +7,7 @@ use attestation_data::registration_certificate::StatusValidatedRegistrationCerti
 use attestation_data::registration_certificate::verify_registration_certificate_envelope;
 use attestation_data::x509::RelyingParty;
 use attestation_data::x509::RelyingPartyError;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use crypto::trust_anchor::TrustAnchors;
 use crypto::x509::BorrowingCertificate;
 use crypto::x509::DistinguishedNameError;
@@ -99,9 +99,9 @@ where
     Ok(certificate)
 }
 
-pub async fn validate_registration_certificate_and_issuance<C>(
+pub async fn validate_registration_certificate_and_issuance<'a, C>(
     registration_certificate: &RegistrationCertificateEnvelope,
-    credential_kinds: impl IntoIterator<Item = CredentialKind>,
+    credential_kinds: impl IntoIterator<Item = CredentialKindRef<'a>>,
     access_certificate: &BorrowingCertificate,
     registration_certificate_trust_anchors: &TrustAnchors,
     revocation_verifier: &RevocationVerifier<C>,
@@ -284,7 +284,7 @@ mod tests {
 
         let result = validate_registration_certificate_and_issuance(
             &envelope,
-            credential_kinds,
+            credential_kinds.iter().map(CredentialKind::as_ref),
             access_key_pair.certificate(),
             &authority.trust_anchors,
             &revocation_verifier,

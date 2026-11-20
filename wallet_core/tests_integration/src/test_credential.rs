@@ -1,4 +1,4 @@
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::test_credential::TestCredential;
 use attestation_data::test_credential::TestCredentials;
 use attestation_types::status_claim::StatusClaim;
@@ -38,7 +38,7 @@ fn new_nl_pid<'a>(
     let (_, type_metadata_documents) = eudi_nl_pid_type_metadata_documents();
 
     TestCredential::new(
-        PreviewableCredentialPayload::example_with_attributes(
+        CredentialContents::example_with_attributes(
             PID_NL_SD_JWT_VCT,
             mock_pid_example(),
             &MockTimeGenerator::default(),

@@ -26,7 +26,7 @@ impl From<&str> for JweEncryptionAlgorithm {
 }
 
 impl FromStr for JweEncryptionAlgorithm {
-    type Err = std::convert::Infallible;
+    type Err = !;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(s.into())
@@ -77,7 +77,7 @@ impl From<&str> for JweCompressionAlgorithm {
 }
 
 impl FromStr for JweCompressionAlgorithm {
-    type Err = std::convert::Infallible;
+    type Err = !;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(s.into())

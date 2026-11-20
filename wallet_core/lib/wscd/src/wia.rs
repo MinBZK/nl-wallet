@@ -12,7 +12,6 @@ pub trait WiaClient {
 
 #[cfg(feature = "mock")]
 pub mod mock {
-    use std::convert::Infallible;
     use std::time::Duration;
 
     use chrono::Utc;
@@ -65,7 +64,7 @@ pub mod mock {
     }
 
     impl WiaClient for MockWiaClient {
-        type Error = Infallible;
+        type Error = !;
 
         async fn issue_wia(&self, aud: String, challenge: Option<Nonce>) -> Result<WiaDisclosure, Self::Error> {
             let wia_key = SigningKey::generate();

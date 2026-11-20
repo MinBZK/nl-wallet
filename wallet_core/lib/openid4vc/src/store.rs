@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::error::Error;
 use std::hash::Hash;
 use std::sync::Mutex;
@@ -132,7 +131,7 @@ where
     V: Send,
     G: Generator<DateTime<Utc>> + Send + Sync,
 {
-    type Error = Infallible;
+    type Error = !;
 
     async fn store(&self, key: K, value: V) -> Result<(), Self::Error> {
         self.store_inner(key, value);

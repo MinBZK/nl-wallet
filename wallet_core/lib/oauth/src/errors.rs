@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Display;
@@ -67,7 +66,7 @@ impl<T> FromStr for RemoteErrorCode<T>
 where
     T: FromStr,
 {
-    type Err = Infallible;
+    type Err = !;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let error_type = match s.parse() {

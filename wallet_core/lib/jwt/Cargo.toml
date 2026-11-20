@@ -32,7 +32,6 @@ thiserror.workspace = true
 
 axum = { workspace = true, optional = true }
 
-attestation_types.path = "../attestation_types"
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 utils.path = "../utils"
@@ -48,7 +47,6 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tokio-test.workspace = true
 
-attestation_types = { path = "../attestation_types", features = ["mock"] }
 chrono = { workspace = true, features = ["now"] }
 crypto = { path = "../crypto", features = ["generate", "mock", "mock_secure_keys"] }
 http_utils = { path = "../http_utils", features = ["httpmock"] }

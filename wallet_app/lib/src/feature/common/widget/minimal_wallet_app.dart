@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../data/store/active_locale_provider.dart';
@@ -28,7 +28,8 @@ class MinimalWalletApp extends StatelessWidget {
         darkTheme: WalletTheme.dark,
         localizationsDelegates: [
           localizationDelegate,
-          ...AppLocalizations.localizationsDelegates,
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
         ],
         home: child,
       ),

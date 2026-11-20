@@ -1,4 +1,3 @@
-use std::assert_matches;
 use std::time::Duration;
 
 use attestation_types::credential_format::Format;
@@ -14,8 +13,8 @@ use status_lists::postgres::revocation_helper::BatchIsRevoked;
 use tests_integration::common::*;
 use token_status_list::verification::verifier::RevocationStatus;
 use wallet::AttestationPresentation;
+use wallet::DisclosureAttestationOptions;
 use wallet::Pin;
-use wallet::errors::DisclosureError;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
@@ -33,8 +32,8 @@ async fn test_revocation_pid_ok() {
 
     assert_revokeable(&mut wallet, PID_NL_SD_JWT_VCT, issuance_urls.pid_issuer.internal).await;
 
-    // Disclosing a revoked attestation should fail
-    let err = wallet
+    // Revoked attestations remain available for disclosure.
+    let proposal = wallet
         .start_disclosure(
             &universal_link(
                 issuance_urls.issuance_server.public.as_base_url(),
@@ -44,9 +43,13 @@ async fn test_revocation_pid_ok() {
             DisclosureUriSource::Link,
         )
         .await
-        .expect_err("should not be able to disclose revoked attestation");
+        .expect("should be able to propose a revoked attestation for disclosure");
 
-    assert_matches!(err, DisclosureError::AttributesNotAvailable { .. });
+    let [DisclosureAttestationOptions::Single(attestation)] = proposal.attestation_options.as_slice() else {
+        panic!("expected a single PID attestation in the disclosure proposal");
+    };
+    assert_eq!(attestation.attestation_type, PID_NL_SD_JWT_VCT);
+    assert_eq!(attestation.validity.revocation_status, Some(RevocationStatus::Revoked));
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]

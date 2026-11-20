@@ -139,7 +139,7 @@ pub mod mock {
     pub struct MockAuditLog;
 
     impl AuditLog for MockAuditLog {
-        type Error = Infallible;
+        type Error = !;
 
         async fn audit<F, T, E>(
             &self,

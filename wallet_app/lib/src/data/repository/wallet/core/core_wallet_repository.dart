@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io' as io;
 
+import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:fimber/fimber.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:wallet_core/core.dart' as core;
 

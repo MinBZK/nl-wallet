@@ -6,8 +6,8 @@ use x509_parser::error::X509Error;
 use x509_parser::extensions::ExtendedKeyUsage;
 
 /// Usage of a [`Certificate`], representing its Extended Key Usage (EKU).
-/// [`Certificate::verify()`] receives this as parameter and enforces that it is present in the certificate
-/// being verified.
+/// [`Certificate::verify()`] receives this as parameter and enforces the intended purpose. The EKU must be
+/// present, except for [`Self::MdlReader`], which also accepts certificates without an EKU for WRPAC compatibility.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Display)]
 pub enum CertificateExtendedKeyUsage {
     Mdl,

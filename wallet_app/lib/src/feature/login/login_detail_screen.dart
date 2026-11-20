@@ -1,5 +1,5 @@
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../domain/model/disclosure/disclose_card_request.dart';
 import '../../domain/model/organization.dart';

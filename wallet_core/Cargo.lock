@@ -792,7 +792,6 @@ dependencies = [
  "data-url 0.3.2",
  "derive_more",
  "hex",
- "itertools 0.14.0",
  "rstest",
  "serde",
  "serde_json",
@@ -1681,15 +1680,6 @@ dependencies = [
 
 [[package]]
 name = "convert_case"
-version = "0.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "633458d4ef8c78b72454de2d54fd6ab2e60f9e02be22f3c6104cdc8a4e0fceb9"
-dependencies = [
- "unicode-segmentation",
-]
-
-[[package]]
-name = "convert_case"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "affbf0190ed2caf063e3def54ff444b449371d55c58e513a95ab98eca50adb49"
@@ -2467,7 +2457,6 @@ dependencies = [
 name = "demo_utils"
 version = "0.8.0-dev"
 dependencies = [
- "anyhow",
  "attestation_data",
  "attestation_types",
  "axum",
@@ -2478,7 +2467,6 @@ dependencies = [
  "derive_more",
  "http_utils",
  "indexmap 2.12.1",
- "openid4vc",
  "regex",
  "rstest",
  "serde",
@@ -2579,25 +2567,23 @@ dependencies = [
 
 [[package]]
 name = "derive_more"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10b768e943bed7bf2cab53df09f4bc34bfd217cdb57d971e769874c9a6710618"
+version = "2.1.1"
+source = "git+https://github.com/akundaz/derive_more.git?rev=51b7c9e0d8eba6fb58a7ddaa669a32c6dd8bb11f#51b7c9e0d8eba6fb58a7ddaa669a32c6dd8bb11f"
 dependencies = [
  "derive_more-impl",
 ]
 
 [[package]]
 name = "derive_more-impl"
-version = "2.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6d286bfdaf75e988b4a78e013ecd79c581e06399ab53fbacd2d916c2f904f30b"
+version = "2.1.1"
+source = "git+https://github.com/akundaz/derive_more.git?rev=51b7c9e0d8eba6fb58a7ddaa669a32c6dd8bb11f#51b7c9e0d8eba6fb58a7ddaa669a32c6dd8bb11f"
 dependencies = [
- "convert_case 0.10.0",
+ "convert_case 0.11.0",
  "proc-macro2",
  "quote",
  "rustc_version",
  "syn 2.0.117",
- "unicode-xid",
+ "unicode-ident",
 ]
 
 [[package]]
@@ -2942,7 +2928,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "39cab71617ae0d63f51a36d69f866391735b51691dbda63cf6f96d042b63efeb"
 dependencies = [
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4547,7 +4533,7 @@ checksum = "3640c1c38b8e4e43584d8df18be5fc6b0aa314ce6ebf51b53313d4306cca8e46"
 dependencies = [
  "hermit-abi",
  "libc",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -4833,7 +4819,6 @@ name = "jwt"
 version = "0.8.0-dev"
 dependencies = [
  "anyhow",
- "attestation_types",
  "axum",
  "base64 0.23.1",
  "chrono",
@@ -4998,9 +4983,9 @@ dependencies = [
 
 [[package]]
 name = "libz-sys"
-version = "1.1.31"
+version = "1.1.33"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff20308ecabd635a2dc1dd5834a86c462cca20efba1d5d3ddab1f8aea3455cb2"
+checksum = "fee3f59f4321dab0c78d828942e7aa09d0bd8ad6e78a501977e6bf3d02938045"
 dependencies = [
  "cc",
  "libc",
@@ -5048,9 +5033,9 @@ dependencies = [
 
 [[package]]
 name = "linux-raw-sys"
-version = "0.11.0"
+version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
+checksum = "32a66949e030da00e8c7d4434b251670a91556f4144941d37452769c25d58a53"
 
 [[package]]
 name = "litemap"
@@ -5168,7 +5153,6 @@ dependencies = [
  "itertools 0.14.0",
  "jsonwebtoken 11.1.0",
  "mdoc_derive",
- "nom 8.0.0",
  "nutype",
  "p256 0.14.0",
  "parking_lot",
@@ -5964,7 +5948,6 @@ dependencies = [
  "axum-server",
  "crypto",
  "dcql",
- "derive_more",
  "http",
  "http_utils",
  "indexmap 2.12.1",
@@ -5977,9 +5960,7 @@ dependencies = [
  "p256 0.14.0",
  "rand_core 0.10.1",
  "reqwest",
- "ring",
  "rstest",
- "rustls-pki-types",
  "sd_jwt_vc_metadata",
  "serde",
  "serde_qs",
@@ -7049,9 +7030,9 @@ dependencies = [
 
 [[package]]
 name = "quinn-udp"
-version = "0.5.14"
+version = "0.5.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "addec6a0dcad8a8d96a771f815f0eaf55f9d1805756410b39f5fa81332574cbd"
+checksum = "af66907df18639dcf4db56ca65490cabc4b27a97dbadd96f2926cca73298f016"
 dependencies = [
  "cfg_aliases",
  "libc",
@@ -7778,15 +7759,15 @@ dependencies = [
 
 [[package]]
 name = "rustix"
-version = "1.1.2"
+version = "1.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd15f8a2c5551a84d56efdc1cd049089e409ac19a3072d5037a17fd70719ff3e"
+checksum = "e5e76742e5294153d4dde1207dbec5bdd81eef6fabdc0d2118babadabfd858aa"
 dependencies = [
  "bitflags",
  "errno",
  "libc",
  "linux-raw-sys",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -7856,15 +7837,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "93fc1dc3aaa9bfed95e02e6eadabb4baf7e3078b0bd1b4d7b6b0b68378900502"
 dependencies = [
  "winapi-util",
-]
-
-[[package]]
-name = "sanitize-filename"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc984f4f9ceb736a7bb755c3e3bd17dc56370af2600c9780dcc48c66453da34d"
-dependencies = [
- "regex",
 ]
 
 [[package]]
@@ -7991,7 +7963,6 @@ dependencies = [
  "attestation_types",
  "crypto",
  "derive_more",
- "http_utils",
  "itertools 0.14.0",
  "nutype",
  "regex",
@@ -8875,7 +8846,7 @@ version = "0.8.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1c97747dbf44bb1ca44a561ece23508e99cb592e862f22222dcf42f51d1e451"
 dependencies = [
- "heck 0.5.0",
+ "heck 0.4.1",
  "proc-macro2",
  "quote",
  "syn 2.0.117",
@@ -9459,7 +9430,7 @@ dependencies = [
  "getrandom 0.3.4",
  "once_cell",
  "rustix",
- "windows-sys 0.61.2",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -9802,7 +9773,6 @@ dependencies = [
  "trait-variant",
  "url",
  "utils",
- "utoipa",
  "uuid",
 ]
 
@@ -10763,7 +10733,6 @@ dependencies = [
  "rstest",
  "rusqlite",
  "rustls-pki-types",
- "sanitize-filename",
  "sd_jwt",
  "sd_jwt_vc_metadata",
  "sea-orm",
@@ -10868,18 +10837,15 @@ dependencies = [
  "clap",
  "crypto",
  "derive_more",
- "error_category",
  "http_utils",
  "itertools 0.14.0",
  "jwt",
  "openid4vc",
  "rstest",
- "rustls-pki-types",
  "sd_jwt",
  "serde",
  "serde_json",
  "serde_with",
- "thiserror 2.0.17",
  "url",
  "utils",
 ]
@@ -11007,7 +10973,6 @@ dependencies = [
  "async-trait",
  "chrono",
  "crypto",
- "ctor",
  "dashmap 6.1.0",
  "db_test",
  "derive_more",
@@ -11341,7 +11306,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.61.2",
+ "windows-sys 0.48.0",
 ]
 
 [[package]]

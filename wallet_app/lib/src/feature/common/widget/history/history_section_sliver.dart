@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_sticky_header/flutter_sticky_header.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../../domain/model/event/event_section.dart';
 import '../../../../domain/model/event/wallet_event.dart';

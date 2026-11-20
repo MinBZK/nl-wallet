@@ -277,7 +277,11 @@ impl BorrowingCertificate {
                 .try_into()
                 .expect("time of verification should lie after UNIX epoch"),
         ));
-        let key_usage = usage.map(|u| webpki::KeyUsage::required(u.as_oid_bytes()));
+        let key_usage = usage.map(|usage| match usage {
+            // EUDI WRPACs may omit EKU; when present it must permit ISO reader authentication.
+            CertificateExtendedKeyUsage::MdlReader => webpki::KeyUsage::required_if_present(usage.as_oid_bytes()),
+            _ => webpki::KeyUsage::required(usage.as_oid_bytes()),
+        });
 
         let revocation = crls.map(|crls| {
             RevocationOptionsBuilder::new(crls)
@@ -472,11 +476,18 @@ mod tests {
     use chrono::Duration;
     use chrono::Utc;
     use der::Decode;
+    use der::Encode;
     use der::Sequence;
     use der::oid::ObjectIdentifier;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use p256::pkcs8::EncodePublicKey;
+    use rcgen::BasicConstraints;
+    use rcgen::CertificateParams;
+    use rcgen::CustomExtension;
+    use rcgen::IsCa;
+    use rcgen::Issuer;
+    use rcgen::KeyUsagePurpose;
     use rcgen::PKCS_ECDSA_P384_SHA384;
     use rcgen::RevocationReason;
     use rcgen::RevokedCertParams;
@@ -671,6 +682,75 @@ mod tests {
             }
             None => assert!(eku.is_none()),
         }
+    }
+
+    #[rstest]
+    #[case::absent(&[], false, true)]
+    #[case::critical_reader(&["1.0.18013.5.1.6"], true, true)]
+    #[case::noncritical_reader(&["1.0.18013.5.1.6"], false, true)]
+    #[case::critical_issuer(&["1.0.18013.5.1.2"], true, false)]
+    #[case::noncritical_issuer(&["1.0.18013.5.1.2"], false, false)]
+    #[case::unknown(&["1.2.3.4"], true, false)]
+    #[case::reader_with_other_purpose(&["1.2.3.4", "1.0.18013.5.1.6"], true, true)]
+    fn verify_reader_extended_key_usage(#[case] oids: &[&str], #[case] critical: bool, #[case] accepted: bool) {
+        let ca_key = rcgen::KeyPair::generate().unwrap();
+        let mut ca_params = CertificateParams::default();
+        ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+        ca_params.distinguished_name = DistinguishedName::create_mock("ca").try_into().unwrap();
+        ca_params.key_usages = vec![KeyUsagePurpose::KeyCertSign, KeyUsagePurpose::CrlSign];
+        let ca_certificate = ca_params.self_signed(&ca_key).unwrap();
+        let trust_anchors = TrustAnchors::try_from(vec![ca_certificate.der().to_vec()]).unwrap();
+        let issuer = Issuer::new(ca_params, ca_key);
+        let mut params = CertificateParams::default();
+        params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
+        if !oids.is_empty() {
+            let content = oids
+                .iter()
+                .map(|oid| ObjectIdentifier::new(oid).unwrap())
+                .collect::<Vec<_>>()
+                .to_der()
+                .unwrap();
+            let mut eku = CustomExtension::from_oid_content(&[2, 5, 29, 37], content);
+            eku.set_criticality(critical);
+            params.custom_extensions.push(eku);
+        }
+        let key = rcgen::KeyPair::generate().unwrap();
+        let certificate = params.signed_by(&key, &issuer).unwrap();
+        let certificate = BorrowingCertificate::from_certificate_der(certificate.der().clone()).unwrap();
+
+        let result = certificate.verify(
+            Some(CertificateExtendedKeyUsage::MdlReader),
+            &[],
+            &TimeGenerator,
+            &trust_anchors,
+        );
+        if accepted {
+            result.unwrap();
+        } else {
+            assert_matches!(result, Err(CertificateVerifyError::Verification(error))
+                if matches!(*error, webpki::Error::RequiredEkuNotFoundContext(_)));
+        }
+    }
+
+    #[rstest]
+    fn other_certificate_usages_still_require_eku(
+        #[values(
+            CertificateExtendedKeyUsage::Mdl,
+            CertificateExtendedKeyUsage::StatusListSigning,
+            CertificateExtendedKeyUsage::Wia,
+            CertificateExtendedKeyUsage::KeyAttestation
+        )]
+        usage: CertificateExtendedKeyUsage,
+    ) {
+        let ca = Ca::generate_mock();
+        let key_pair = ca
+            .generate_key_pair(DistinguishedName::create_mock("signer"), Default::default())
+            .unwrap();
+        let result = key_pair
+            .certificate()
+            .verify(Some(usage), &[], &TimeGenerator, &ca.to_trust_anchors());
+        assert_matches!(result, Err(CertificateVerifyError::Verification(error))
+            if matches!(*error, webpki::Error::RequiredEkuNotFoundContext(_)));
     }
 
     #[rstest]

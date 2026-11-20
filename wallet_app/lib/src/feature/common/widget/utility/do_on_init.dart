@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 // Simple wrapper [StatefulWidget] that helps to perform a certain
 // action once in the initState callback without having to create

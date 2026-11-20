@@ -25,14 +25,13 @@ impl ClaimPath {
         claim_path: impl IntoIterator<Item = &'a Self>,
         key_path: impl IntoIterator<Item = &'b str>,
     ) -> bool {
-        let mut key_path = key_path.into_iter();
-
-        // Every element of the claim path has to be a key that matches the next key, with no keys left over.
-        let all_match = claim_path
+        // Both closures allow the items of both iterators to be inferred as `Option<&str>` with a common lifetime, so
+        // they can be compared.
+        #[expect(clippy::redundant_closure, reason = "the closure is needed for lifetime inference")]
+        claim_path
             .into_iter()
-            .all(|claim| claim.try_key_path().is_some_and(|key| key_path.next() == Some(key)));
-
-        all_match && key_path.next().is_none()
+            .map(|path| path.try_key_path())
+            .eq(key_path.into_iter().map(|key| Some(key)))
     }
 
     pub fn try_key_path(&self) -> Option<&str> {

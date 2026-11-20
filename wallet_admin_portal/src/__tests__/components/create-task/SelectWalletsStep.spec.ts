@@ -75,6 +75,11 @@ describe('SelectWalletsStep', () => {
     expect(wrapper.text()).toContain('Er staat nog geen wallet in de lijst')
   })
 
+  it('limits the Wallet-ID input to 32 characters', () => {
+    const wrapper = mountStep()
+    expect(wrapper.get('input[type="text"]').attributes('maxlength')).toBe('32')
+  })
+
   it('shows the found wallet after searching with a trimmed query', async () => {
     const wrapper = mountStep()
 

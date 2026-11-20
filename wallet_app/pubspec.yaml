@@ -21,13 +21,14 @@ dependencies:
   connectivity_plus: ^6.1.5
   country_codes_plus: ^5.2.1
   cupertino_icons: ^1.0.8
+  cupertino_ui: ^1.1.6
   device_info_plus: ^13.3.0
   equatable: ^2.0.7
   fimber: ^0.7.0
   flutter:
     sdk: flutter
   flutter_bloc: ^9.1.1
-  flutter_local_notifications: ^22.0.1
+  flutter_local_notifications: ^22.3.2
   flutter_localizations:
     sdk: flutter
   flutter_markdown_plus: ^1.0.7
@@ -44,6 +45,7 @@ dependencies:
   local_auth_android: any # explicit transitive dependency to satisfy sonarqube
   local_auth_darwin: any # explicit transitive dependency to satisfy sonarqube
   lottie: ^3.3.1
+  material_ui: ^1.11.0
   meta: ^1.16.0
   mobile_scanner: ^7.5.0
   package_info_plus: ^10.2.2

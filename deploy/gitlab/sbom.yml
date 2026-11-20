@@ -11,9 +11,6 @@ build-sbom:
     - cp "$sbom_output"/bom*.json "$sbom_output"/bom*.xml .
     - deploy/bin/store-artifact.sh bom.json bom.xml qt/quality-time/sbom/
     - deploy/bin/store-artifact.sh bom-prod.json bom-prod.xml qt/quality-time/sbom-prod/
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
   artifacts:
     name: sbom
     when: always

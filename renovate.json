@@ -27,6 +27,11 @@
       "matchUpdateTypes": ["digest"],
       "schedule": ["at any time"],
       "enabled": true
+    },
+    {
+      "description": "3. Read crates.io via the sparse index; GitHub rate-limits the git index on the shared CI egress IP",
+      "matchDatasources": ["crate"],
+      "registryUrls": ["sparse+https://index.crates.io/"]
     }
   ]
 }

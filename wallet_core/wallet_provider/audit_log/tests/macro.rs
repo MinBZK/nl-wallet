@@ -1,6 +1,5 @@
 use std::assert_matches;
 use std::collections::HashMap;
-use std::convert::Infallible;
 use std::error::Error;
 use std::sync::Mutex;
 
@@ -35,7 +34,7 @@ struct RecordingAuditLog {
 }
 
 impl AuditLog for RecordingAuditLog {
-    type Error = Infallible;
+    type Error = !;
 
     async fn audit<F, T, E>(
         &self,

@@ -1,6 +1,8 @@
-import 'package:flutter/material.dart';
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
@@ -107,6 +109,53 @@ void main() {
     await tester.pumpAndSettle();
 
     await screenMatchesGolden('pin_overlay/unlocked');
+  });
+
+  group('system back', () {
+    Future<void> pushPinOverlay(WidgetTester tester, {required bool locked}) async {
+      final navigatorKey = GlobalKey<NavigatorState>();
+      await tester.pumpWidgetWithAppWrapper(
+        const Text('previous'),
+        navigatorKey: navigatorKey,
+        providers: [
+          RepositoryProvider<IsWalletInitializedUseCase>(create: (context) => isWalletInitializedUseCase),
+          RepositoryProvider<IsBiometricLoginEnabledUseCase>(create: (_) => MockIsBiometricLoginEnabledUseCase()),
+          RepositoryProvider<BiometricUnlockManager>(create: (c) => MockBiometricUnlockManager()),
+        ],
+      );
+      unawaited(
+        navigatorKey.currentState!.push(
+          MaterialPageRoute<void>(
+            builder: (_) => PinOverlay(
+              bloc: PinBloc(Mocks.create()),
+              isLockedStream: Stream.value(locked),
+              child: const Text('child'),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('does not close the screen below the overlay while locked', (tester) async {
+      await pushPinOverlay(tester, locked: true);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('child'), findsOneWidget);
+      expect(find.text('previous'), findsNothing);
+    });
+
+    testWidgets('closes the screen when unlocked', (tester) async {
+      await pushPinOverlay(tester, locked: false);
+
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+
+      expect(find.text('child'), findsNothing);
+      expect(find.text('previous'), findsOneWidget);
+    });
   });
 
   testWidgets('verify PinOverlay shows child when status is locked & NOT registered', (tester) async {
