@@ -7,10 +7,10 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use attestation_data::attributes::AttributesError;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
 use attestation_data::credential_payload::CredentialPayloadIntoSignedMdocError;
 use attestation_data::credential_payload::CredentialPayloadIntoSignedSdJwtError;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
@@ -359,7 +359,7 @@ pub struct PreparedCredential {
     pub id: Uuid,
     pub credential_configuration_id: CredentialConfigurationId,
     pub format: Format,
-    pub credential_payload: PreviewableCredentialPayload,
+    pub credential_payload: CredentialContents,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -535,7 +535,7 @@ impl PreparedCredential {
         let valid_until = now.add(credential_config.valid_days);
 
         let format = issuable_document.credential_kind.format;
-        let (id, credential_payload) = issuable_document.into_id_and_previewable_credential_payload(now, valid_until);
+        let (id, credential_payload) = issuable_document.into_id_and_credential_contents(now, valid_until);
 
         let credential = Self {
             id,
@@ -1596,14 +1596,14 @@ impl CredentialRequest {
 }
 
 impl Credentials {
-    /// Sign a batch of credentials by constructing a `CredentialPayload` a `PreviewableCredentialPayload` and signing N
+    /// Sign a batch of credentials by constructing a `CredentialPayload` from a `CredentialContents` and signing N
     /// copies in the requested format, where N is based on the number of provided holder public keys. This also
     /// includes obtaining N status claims for the batch as a whole.
     #[expect(clippy::too_many_arguments, reason = "Internal constructor")]
     async fn sign_batch<K, L>(
         batch_id: Uuid,
         format: Format,
-        preview_credential_payload: PreviewableCredentialPayload,
+        preview_credential_payload: CredentialContents,
         issued_at: DateTime<Utc>,
         holder_public_keys: VecNonEmpty<&PublicKey>,
         type_metadata: Option<&CredentialConfigurationTypeMetadata>,
@@ -1653,7 +1653,7 @@ impl Credentials {
             .map(
                 |((public_key, (preview_credential_payload, metadata_integrity)), status_claim)| {
                     let StatusClaim::StatusList(status_claim) = status_claim;
-                    CredentialPayload::from_previewable_credential_payload(
+                    CredentialPayload::from_contents(
                         preview_credential_payload,
                         issued_at,
                         public_key,

@@ -1,4 +1,4 @@
-use attestation_data::credential_payload::PreviewableCredentialPayload;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_types::credential_format::Format;
 use derive_more::Debug;
 use oauth::token::AccessToken;
@@ -149,7 +149,7 @@ pub struct CredentialPreview {
 
     pub format: Format,
 
-    pub credential_payload: PreviewableCredentialPayload,
+    pub credential_payload: CredentialContents,
 }
 
 #[cfg(test)]

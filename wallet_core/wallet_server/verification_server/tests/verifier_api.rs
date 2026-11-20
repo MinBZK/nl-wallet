@@ -8,8 +8,8 @@ use std::sync::Arc;
 use std::sync::LazyLock;
 use std::time::Duration;
 
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::disclosure::DisclosedAttestations;
 use attestation_data::disclosure::DisclosedAttributes;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelope;
@@ -829,8 +829,8 @@ fn prepare_example_credential_payload(
     wscd: &DisclosureMockRemoteWscd,
 ) -> (CredentialPayload, KeyPair, String, NormalizedTypeMetadata) {
     let payload_preview = match format {
-        Format::MsoMdoc => PreviewableCredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default()),
-        Format::SdJwt => PreviewableCredentialPayload::nl_pid_example(&MockTimeGenerator::default()),
+        Format::MsoMdoc => CredentialContents::nl_pid_mdoc_example(&MockTimeGenerator::default()),
+        Format::SdJwt => CredentialContents::nl_pid_example(&MockTimeGenerator::default()),
     };
     let metadata = NormalizedTypeMetadata::nl_pid_example();
 
@@ -838,7 +838,7 @@ fn prepare_example_credential_payload(
 
     // Generate a new private key and use that and the issuer key to sign the Mdoc.
     let holder_privkey = wscd.create_random_key();
-    let payload = CredentialPayload::from_previewable_credential_payload_unvalidated(
+    let payload = CredentialPayload::from_contents_unvalidated(
         payload_preview,
         Utc::now(),
         &PublicKeyRef::from(holder_privkey.verifying_key()),

@@ -15,13 +15,14 @@ use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 
 use attestation_data::attributes::AttributesError;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayloadFromMdocError;
 use attestation_data::credential_payload::CredentialPayloadFromSdJwtError;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::metadata::AttestationClaims;
 use attestation_data::metadata::ClaimConstraint;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 use coset::iana;
@@ -102,8 +103,8 @@ pub enum WalletIssuanceError {
     #[error("mismatch between issued and previewed credential, issued: {actual:?} , previewed: {expected:?}")]
     #[category(pd)]
     IssuedCredentialMismatch {
-        actual: Box<PreviewableCredentialPayload>,
-        expected: Box<PreviewableCredentialPayload>,
+        actual: Box<CredentialContents>,
+        expected: Box<CredentialContents>,
     },
 
     #[error("mdoc verification failed: {0}")]
@@ -439,7 +440,7 @@ pub enum WalletIssuanceError {
 #[derive(Debug, Clone, Copy, Constructor)]
 pub struct IssuanceDiscoveryParameters<'a, W> {
     pub offer_uri: &'a Url,
-    pub selection: &'a CredentialSelection,
+    pub selection: CredentialSelection<'a>,
     pub wia_client: &'a W,
     pub wrpac_trust_anchors: &'a TrustAnchors,
     pub wrprc_trust_anchors: &'a TrustAnchors,
@@ -469,18 +470,25 @@ impl AttestationClaims for OfferedCredentialMetadata {
 #[derive(Debug, Clone, Copy)]
 pub struct OfferedCredentialPreview<'a> {
     pub format: Format,
-    pub credential_payload: &'a PreviewableCredentialPayload,
+    pub credential_payload: &'a CredentialContents,
     pub metadata: &'a OfferedCredentialMetadata,
+}
+
+impl OfferedCredentialPreview<'_> {
+    /// The combination of the format and the attestation type of the offered credential.
+    pub fn credential_kind(&self) -> CredentialKindRef<'_> {
+        CredentialKindRef::new(self.format, self.credential_payload.attestation_type.as_ref())
+    }
 }
 
 /// Allows selection of specific credential kinds (i.e. combinations of format and attestation type) at the start of
 /// issuance. If the `CredentialSelection::ByCredentialKind` variant is used, issuance will fail if the issuer offers
 /// none of the credential kinds. If some of them match, issuance will proceed with those matched credential
 /// configurations.
-#[derive(Debug, Clone)]
-pub enum CredentialSelection {
+#[derive(Debug, Clone, Copy)]
+pub enum CredentialSelection<'a> {
     All,
-    ByCredentialKind(HashSet<CredentialKind>),
+    ByCredentialKind(&'a HashSet<CredentialKindRef<'a>>),
 }
 
 #[derive(Debug)]

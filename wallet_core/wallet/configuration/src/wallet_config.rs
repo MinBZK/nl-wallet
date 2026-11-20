@@ -1,12 +1,11 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::ops::Range;
 use std::time::Duration;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::AsPublicKeyRef;
@@ -15,7 +14,6 @@ use crypto::kid::Kid;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
-use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use itertools::Either;
@@ -198,47 +196,25 @@ impl SdJwtPidClaims {
     }
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum PidAttributesConfigurationError {
-    #[category(critical)]
-    #[error("attestation type {0} has no PID configuration")]
-    NoPidConfiguration(String),
-}
-
 impl PidAttributesConfiguration {
-    /// The [`CredentialKind`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
-    pub fn credential_kinds(&self) -> HashSet<CredentialKind> {
+    /// The [`CredentialKindRef`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
+    pub fn credential_kinds(&self) -> impl Iterator<Item = CredentialKindRef<'_>> {
         self.mso_mdoc
             .keys()
-            .map(|doc_type| CredentialKind::new(Format::MsoMdoc, doc_type.clone()))
+            .map(|doc_type| CredentialKindRef::new(Format::MsoMdoc, doc_type))
             .chain(self.sd_jwt_credential_kinds())
-            .collect()
     }
 
-    /// The [`CredentialKind`]s of the configured PID attestations in the SD-JWT format.
-    pub fn sd_jwt_credential_kinds(&self) -> HashSet<CredentialKind> {
-        self.sd_jwt
-            .keys()
-            .map(|vct| CredentialKind::new(Format::SdJwt, vct.clone()))
-            .collect()
+    /// The [`CredentialKindRef`]s of the configured PID attestations in the SD-JWT format.
+    pub fn sd_jwt_credential_kinds(&self) -> impl Iterator<Item = CredentialKindRef<'_>> {
+        self.sd_jwt.keys().map(|vct| CredentialKindRef::new(Format::SdJwt, vct))
     }
 
-    pub fn contains_credential_kind(&self, format: Format, attestation_type: &str) -> bool {
-        match format {
-            Format::MsoMdoc => self.mso_mdoc.contains_key(attestation_type),
-            Format::SdJwt => self.sd_jwt.contains_key(attestation_type),
+    pub fn contains_credential_kind(&self, credential_kind: CredentialKindRef<'_>) -> bool {
+        match credential_kind.format {
+            Format::MsoMdoc => self.mso_mdoc.contains_key(credential_kind.attestation_type),
+            Format::SdJwt => self.sd_jwt.contains_key(credential_kind.attestation_type),
         }
-    }
-
-    /// The claim path of the recovery code in the SD-JWT PID of the specified attestation type.
-    pub fn sd_jwt_recovery_code_path(
-        &self,
-        attestation_type: &str,
-    ) -> Result<VecNonEmpty<ClaimPath>, PidAttributesConfigurationError> {
-        self.sd_jwt
-            .get(attestation_type)
-            .map(SdJwtPidClaims::recovery_code_claim_path)
-            .ok_or_else(|| PidAttributesConfigurationError::NoPidConfiguration(attestation_type.to_string()))
     }
 
     /// The key path of the recovery code in the PID of the specified format and attestation type, if configured.
@@ -272,12 +248,10 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
 
 #[cfg(test)]
 mod tests {
-    use attestation_types::claim_path::ClaimPath;
     use attestation_types::credential_format::Format;
     use itertools::Itertools;
     use rstest::rstest;
     use serde_json::json;
-    use utils::vec_nonempty;
 
     use super::PidAttributesConfiguration;
 
@@ -309,13 +283,6 @@ mod tests {
                 .unwrap()
                 .collect_vec(),
             ["nested", "recovery_code"]
-        );
-        assert_eq!(
-            config.sd_jwt_recovery_code_path("pid_vct").unwrap(),
-            vec_nonempty![
-                ClaimPath::SelectByKey("nested".to_string()),
-                ClaimPath::SelectByKey("recovery_code".to_string())
-            ]
         );
     }
 

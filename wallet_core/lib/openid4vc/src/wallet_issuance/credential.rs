@@ -1,4 +1,6 @@
+use attestation_data::credential_payload::CredentialContents;
 use attestation_types::credential_format::Format;
+use attestation_types::credential_kind::CredentialKindRef;
 use crypto::x509::BorrowingCertificate;
 use mdoc::holder::Mdoc;
 use nonempty_collections::NEEither;
@@ -6,7 +8,6 @@ use nonempty_collections::NonEmptyIterator;
 use sd_jwt::sd_jwt::DecodedSdJwt;
 use sd_jwt_vc_metadata::NormalizedTypeMetadata;
 use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
-use utils::date_time_seconds::DateTimeSeconds;
 use utils::vec_at_least::VecNonEmpty;
 
 use super::issuer_registration::IssuerRegistration;
@@ -35,30 +36,29 @@ impl IssuedCredentialMetadata {
 #[derive(Clone, Debug)]
 pub struct CredentialWithMetadata {
     pub copies: IssuedCredentialCopies,
-    pub attestation_type: String,
-    pub expiration: Option<DateTimeSeconds>,
-    pub not_before: Option<DateTimeSeconds>,
+    /// The contents of the first copy, which is identical for all copies.
+    pub contents: CredentialContents,
     pub extended_attestation_types: Vec<String>,
     pub metadata: IssuedCredentialMetadata,
     pub issuer_registration: IssuerRegistration,
 }
 
 impl CredentialWithMetadata {
-    #[expect(clippy::too_many_arguments, reason = "constructor method")]
+    /// The combination of the format of the issued copies and the attestation type of this credential.
+    pub fn credential_kind(&self) -> CredentialKindRef<'_> {
+        CredentialKindRef::new(self.copies.format(), &self.contents.attestation_type)
+    }
+
     pub fn new(
         copies: IssuedCredentialCopies,
-        attestation_type: String,
-        expiration: Option<DateTimeSeconds>,
-        not_before: Option<DateTimeSeconds>,
+        contents: CredentialContents,
         extended_attestation_types: impl IntoIterator<Item = impl Into<String>>,
         metadata: IssuedCredentialMetadata,
         issuer_registration: IssuerRegistration,
     ) -> Self {
         Self {
             copies,
-            attestation_type,
-            expiration,
-            not_before,
+            contents,
             extended_attestation_types: extended_attestation_types.into_iter().map(Into::into).collect(),
             metadata,
             issuer_registration,

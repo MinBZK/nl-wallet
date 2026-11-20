@@ -119,7 +119,7 @@ where
             .await?
             .ok_or(DeleteAttestationError::AttestationNotFound)?;
 
-        if config.pid_attributes.credential_kinds().contains(&credential_kind) {
+        if config.pid_attributes.contains_credential_kind(credential_kind.as_ref()) {
             return Err(DeleteAttestationError::CannotDeletePid);
         }
 

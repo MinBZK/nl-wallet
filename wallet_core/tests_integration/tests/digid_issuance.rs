@@ -148,7 +148,7 @@ async fn ltc1_test_pid_issuance_digid_bridge() {
         .start(
             IssuanceDiscoveryParameters::new(
                 &credential_offer,
-                &CredentialSelection::All,
+                CredentialSelection::All,
                 &wia_client,
                 wallet_config.wrpac_trust_anchors(),
                 wallet_config.wrprc_trust_anchors(),
