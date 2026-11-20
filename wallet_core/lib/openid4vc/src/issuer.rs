@@ -843,8 +843,8 @@ where
     }
 }
 
-/// Namespace both kinds of nonce before storage and lookup, so even a client-supplied value containing a prefix
-/// cannot substitute a DPoP nonce for a proof or client attestation challenge (or vice versa).
+/// Credential proof nonces (`c_nonce`) and WIA client attestation challenges share the `proof:` storage prefix.
+/// DPoP nonces use the separate `dpop:` prefix.
 fn proof_nonce_storage_key(nonce: &Nonce) -> Nonce {
     format!("proof:{nonce}").into()
 }
