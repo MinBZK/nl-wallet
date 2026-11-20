@@ -17,7 +17,7 @@ use crypto::trust_anchor::TrustAnchors;
 use crypto::utils::sha256;
 use db_test::DbSetup;
 use hsm::model::TestHsm;
-use hsm::model::mock::MockPkcs11Client;
+use hsm::model::mock::MockHsm;
 use hsm::service::HsmError;
 use itertools::Itertools;
 use jwt::KeyWithKid;
@@ -89,7 +89,7 @@ async fn do_registration(
     UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -193,7 +193,7 @@ async fn do_registration(
 type TestUserState = UserState<
     Repositories,
     StubWalletFlags,
-    MockPkcs11Client<HsmError>,
+    MockHsm<HsmError>,
     SigningKey,
     PostgresStatusListService<SigningKey, StubWalletFlags>,
 >;

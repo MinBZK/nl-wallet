@@ -17,7 +17,7 @@ use db_test::DbSetup;
 use futures::future::join_all;
 use futures::future::try_join_all;
 use hsm::model::Hsm;
-use hsm::model::mock::MockPkcs11Client;
+use hsm::model::mock::MockHsm;
 use hsm::service::HsmError;
 use itertools::Either;
 use itertools::Itertools;
@@ -75,7 +75,7 @@ async fn setup_state(
     UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -125,7 +125,7 @@ async fn register_wallets_with_wias(
     user_state: &UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -198,7 +198,7 @@ async fn verify_revocation(
     user_state: &UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -259,7 +259,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
     user_state: &UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,

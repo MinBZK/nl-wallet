@@ -1362,7 +1362,7 @@ mod tests {
     use crypto::utils::random_bytes;
     use crypto::utils::random_string;
     use crypto::utils::sha256;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use hsm::model::wrapped_key::WrappedKey;
     use hsm::service::HsmError;
     use itertools::Itertools;
@@ -1434,7 +1434,7 @@ mod tests {
     pub async fn user_state<R>(
         repositories: R,
         wrapping_kid: Kid,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService> {
+    ) -> UserState<R, StubWalletFlags, MockHsm<HsmError>, SigningKey, MockStatusListService> {
         mock_user_state(
             repositories,
             StubWalletFlags::default(),
@@ -1449,7 +1449,7 @@ mod tests {
         repositories: R,
         wrapping_kid: Kid,
         ca: &Ca,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService> {
+    ) -> UserState<R, StubWalletFlags, MockHsm<HsmError>, SigningKey, MockStatusListService> {
         mock_user_state(
             repositories,
             StubWalletFlags::default(),

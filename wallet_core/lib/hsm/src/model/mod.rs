@@ -74,9 +74,9 @@ pub mod mock {
 
     type HmacSha256 = Hmac<Sha256>;
 
-    pub struct MockPkcs11Client<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
+    pub struct MockHsm<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
 
-    impl<E> MockPkcs11Client<E> {
+    impl<E> MockHsm<E> {
         pub fn get_signing_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
             let key_identifier = format!("{key_prefix}_{identifier}");
             let entry = self.0.get(&key_identifier).unwrap();
@@ -93,13 +93,13 @@ pub mod mock {
         }
     }
 
-    impl<E> Default for MockPkcs11Client<E> {
+    impl<E> Default for MockHsm<E> {
         fn default() -> Self {
             Self(DashMap::new(), DashMap::new(), PhantomData)
         }
     }
 
-    impl<E: Error + Send + Sync> Encrypter<VerifyingKey> for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync> Encrypter<VerifyingKey> for MockHsm<E> {
         type Error = E;
 
         async fn encrypt(
@@ -112,7 +112,7 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync> Decrypter<VerifyingKey> for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync> Decrypter<VerifyingKey> for MockHsm<E> {
         type Error = E;
 
         async fn decrypt(
@@ -124,7 +124,7 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync + From<MacError>> crate::model::TestHsm for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync + From<MacError>> crate::model::TestHsm for MockHsm<E> {
         async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error> {
             self.1.insert(String::from(identifier), random_bytes(32));
             Ok(())
@@ -142,7 +142,7 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockHsm<E> {
         type Error = E;
 
         async fn generate_wrapped_keys(

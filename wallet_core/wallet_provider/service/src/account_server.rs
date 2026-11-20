@@ -1915,7 +1915,7 @@ pub mod mock {
     use crypto::keys::PublicKey;
     use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -2022,16 +2022,16 @@ pub mod mock {
     }
 
     pub type MockUserState =
-        UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService>;
+        UserState<WalletUserTestRepo, StubWalletFlags, MockHsm<HsmError>, SigningKey, MockStatusListService>;
 
     pub fn user_state<R, S>(
         repositories: R,
         flags: StubWalletFlags,
-        wallet_user_hsm: MockPkcs11Client<HsmError>,
+        wallet_user_hsm: MockHsm<HsmError>,
         wrapping_kid: Kid,
         pid_issuer_trust_anchors: TrustAnchors,
         wia_status_list: S,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, S> {
+    ) -> UserState<R, StubWalletFlags, MockHsm<HsmError>, SigningKey, S> {
         let key_attestation_key_pair = MOCK_WPTL_CA.generate_key_attestation_mock().unwrap();
         let key_storage_tsl_key_pair = MOCK_WPTL_CA.generate_key_storage_status_list_mock().unwrap();
 
@@ -2231,7 +2231,7 @@ mod tests {
     use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use hsm::service::HsmError;
     use jwt::KeyWithKid;
     use jwt::nonce::Nonce;
@@ -2373,7 +2373,7 @@ mod tests {
             RevocationCode,
             Vec<u8>,
             MockHardwareKey,
-            MockPkcs11Client<HsmError>,
+            MockHsm<HsmError>,
         ),
         RegistrationError,
     > {
@@ -2652,7 +2652,7 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let encrypted_new_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
-            &MockPkcs11Client::<HsmError>::default(),
+            &MockHsm::<HsmError>::default(),
             &pin_pubkey_encryption_key_identifier(&wallet_certificate::mock::ENCRYPTION_KID),
             new_pin_pubkey,
         )
@@ -2781,7 +2781,7 @@ mod tests {
             wrapping_kid,
         )
         .await
-        .map(|_| ()) // the return value MockPkcs11Client doesn't implement Debug, so discard it
+        .map(|_| ()) // the return value MockHsm doesn't implement Debug, so discard it
         .expect_err("registering with an invalid Apple attestation should fail");
 
         assert_matches!(error, RegistrationError::AppleAttestation(_));
@@ -3990,7 +3990,7 @@ mod tests {
         UserState<
             MockTransactionalWalletUserRepository,
             StubWalletFlags,
-            MockPkcs11Client<HsmError>,
+            MockHsm<HsmError>,
             SigningKey,
             MockStatusListService,
         >,

@@ -33,7 +33,7 @@ use crate::model::TestHsm;
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypter::Decrypter;
 use crate::model::encrypter::Encrypter;
-use crate::model::mock::MockPkcs11Client;
+use crate::model::mock::MockHsm;
 use crate::service::AES_BLOCK_SIZE;
 use crate::service::AesKeyUsage;
 use crate::service::HsmError;
@@ -176,11 +176,11 @@ impl<H> TestCase<H> {
     }
 }
 
-impl TestCase<MockPkcs11Client<HsmError>> {
+impl TestCase<MockHsm<HsmError>> {
     pub fn mock(identifier_prefix: String) -> Self {
         Self {
             identifier_prefix,
-            hsm: MockPkcs11Client::default(),
+            hsm: MockHsm::default(),
         }
     }
 }

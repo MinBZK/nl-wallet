@@ -1,4 +1,4 @@
-use hsm::model::mock::MockPkcs11Client;
+use hsm::model::mock::MockHsm;
 use hsm::service::HsmError;
 use hsm::test::TestCase;
 use rstest::Context;
@@ -13,7 +13,7 @@ use rstest::rstest;
 #[tokio::test]
 async fn hsm_mock_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
-    F: AsyncFnOnce(TestCase<MockPkcs11Client<HsmError>>),
+    F: AsyncFnOnce(TestCase<MockHsm<HsmError>>),
 {
     let test_case = TestCase::mock(ctx.description.unwrap().to_string());
     test(test_case).await;
