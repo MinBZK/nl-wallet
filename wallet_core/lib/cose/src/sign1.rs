@@ -206,6 +206,7 @@ impl<T> TypedCose<CoseSign1, T> {
     ///
     /// Configured trust anchors present among the intermediate certificates are ignored. The leaf certificate
     /// must not itself be a trust anchor.
+    // TODO verify crit header field (PVW-6512)
     pub fn verify_with_typ_against_trust_anchors(
         &self,
         trust_anchors: &TrustAnchors,
