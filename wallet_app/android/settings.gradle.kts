@@ -25,5 +25,6 @@ plugins {
 }
 
 include(":app")
+include(":wallet-integration-tests")
 include(":platform_support")
 project(":platform_support").projectDir = file("../../wallet_core/wallet/platform_support/android")

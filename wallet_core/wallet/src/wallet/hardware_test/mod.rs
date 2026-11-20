@@ -1,4 +1,4 @@
-//! Test-only wallet disclosure scenarios shared by the iOS XCTest harness and host verification.
+//! Test-only wallet disclosure scenarios shared by the iOS and Android harnesses and host verification.
 //! The transport is real on the device; registration, credentials and provider services are fixtures.
 
 mod fixture;
@@ -53,8 +53,9 @@ const EXPECTED_GIVEN_NAME: &str = "Bluetooth Test";
 const CREDENTIAL_STATUS_LIST_URI: &str = "https://example.com/credential-status/1";
 const SCENARIO_TIMEOUT: Duration = Duration::from_secs(90);
 
+/// Disclosure scenarios shared by the host tests and the native device runner.
 #[derive(Clone, Copy)]
-enum Scenario {
+pub enum Scenario {
     CwtDisclosure,
     JwtDisclosure,
     Rejection(RegistrationCertificateCase),
@@ -95,25 +96,15 @@ pub struct ResponseArtifact {
 
 /// Exercise the public wallet disclosure API, including the signing instruction and history storage.
 /// Keep the runtime alive for this entire future; the native bridge delivers updates asynchronously.
-pub async fn run_disclosure<C: CloseProximityDisclosureClient>(reader_ready: impl FnOnce(ReaderReady)) -> Result<()> {
-    run_scenario::<C>(Scenario::CwtDisclosure, reader_ready).await
-}
-
-/// Exercise the same disclosure with a compact JWT in the requestInfo.euWrprc byte string.
-pub async fn run_disclosure_with_jwt<C: CloseProximityDisclosureClient>(
+pub async fn run_disclosure<C: CloseProximityDisclosureClient>(
+    scenario: Scenario,
     reader_ready: impl FnOnce(ReaderReady),
 ) -> Result<()> {
-    run_scenario::<C>(Scenario::JwtDisclosure, reader_ready).await
-}
-
-/// Run a signed reader request that must be rejected before approval or holder signing.
-pub async fn run_registration_certificate_rejection<C: CloseProximityDisclosureClient>(
-    case: RegistrationCertificateCase,
-    reader_ready: impl FnOnce(ReaderReady),
-) -> Result<()> {
-    run_scenario::<C>(Scenario::Rejection(case), reader_ready)
-        .await
-        .with_context(|| format!("registration certificate case: {case}"))
+    let result = run_scenario::<C>(scenario, reader_ready).await;
+    match scenario {
+        Scenario::Rejection(case) => result.with_context(|| format!("registration certificate case: {case}")),
+        _ => result,
+    }
 }
 
 async fn run_scenario<C: CloseProximityDisclosureClient>(

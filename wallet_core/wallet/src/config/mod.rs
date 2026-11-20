@@ -64,7 +64,7 @@ pub enum ConfigurationError {
     HttpClient(#[from] HttpClientError),
 }
 
-#[cfg(test)]
+#[cfg(any(test, feature = "hardware_integration_test"))]
 pub fn test_wallet_config() -> WalletConfiguration {
     const TEST_WALLET_CONFIG_JSON: &str = include_str!("../../test-wallet-config.json");
 
