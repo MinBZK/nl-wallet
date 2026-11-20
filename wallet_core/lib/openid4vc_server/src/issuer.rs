@@ -28,6 +28,7 @@ use axum_extra::headers::authorization::Bearer;
 use axum_extra::headers::authorization::Credentials;
 use crypto::keys::EcdsaKeySend;
 use http::header::ACCEPT;
+use http::header::WWW_AUTHENTICATE;
 use http::request::Parts;
 use http_utils::mediatype::MediaType;
 use http_utils::mediatype::find_content_type_from_accept;
@@ -51,6 +52,7 @@ use openid4vc::errors::CredentialPreviewErrorCode;
 use openid4vc::errors::ParErrorCode;
 use openid4vc::errors::VciTokenErrorCode;
 use openid4vc::issuer::CREDENTIAL_ENDPOINT_PATH;
+use openid4vc::issuer::CredentialRequestError;
 use openid4vc::issuer::IssuanceData;
 use openid4vc::issuer::Issuer;
 use openid4vc::metadata::issuer_metadata::CredentialConfigurationId;
@@ -264,23 +266,19 @@ async fn token<K, L, S, N>(
     wia_headers: WiaHeaders<VciTokenErrorCode>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     Form(token_request): Form<VciTokenRequest>,
-) -> Result<(HeaderMap, Json<VciTokenResponse>), ErrorResponse<VciTokenErrorCode>>
+) -> Result<Json<VciTokenResponse>, ErrorResponse<VciTokenErrorCode>>
 where
     K: EcdsaKeySend,
     S: SessionStore<IssuanceData>,
     N: NonceStore,
 {
-    let (response, dpop_nonce) = state
+    let response = state
         .issuer
         .process_token_request(token_request, dpop, wia_headers.into())
         .await
         .inspect_err(|error| warn!("processing token request failed: {error}"))?;
 
-    let headers = HeaderMap::from_iter([(
-        HeaderName::from_str(DPOP_NONCE_HEADER_NAME).unwrap(),
-        HeaderValue::from_str(dpop_nonce.as_ref()).unwrap(),
-    )]);
-    Ok((headers, Json(response)))
+    Ok(Json(response))
 }
 
 async fn type_metadata<K, L, S, N>(
@@ -311,9 +309,7 @@ where
     Ok(Json(response))
 }
 
-async fn nonce<K, L, S, N>(
-    State(state): State<IssuanceState<K, L, S, N>>,
-) -> Result<(TypedHeader<CacheControl>, Json<NonceResponse>), StatusCode>
+async fn nonce<K, L, S, N>(State(state): State<IssuanceState<K, L, S, N>>) -> Result<impl IntoResponse, StatusCode>
 where
     N: NonceStore,
 {
@@ -323,13 +319,17 @@ where
         // Any error that occurs while generating the nonce is de facto a problem with the server.
         StatusCode::INTERNAL_SERVER_ERROR
     })?;
+    let dpop_nonce = state.issuer.generate_dpop_nonce().await.map_err(|error| {
+        warn!("generating fresh DPoP nonce failed: {}", error);
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
 
     // Including this header is mandated by the OpenID4VCI specification.
     // See: <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-7.2-3>
     let header = TypedHeader(CacheControl::new().with_no_store());
     let body = Json(NonceResponse { c_nonce });
 
-    Ok((header, body))
+    Ok((header, [(DPOP_NONCE_HEADER_NAME, dpop_nonce.to_string())], body))
 }
 
 async fn credential<K, L, S, N>(
@@ -337,7 +337,7 @@ async fn credential<K, L, S, N>(
     TypedHeader(Authorization(authorization_header)): TypedHeader<Authorization<DpopBearer>>,
     TypedHeader(DpopHeader(dpop)): TypedHeader<DpopHeader>,
     credential_request_jwe: String,
-) -> Result<Json<CredentialResponse>, ErrorResponse<CredentialErrorCode>>
+) -> Result<Json<CredentialResponse>, CredentialErrorResponse>
 where
     K: EcdsaKeySend,
     L: StatusListService,
@@ -356,6 +356,28 @@ where
     // deferred responses, the status code is always 200.
 
     Ok(Json(response))
+}
+
+struct CredentialErrorResponse(ErrorResponse<CredentialErrorCode>);
+
+impl From<CredentialRequestError> for CredentialErrorResponse {
+    fn from(error: CredentialRequestError) -> Self {
+        Self(error.into())
+    }
+}
+
+impl IntoResponse for CredentialErrorResponse {
+    fn into_response(self) -> Response {
+        let invalid_dpop = self.0.error == CredentialErrorCode::InvalidDpopProof;
+        let mut response = self.0.into_response();
+        if invalid_dpop {
+            response.headers_mut().insert(
+                WWW_AUTHENTICATE,
+                HeaderValue::from_static("DPoP error=\"invalid_dpop_proof\", algs=\"ES256\""),
+            );
+        }
+        response
+    }
 }
 
 #[derive(Debug, Clone)]

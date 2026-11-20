@@ -344,6 +344,9 @@ pub enum CredentialErrorCode {
     InvalidToken,
     InsufficientScope,
 
+    // From RFC 9449, Section 7.1.
+    InvalidDpopProof,
+
     /// This can be returned in case of internal server errors, i.e. with HTTP status code 5xx.
     /// This error type is not defined in the spec, but then again the entire HTTP response in case
     /// 5xx status codes is not defined by the spec, so we have freedom to return what we want.
@@ -362,7 +365,7 @@ impl ErrorStatusCode for CredentialErrorCode {
             | Self::CredentialRequestDenied
             | Self::InvalidRequest => StatusCode::BAD_REQUEST,
 
-            Self::InvalidToken => StatusCode::UNAUTHORIZED,
+            Self::InvalidToken | Self::InvalidDpopProof => StatusCode::UNAUTHORIZED,
 
             Self::InsufficientScope => StatusCode::FORBIDDEN,
 
@@ -384,7 +387,7 @@ impl ErrorWithCode for CredentialRequestError {
             Self::IssuanceError(IssuanceError::UnexpectedState)
             | Self::IssuanceError(IssuanceError::UnknownSession(_)) => CredentialErrorCode::InvalidToken,
 
-            Self::IssuanceError(IssuanceError::DpopInvalid(_)) => CredentialErrorCode::InvalidCredentialRequest,
+            Self::IssuanceError(IssuanceError::DpopInvalid(_)) => CredentialErrorCode::InvalidDpopProof,
 
             Self::IssuanceError(IssuanceError::SessionStore(_)) => CredentialErrorCode::ServerError,
 
@@ -400,7 +403,7 @@ impl ErrorWithCode for CredentialRequestError {
 
             Self::MissingProofNonce => CredentialErrorCode::InvalidNonce,
 
-            Self::ProofNonceStore(_) => CredentialErrorCode::ServerError,
+            Self::ProofNonceStore(_) | Self::DpopNonceStore(_) => CredentialErrorCode::ServerError,
 
             Self::InvalidNonce => CredentialErrorCode::InvalidNonce,
 

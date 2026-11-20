@@ -128,6 +128,17 @@ impl DpopNonce {
     }
 }
 
+/// The optional nonce from a verified DPoP proof, pending validation against the nonce store.
+#[must_use = "the DPoP nonce must be checked against and consumed from the nonce store"]
+#[derive(Debug)]
+pub struct DpopProofNonce(Option<DpopNonce>);
+
+impl DpopProofNonce {
+    pub fn into_inner(self) -> Option<DpopNonce> {
+        self.0
+    }
+}
+
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -187,7 +198,6 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<&DpopNonce>,
     ) -> Result<()> {
         if verified_dpop.http_method != method.to_string() {
             return Err(DpopError::IncorrectMethod);
@@ -199,48 +209,41 @@ impl Dpop {
             return Err(DpopError::IncorrectAccessTokenHash);
         }
 
-        // We do not check the `jti` field to avoid having to keep track of this in the server state.
-        // Verifying `jti` is not required by its spec (https://datatracker.ietf.org/doc/html/rfc9449).
-        // We also do not check the `iat` field, to avoid having to deal with clockdrift.
-        // Instead of both of these, the server can specify a `nonce` and later enforce its presence in the DPoP.
-        if verified_dpop.nonce.as_ref() != nonce {
-            return Err(DpopError::IncorrectNonce);
-        }
-
         Ok(())
     }
 
     /// Verify the DPoP JWT against the public key inside its header, returning that public key.
-    /// This should only be called in the first HTTP request of a protocol. In later requests,
-    /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
+    /// This should only be called in the first HTTP request of a protocol, where an unsolicited nonce is ignored.
+    /// In later requests, use [`Dpop::verify_expecting_key()`] with the public key that this method returns.
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<PublicKey> {
         let Self(jwt) = self;
         let (_header, payload, public_key) = jwt
             .parse_and_verify_with_jwk(DPOP_VALIDATION.to_owned())
             .map_err(DpopError::InvalidJwt)?;
-        Self::verify_data(&payload, url, method, access_token, None)?;
+        Self::verify_data(&payload, url, method, access_token)?;
 
         Ok(public_key)
     }
 
-    /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`].
+    /// Verify the DPoP JWT against the specified public key obtained previously from [`Dpop::verify()`], returning
+    /// the nonce from the verified payload. The caller must validate and consume this nonce to prevent replay:
+    /// this method does not track `jti` values or validate `iat`.
     pub fn verify_expecting_key(
         self,
         expected_public_key: PublicKey,
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-        nonce: Option<&DpopNonce>,
-    ) -> Result<()> {
+    ) -> Result<DpopProofNonce> {
         let validation = DPOP_VALIDATION.to_owned().into_validation(&expected_public_key);
 
         let (_, payload) = self
             .0
             .parse_and_verify_with_expected_jwk(expected_public_key, validation)
             .map_err(DpopError::InvalidJwt)?;
-        Self::verify_data(&payload, url, method, access_token, nonce)?;
+        Self::verify_data(&payload, url, method, access_token)?;
 
-        Ok(())
+        Ok(DpopProofNonce(payload.nonce))
     }
 }
 
@@ -260,6 +263,8 @@ mod tests {
 
     use super::DPOP_JWT_TYPE;
     use super::Dpop;
+    use super::DpopError;
+    use super::DpopNonce;
     use super::DpopPayload;
     use crate::token::AccessToken;
 
@@ -268,12 +273,16 @@ mod tests {
     #[case(Some("123".to_string().into()), None)]
     #[case(Some("123".to_string().into()), Some("456".to_string().into()))]
     #[tokio::test]
-    async fn dpop(#[case] access_token: Option<AccessToken>, #[case] wrong_access_token: Option<AccessToken>) {
+    async fn dpop(
+        #[case] access_token: Option<AccessToken>,
+        #[case] wrong_access_token: Option<AccessToken>,
+        #[values(None, Some(DpopNonce::new_random()))] nonce: Option<DpopNonce>,
+    ) {
         let signing_key = SigningKey::generate();
         let url: Url = "https://example.com/path".parse().unwrap();
         let method = Method::POST;
 
-        let dpop = Dpop::new(&signing_key, url.clone(), &method, access_token.as_ref(), None).unwrap();
+        let dpop = Dpop::new(&signing_key, url.clone(), &method, access_token.as_ref(), nonce.clone()).unwrap();
 
         // Check the `typ` of the Header
         let header: Header = part(0, dpop.0.serialization());
@@ -303,8 +312,63 @@ mod tests {
         // We can verify the DPoP
         let pubkey = dpop.clone().verify(&url, &method, access_token.as_ref()).unwrap();
         assert_matches!(pubkey, PublicKey::ESP256(verifying_key) if verifying_key == *signing_key.verifying_key());
-        dpop.verify_expecting_key(pubkey, &url, &method, access_token.as_ref(), None)
-            .unwrap();
+        assert_eq!(
+            dpop.verify_expecting_key(pubkey, &url, &method, access_token.as_ref())
+                .unwrap()
+                .into_inner(),
+            nonce
+        );
+    }
+
+    #[test]
+    fn verify_expecting_key_returns_verified_nonce() {
+        let signing_key = SigningKey::generate();
+        let public_key = PublicKey::from(*signing_key.verifying_key());
+        let url: Url = "https://example.com/credential".parse().unwrap();
+        let access_token = AccessToken::from("access_token".to_string());
+        let nonce = DpopNonce::new_random();
+        let dpop = Dpop::new(
+            &signing_key,
+            url.clone(),
+            &Method::POST,
+            Some(&access_token),
+            Some(nonce.clone()),
+        )
+        .unwrap();
+
+        // A nonce must not bypass any of the proof's authentication or request-binding checks.
+        let wrong_key = PublicKey::from(*SigningKey::generate().verifying_key());
+        assert_matches!(
+            dpop.clone()
+                .verify_expecting_key(wrong_key, &url, &Method::POST, Some(&access_token)),
+            Err(DpopError::InvalidJwt(_))
+        );
+        assert_matches!(
+            dpop.clone()
+                .verify_expecting_key(public_key.clone(), &url, &Method::GET, Some(&access_token)),
+            Err(DpopError::IncorrectMethod)
+        );
+        assert_matches!(
+            dpop.clone().verify_expecting_key(
+                public_key.clone(),
+                &"https://example.com/other".parse().unwrap(),
+                &Method::POST,
+                Some(&access_token),
+            ),
+            Err(DpopError::IncorrectUrl)
+        );
+        assert_matches!(
+            dpop.clone()
+                .verify_expecting_key(public_key.clone(), &url, &Method::POST, None),
+            Err(DpopError::IncorrectAccessTokenHash)
+        );
+
+        assert_eq!(
+            dpop.verify_expecting_key(public_key, &url, &Method::POST, Some(&access_token))
+                .unwrap()
+                .into_inner(),
+            Some(nonce)
+        );
     }
 
     /// Decode and deserialize the specified part of the JWT.
