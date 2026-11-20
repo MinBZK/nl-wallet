@@ -3235,7 +3235,7 @@ mod tests {
                 Some(&"access_token".to_string().into()),
             )
             .unwrap();
-        assert_eq!(verified_nonce.as_ref(), Some(dpop_nonce));
+        assert_eq!(verified_nonce.into_inner().as_ref(), Some(dpop_nonce));
     }
 
     fn create_mock_wscd() -> (IssuanceMockRemoteWscd, TrustAnchors) {

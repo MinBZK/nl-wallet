@@ -1423,6 +1423,7 @@ impl Session<AccessTokenIssued> {
                 Some(access_token),
             )
             .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?
+            .into_inner()
             .ok_or(CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(
                 DpopError::IncorrectNonce,
             )))?;
@@ -2949,6 +2950,7 @@ mod tests {
                 Some(&access_token),
             )
             .unwrap()
+            .into_inner()
             .unwrap();
 
         let time = MockTimeGenerator::default();

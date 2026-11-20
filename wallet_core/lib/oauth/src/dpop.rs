@@ -128,6 +128,17 @@ impl DpopNonce {
     }
 }
 
+/// The optional nonce from a verified DPoP proof, pending validation against the nonce store.
+#[must_use = "the DPoP nonce must be checked against and consumed from the nonce store"]
+#[derive(Debug)]
+pub struct DpopProofNonce(Option<DpopNonce>);
+
+impl DpopProofNonce {
+    pub fn into_inner(self) -> Option<DpopNonce> {
+        self.0
+    }
+}
+
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -223,7 +234,7 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-    ) -> Result<Option<DpopNonce>> {
+    ) -> Result<DpopProofNonce> {
         let validation = DPOP_VALIDATION.to_owned().into_validation(&expected_public_key);
 
         let (_, payload) = self
@@ -232,7 +243,7 @@ impl Dpop {
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token)?;
 
-        Ok(payload.nonce)
+        Ok(DpopProofNonce(payload.nonce))
     }
 }
 
@@ -303,7 +314,8 @@ mod tests {
         assert_matches!(pubkey, PublicKey::ESP256(verifying_key) if verifying_key == *signing_key.verifying_key());
         assert_eq!(
             dpop.verify_expecting_key(pubkey, &url, &method, access_token.as_ref())
-                .unwrap(),
+                .unwrap()
+                .into_inner(),
             nonce
         );
     }
@@ -353,7 +365,8 @@ mod tests {
 
         assert_eq!(
             dpop.verify_expecting_key(public_key, &url, &Method::POST, Some(&access_token))
-                .unwrap(),
+                .unwrap()
+                .into_inner(),
             Some(nonce)
         );
     }
