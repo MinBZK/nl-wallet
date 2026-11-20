@@ -28,7 +28,7 @@ pub enum CoseError {
 
     #[error("unexpected type: expected {0}, found {1:?}")]
     #[category(pd)]
-    UnexpectedTyp(&'static str, Option<ciborium::Value>),
+    UnexpectedTyp(&'static str, Option<Box<ciborium::Value>>),
 
     #[error("mismatch between COSE algorithm and public key: {0:?}")]
     #[category(pd)]
@@ -100,7 +100,7 @@ mod tests {
             CoseError::UnsupportedAlgorithm(coset::Algorithm::Text("personal data".to_owned())),
             CoseError::UnexpectedTyp(
                 "application/statuslist+cwt",
-                Some(ciborium::Value::Text("application/statuslist+jwt".to_owned())),
+                Some(Box::new(ciborium::Value::Text("application/statuslist+jwt".to_owned()))),
             ),
         ] {
             assert_eq!(error.category(), Category::PersonalData);

@@ -44,7 +44,7 @@ pub trait CoseTyp {
         // The `typ` header contains a media type, which is case-insensitive and consists of ASCII characters only.
         match header_typ {
             Some(Value::Text(typ)) if typ.eq_ignore_ascii_case(Self::TYP) => Ok(()),
-            header_typ => Err(CoseError::UnexpectedTyp(Self::TYP, header_typ.cloned())),
+            header_typ => Err(CoseError::UnexpectedTyp(Self::TYP, header_typ.cloned().map(Box::new))),
         }
     }
 }
@@ -428,7 +428,7 @@ mod tests {
             .verify_with_typ_against_trust_anchors(&ca.to_trust_anchors(), &TimeGenerator, None)
             .unwrap_err();
 
-        assert_matches!(error, CoseError::UnexpectedTyp(TOY_TYP, Some(Value::Text(typ))) if typ == "application/other+cwt");
+        assert_matches!(error, CoseError::UnexpectedTyp(TOY_TYP, Some(typ)) if *typ == Value::Text("application/other+cwt".to_owned()));
     }
 
     #[tokio::test]
