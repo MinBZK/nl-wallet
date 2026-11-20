@@ -43,6 +43,36 @@ void main() {
     expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
   });
 
+  testWidgets('buildPurpose is hidden when purpose is empty', (WidgetTester tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPurpose(
+          context,
+          purpose: const {},
+          side: DividerSide.bottom,
+        ),
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.historyDetailScreenPurposeTitle), findsNothing);
+  });
+
+  testWidgets('buildPurpose is hidden when purpose text is blank', (WidgetTester tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPurpose(
+          context,
+          purpose: {const Locale('en'): '  '},
+          side: DividerSide.bottom,
+        ),
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.historyDetailScreenPurposeTitle), findsNothing);
+  });
+
   testWidgets('buildSharedAttributes', (WidgetTester tester) async {
     await tester.pumpWidgetWithAppWrapper(
       _WidgetTestWrapper(

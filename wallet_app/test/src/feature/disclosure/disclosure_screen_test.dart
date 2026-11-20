@@ -312,6 +312,21 @@ void main() {
       await screenMatchesGolden('confirm_data_attributes.dark');
     });
 
+    testGoldens('DisclosureConfirmDataAttributes - no purpose', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureConfirmDataAttributes(
+            relyingParty: WalletMockData.organization,
+            cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+            requestPurpose: const {},
+            sessionType: DisclosureSessionType.crossDevice,
+          ),
+        ),
+      );
+      await screenMatchesGolden('confirm_data_attributes.no_purpose.light');
+    });
+
     testGoldens('ltc15 DisclosureConfirmDataAttributes - full page', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         surfaceSize: const Size(375, 1100 /* tall to fit all content */),

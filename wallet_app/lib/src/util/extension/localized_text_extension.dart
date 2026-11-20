@@ -12,6 +12,9 @@ extension LocalizedTextExtension on LocalizedText {
   TextSpan l10nSpan(BuildContext context) =>
       TextSpan(text: l10nValueForLocale(context.activeLocale), locale: context.activeLocale);
 
+  /// Whether a non-blank translation can be resolved for the active locale (see [resolveEntryForLocale] for fallbacks).
+  bool hasL10nText(BuildContext context) => l10nValueForLocale(context.activeLocale).trim().isNotEmpty;
+
   /// Retrieve the entry for the provided languageCode, falling back to a sane default if none is found.
   /// Fallback logic:
   /// 1. Select the english translation

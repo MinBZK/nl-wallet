@@ -70,6 +70,22 @@ void main() {
     expect(titleFinder, findsOneWidget);
   });
 
+  testWidgets('purpose section is hidden when the purpose is empty', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () {},
+        onDeclinePressed: () {},
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+        requestPurpose: const {},
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.disclosureConfirmDataAttributesSubtitlePurpose), findsNothing);
+  });
+
   testWidgets('ltc15 verify decline button callback', (tester) async {
     bool isCalled = false;
     await tester.pumpWidgetWithAppWrapper(
