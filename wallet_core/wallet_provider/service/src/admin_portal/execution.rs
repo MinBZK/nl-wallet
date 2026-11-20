@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 
 use audit_log::audited;
@@ -51,7 +50,7 @@ pub async fn block_users<T, R, F, H>(
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
-) -> Result<HashMap<RecoveryCode, usize>, RevocationError>
+) -> Result<u64, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,

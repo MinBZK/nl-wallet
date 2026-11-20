@@ -255,7 +255,7 @@ impl WalletUserRepository for Repositories {
         &self,
         transaction: &Self::TransactionType,
         recovery_codes: &[RecoveryCode],
-    ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>, PersistenceError> {
+    ) -> Result<Vec<Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_ids_by_recovery_codes(transaction, recovery_codes).await
     }
 
@@ -892,7 +892,7 @@ pub mod mock {
                 &self,
                 transaction: &MockTransaction,
                 recovery_codes: &[RecoveryCode],
-            ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>, PersistenceError>;
+            ) -> Result<Vec<Uuid>, PersistenceError>;
 
             async fn find_wallet_user_states_by_recovery_code(
                 &self,
@@ -1294,12 +1294,9 @@ pub mod mock {
         async fn find_wallet_user_ids_by_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            recovery_codes: &[RecoveryCode],
-        ) -> Result<HashMap<RecoveryCode, Vec<Uuid>>, PersistenceError> {
-            Ok(recovery_codes
-                .iter()
-                .map(|code| (code.clone(), vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")]))
-                .collect())
+            _recovery_codes: &[RecoveryCode],
+        ) -> Result<Vec<Uuid>, PersistenceError> {
+            Ok(vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")])
         }
 
         async fn find_wallet_user_states_by_recovery_code(

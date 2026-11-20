@@ -435,7 +435,7 @@ async fn test_block_user_task_approval_revokes_wallet() {
     let task: TaskResponse = json_body(response).await;
     assert_eq!(task.status, TaskStatus::Approved);
     assert_eq!(task.execution_successful, Some(true));
-    assert_eq!(task.execution_details, Some("denied 1 recovery code(s)".to_string()));
+    assert_eq!(task.execution_details, Some("revoked 1 wallet(s)".to_string()));
 
     // The wallet is now revoked, so the recovery code has no active wallets left.
     let request = post_json_request(

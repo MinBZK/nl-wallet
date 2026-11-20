@@ -873,14 +873,12 @@ async fn test_revoke_wallets_by_recovery_code_list() {
     let unused_code: RecoveryCode = random_string(32).into();
     let recovery_codes: VecNonEmptyUnique<RecoveryCode> =
         vec_nonempty![code_a.clone(), code_b.clone(), unused_code.clone()].into();
-    let found_wallet_counts =
+    let revoked_wallets =
         system_revoke_wallets_by_recovery_code_list(&recovery_codes, &user_state, &MockTimeGenerator::default())
             .await
             .unwrap();
 
-    assert_eq!(found_wallet_counts.get(&code_a), Some(&2));
-    assert_eq!(found_wallet_counts.get(&code_b), Some(&1));
-    assert_eq!(found_wallet_counts.get(&unused_code), Some(&0));
+    assert_eq!(revoked_wallets, 3);
 
     let (revoked_wallet_ids, non_revoked_wallet_ids) = partition_by_indices(wallet_ids, &[0, 1, 2]);
     let (revoked_wia_ids, non_revoked_wia_ids) = partition_by_indices(wias, &[0, 1, 2]);

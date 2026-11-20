@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::collections::HashSet;
 use std::error::Error;
 
@@ -130,7 +129,7 @@ pub async fn revoke_wallets_by_recovery_code<T, R, F, H>(
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
     #[auditor] audit_log: &impl AuditLog,
-) -> Result<usize, RevocationError>
+) -> Result<u64, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -142,15 +141,12 @@ pub async fn system_revoke_wallets_by_recovery_code<T, R, F, H>(
     recovery_code: &RecoveryCode,
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
-) -> Result<usize, RevocationError>
+) -> Result<u64, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    let counts =
-        system_revoke_wallets_by_recovery_code_list(&vec_nonempty![recovery_code.clone()].into(), user_state, time)
-            .await?;
-    Ok(counts[recovery_code])
+    system_revoke_wallets_by_recovery_code_list(&vec_nonempty![recovery_code.clone()].into(), user_state, time).await
 }
 
 /// Denies all `recovery_codes` and revokes the wallets that have them, in one transaction, then revokes their WIAs in
@@ -160,7 +156,7 @@ pub async fn system_revoke_wallets_by_recovery_code_list<T, R, F, H>(
     recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
     time: &impl Generator<DateTime<Utc>>,
-) -> Result<HashMap<RecoveryCode, usize>, RevocationError>
+) -> Result<u64, RevocationError>
 where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
@@ -172,17 +168,10 @@ where
 
     user_state.repositories.deny_recovery_codes(&tx, recovery_codes).await?;
 
-    let found_wallet_user_ids = user_state
+    let wallet_user_ids = user_state
         .repositories
         .find_wallet_user_ids_by_recovery_codes(&tx, recovery_codes.as_slice())
         .await?;
-
-    let found_wallet_counts = found_wallet_user_ids
-        .iter()
-        .map(|(recovery_code, wallet_user_ids)| (recovery_code.clone(), wallet_user_ids.len()))
-        .collect();
-
-    let wallet_user_ids = found_wallet_user_ids.into_values().flatten().collect();
 
     let revoked = user_state
         .repositories
@@ -198,7 +187,7 @@ where
         .await
         .map_err(|error| RevocationError::WiaRevocation(Box::new(error)))?;
 
-    Ok(found_wallet_counts)
+    Ok(revoked.revoked_count)
 }
 
 // TODO(PVW-6179) Remove once the admin-portal is complete.

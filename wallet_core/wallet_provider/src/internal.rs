@@ -131,7 +131,7 @@ where
 
 #[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct RevokeByRecoveryCodeResponse {
-    found_wallet_count: usize,
+    found_wallet_count: u64,
 }
 
 #[utoipa::path(

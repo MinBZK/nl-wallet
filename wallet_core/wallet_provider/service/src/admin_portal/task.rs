@@ -399,7 +399,7 @@ where
             TaskPayload::BlockUser(block_user_parameters) => {
                 let recovery_codes = &block_user_parameters.recovery_codes;
                 match block_users(task.id, approver, recovery_codes, user_state, &self.time, audit_log).await {
-                    Ok(found_wallet_counts) => (true, format!("denied {} recovery code(s)", found_wallet_counts.len())),
+                    Ok(revoked_wallets) => (true, format!("revoked {revoked_wallets} wallet(s)")),
                     Err(error) => (false, error.to_string()),
                 }
             }
@@ -698,12 +698,7 @@ mod tests {
         wallet_user_repo
             .expect_find_wallet_user_ids_by_recovery_codes()
             .times(1)
-            .returning(move |_, recovery_codes| {
-                Ok(recovery_codes
-                    .iter()
-                    .map(|code| (code.clone(), (0..wallet_count).map(|_| Uuid::new_v4()).collect()))
-                    .collect())
-            });
+            .returning(move |_, _| Ok((0..wallet_count).map(|_| Uuid::new_v4()).collect()));
         wallet_user_repo
             .expect_revoke_wallet_users()
             .times(1)
@@ -1212,7 +1207,7 @@ mod tests {
             .expect("task should be executed");
 
         assert_eq!(executed.execution_successful, Some(true));
-        assert_eq!(executed.execution_details.as_deref(), Some("denied 2 recovery code(s)"));
+        assert_eq!(executed.execution_details.as_deref(), Some("revoked 2 wallet(s)"));
         assert!(audit_log.contains_match(|log: &String| log.contains("recovery_codes")));
     }
 
