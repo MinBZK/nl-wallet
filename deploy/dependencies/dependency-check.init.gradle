@@ -1,0 +1,39 @@
+initscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath 'org.owasp:dependency-check-gradle:13.0.0'
+    }
+}
+
+def repository = initscript.sourceFile.parentFile.parentFile.parentFile
+
+rootProject {
+    apply plugin: org.owasp.dependencycheck.gradle.DependencyCheckPlugin
+
+    dependencyCheck {
+        scanBuildEnv = true
+        skipTestGroups = false
+        failBuildOnCVSS = 0.1
+        formats = ['HTML', 'JSON', 'XML']
+        outputDirectory = new File(repository, "dependency_check_gradle/${repository.toPath().relativize(rootDir.toPath())}")
+        suppressionFile = new File(repository, 'deploy/dependencies/dependency-check-suppressions.xml').path
+        data {
+            directory = new File(repository, 'dependency_check_data').path
+        }
+        nvd {
+            apiKey = System.getenv('NVD_API_KEY')
+        }
+        analyzers {
+            assemblyEnabled = false
+            nodeAudit {
+                yarnEnabled = false
+            }
+            ossIndex {
+                username = System.getenv('OSS_INDEX_USERNAME')
+                password = System.getenv('OSS_INDEX_PASSWORD')
+            }
+        }
+    }
+}

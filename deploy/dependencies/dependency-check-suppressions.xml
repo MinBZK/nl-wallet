@@ -18,22 +18,6 @@
     <cve>CVE-2022-3095</cve>
     <cve>CVE-2026-27704</cve>
   </suppress>
-  <suppress>
-    <notes><![CDATA[
-    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/flutter_local_notifications@.*$</packageUrl>
-    <cve>CVE-2022-3095</cve>
-    <cve>CVE-2026-27704</cve>
-  </suppress>
-  <suppress>
-    <notes><![CDATA[
-    Reports issue in Dart 2.18 and Flutter 3.30, but we use Dart ^3.11.0 and Flutter ^3.41.2
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/flutter_native_splash@.*$</packageUrl>
-    <cve>CVE-2022-3095</cve>
-    <cve>CVE-2026-27704</cve>
-  </suppress>
 
   <suppress>
     <notes><![CDATA[
@@ -47,16 +31,8 @@
     <notes><![CDATA[
     False positive on [root](https://github.com/root-project/root/) project.
     ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/root_jailbreak_sniffer@.*$</packageUrl>
-    <cve>CVE-2026-24811</cve>
-  </suppress>
-
-  <suppress>
-    <notes><![CDATA[
-    False positive (Drupal)
-    ]]></notes>
-    <packageUrl regex="true">^pkg:cocoapods/video_player_avfoundation@.*$</packageUrl>
-    <cve>CVE-2015-3362</cve>
+    <packageUrl regex="true">^pkg:(cocoapods|pub)/root_jailbreak_sniffer@.*$</packageUrl>
+    <cpe>cpe:/a:root:root</cpe>
   </suppress>
 
   <suppress until="2027-01-01Z">
@@ -66,5 +42,198 @@
     ]]></notes>
     <packageUrl regex="true">^pkg:gem/activesupport@.*$</packageUrl>
     <cve>CVE-2026-126080</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Flutter engine artifacts have the placeholder version 1.0.0, which is not a Flutter release.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/io\.flutter/.*@1\.0\.0-.*$</packageUrl>
+    <cpe>cpe:/a:flutter:flutter</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: these Flutter plugins are not the Flutter SDK.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/(flutter_.*|leak_tracker_flutter_testing)@.*$</packageUrl>
+    <cpe>cpe:/a:flutter:flutter</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: pubspec.lock gives the lowest Dart SDK that the packages accept. We require ^3.13.0, fixed in 3.11.0.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/dart_software_development_kit@.*$</packageUrl>
+    <cve>CVE-2026-27704</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the YAML library for JavaScript and Go, not the Dart checked_yaml package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/checked_yaml@.*$</packageUrl>
+    <cpe>cpe:/a:yaml_project:yaml</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the node-cli package for Node.js, not the Dart cli packages.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/cli_(config|util)@.*$</packageUrl>
+    <cpe>cpe:/a:cli_project:cli</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the D-Bus message bus daemon, not the Dart dbus client package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/dbus@.*$</packageUrl>
+    <cpe>cpe:/a:d-bus:d-bus</cpe>
+    <cpe>cpe:/a:d-bus_project:d-bus</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Drupal Diff module, not the Dart diff_match_patch package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/diff_match_patch@.*$</packageUrl>
+    <cpe>cpe:/a:diff_project:diff</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the async package for JavaScript, not the Dart fake_async package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/fake_async@.*$</packageUrl>
+    <cpe>cpe:/a:async_project:async</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the utilities package for JavaScript, not the Dart material_color_utilities package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/material_color_utilities@.*$</packageUrl>
+    <cpe>cpe:/a:utilities_project:utilities</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the posix package for JavaScript, not the Dart posix package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/posix@.*$</packageUrl>
+    <cpe>cpe:/a:posix_project:posix</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the string package for JavaScript, not the Dart string_scanner package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/string_scanner@.*$</packageUrl>
+    <cpe>cpe:/a:string_project:string</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Dart http package, not the Dart sync_http package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/sync_http@.*$</packageUrl>
+    <cpe>cpe:/a:dart:http</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Drupal Video module, not the Flutter video_player packages.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:(pub|cocoapods)/video_player.*@.*$</packageUrl>
+    <cpe>cpe:/a:video_project:video</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Detector PHP application, not the Flutter visibility_detector package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/visibility_detector@.*$</packageUrl>
+    <cpe>cpe:/a:detector_project:detector</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the WebKit browser engine, not the Dart webkit_inspection_protocol package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pub/webkit_inspection_protocol@.*$</packageUrl>
+    <cpe>cpe:/a:webkit:webkit</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the old Android stock browser, not the androidx.browser library.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/androidx\.browser/browser@.*$</packageUrl>
+    <cpe>cpe:/a:android:android_browser</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Camera Life PHP application, not the androidx.camera library.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/androidx\.camera/camera-lifecycle@.*$</packageUrl>
+    <cpe>cpe:/a:camera_life:camera_life</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: these androidx wrappers do not contain SQLite, and their version is not a SQLite version.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/androidx\.sqlite/sqlite-(android|framework-android)@.*$</packageUrl>
+    <cpe>cpe:/a:sqlite:sqlite</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Android SDK m3 from 2008, not the analytics protos of the Android Gradle plugin.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/com\.android\.tools\.analytics-library/protos@.*$</packageUrl>
+    <cpe>cpe:/a:google:android_sdk</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: Java SE and Netscape, not the JNA library.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/net\.java\.dev\.jna/jna@.*$</packageUrl>
+    <cpe>cpe:/a:sun:java</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the Tasks.org Android application, not kotlinx-coroutines-play-services.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlinx/kotlinx-coroutines-play-services@.*$</packageUrl>
+    <cpe>cpe:/a:tasks:tasks</cpe>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the CVE is for opentelemetry-js, not the Java libraries.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/io\.opentelemetry/.*@.*$</packageUrl>
+    <cve>CVE-2026-54285</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the CVE is for the Allure report generator, not the Allure Java libraries.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/io\.qameta\.allure/allure-(java-commons|junit5|junit-platform|model|test-filter)@.*$</packageUrl>
+    <cve>CVE-2026-33166</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
+    False positive: the CVE is for @babel/core for JavaScript, not the Python Babel package.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:pypi/babel@.*$</packageUrl>
+    <cve>CVE-2026-49356</cve>
   </suppress>
 </suppressions>
