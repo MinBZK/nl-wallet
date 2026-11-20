@@ -196,7 +196,7 @@ requirements are effectively non-existent due to usage of PostgreSQL for state.
 
 ##### Additional supporting services (in addition to rust-based backend services)
 
-The Wallet app needs several supporting services to runin order to create the
+The Wallet app needs several supporting services to run in order to create the
 Wallet. The services are the following:
 
 - static_server
