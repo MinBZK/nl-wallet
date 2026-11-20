@@ -84,6 +84,8 @@ class RequestDetailCommonBuilders {
     required LocalizedText purpose,
     DividerSide side = DividerSide.none,
   }) {
+    // Purpose is optional in the registration certificate, don't render an empty section.
+    if (!purpose.hasL10nText(context)) return const SizedBox.shrink();
     return ListItem(
       label: Text.rich(context.l10n.historyDetailScreenPurposeTitle.toTextSpan(context)),
       subtitle: Text.rich(purpose.l10nSpan(context)),
