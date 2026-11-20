@@ -215,6 +215,16 @@
 
   <suppress>
     <notes><![CDATA[
+    False positive: CVE-2026-53914 is in the build cache of the Kotlin compiler, not in the Kotlin runtime libraries.
+    CVE-2020-29582 is fixed in Kotlin 1.4.21, and all our Kotlin runtime libraries are newer.
+    ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin-(stdlib.*|reflect|android-extensions-runtime|parcelize-runtime)@.*$</packageUrl>
+    <cve>CVE-2026-53914</cve>
+    <cve>CVE-2020-29582</cve>
+  </suppress>
+
+  <suppress>
+    <notes><![CDATA[
     False positive: the CVE is for opentelemetry-js, not the Java libraries.
     ]]></notes>
     <packageUrl regex="true">^pkg:maven/io\.opentelemetry/.*@.*$</packageUrl>

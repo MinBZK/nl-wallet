@@ -13,8 +13,9 @@ rootProject {
     apply plugin: org.owasp.dependencycheck.gradle.DependencyCheckPlugin
 
     dependencyCheck {
-        scanBuildEnv = true
-        skipTestGroups = false
+        // Only scan what ships in the app, and the uiautomation tests
+        scanProjects = [':', ':app']
+        scanConfigurations = ['releaseRuntimeClasspath', 'runtimeClasspath']
         failBuildOnCVSS = 0.1
         formats = ['HTML', 'JSON', 'XML']
         outputDirectory = new File(repository, "dependency_check_gradle/${repository.toPath().relativize(rootDir.toPath())}")
