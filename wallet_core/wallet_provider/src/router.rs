@@ -312,12 +312,15 @@ where
 
 async fn enroll<GRC, PIC, T>(
     State(state): State<Arc<RouterState<GRC, PIC, T>>>,
-) -> Result<(StatusCode, Json<Challenge>)> {
+) -> Result<(StatusCode, Json<Challenge>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received enroll request, creating registration challenge");
 
     let challenge = state
         .account_server
-        .registration_challenge(&state.certificate_signing_key, &state.user_state)
+        .registration_challenge(&state.certificate_signing_key, &state.user_state, &state.generators)
         .await
         .inspect_err(|error| warn!("generating wallet registration challenge failed: {}", error))?;
 

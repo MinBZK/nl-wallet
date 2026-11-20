@@ -15,6 +15,11 @@ use super::router;
 use super::router_state::RouterState;
 use super::settings::Settings;
 
+/// Serve the wallet provider, using `time_generator` as its clock.
+///
+/// Some time checks still use wall-clock time and are not affected by `time_generator`:
+/// - `exp` validation of registration challenges and wallet certificates, which `jsonwebtoken` performs;
+/// - the audit log and the admin portal.
 pub async fn serve<GRC, PIC, T>(
     settings: Settings,
     hsm: Pkcs11Hsm,
@@ -39,6 +44,7 @@ where
     .await
 }
 
+/// Like [`serve`], but using an already bound `listener`.
 pub async fn serve_with_listener<GRC, PIC, T>(
     listener: TcpListener,
     settings: Settings,
