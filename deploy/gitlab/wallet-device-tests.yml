@@ -5,7 +5,7 @@ test-ios-wallet-device:
   needs:
     - job: automation-tests-load-device-config
       artifacts: true
-  rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.ios-wallet-device-rules, rules]
   before_script:
     - !reference [.install-ios-signing, before_script]
   script:
@@ -34,7 +34,7 @@ test-android-wallet-device:
   needs:
     - job: automation-tests-load-device-config
       artifacts: true
-  rules: !reference [.default-or-merge-request, rules]
+  rules: !reference [.android-wallet-device-rules, rules]
   before_script:
     - export PATH="$ANDROID_HOME/platform-tools:$HOME/.cargo/bin:$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
     - bundle install

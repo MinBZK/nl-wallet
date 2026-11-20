@@ -380,11 +380,12 @@ for the shared scenarios, fixtures, local commands, and CI jobs.
 
 ### Device suites
 
-The full suites run on the Mac mini that has the devices attached, on every
-default branch and merge request pipeline. See
-`deploy/gitlab/platform-support-tests.yml` and `deploy/gitlab/wallet-device-tests.yml`. All jobs share the
-`real-device-automation-tests` resource group, so concurrent pipelines queue for
-the devices.
+All four suites run on the Mac mini in regular default-branch pipelines.
+Merge request pipelines select suites by changed files. For example, a change
+to the Android PlatformSupport library selects both Android suites, while a
+change to the shared Mac reader selects all four. The path rules are in
+`deploy/gitlab/device-test-rules.yml`. Selected jobs share the
+`real-device-automation-tests` resource group and use the devices one at a time.
 
 | job                                    | runs                                                            |
 | -------------------------------------- | --------------------------------------------------------------- |

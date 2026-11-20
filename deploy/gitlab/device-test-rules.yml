@@ -1,0 +1,84 @@
+# All four real-device suites build PlatformSupport and use the same Mac BLE reader.
+.device-test-rules:
+  rules:
+    - !reference [.default-branch, rules]
+    - &device-test-mr
+      if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      interruptible: true
+      variables:
+        CACHE_POLICY: pull
+      changes:
+        - .gitlab-ci.yml
+        - deploy/gitlab/{device-test-rules,e2e-tests}.yml
+        - deploy/bin/store-*.sh
+        - fastlane/**/*
+        - Gemfile*
+        - .bundle/config
+        - scripts/close_proximity/**/*
+        - rust-toolchain.toml
+        - .cargo/**/*
+        - wallet_core/Cargo.{toml,lock}
+        - wallet_core/uniffi-bindgen/**/*
+        - wallet_core/wallet/platform_support/*.{rs,sh,toml}
+        - wallet_core/wallet/platform_support/{src,udl}/**/*
+        # Local Cargo dependencies of PlatformSupport are also linked by the wallet suites.
+        - wallet_core/lib/{android_attest,apple_app_attest,attestation_types,cose,crypto,error_category}/**/*
+        - wallet_core/lib/{http_utils,jwt,mdoc,token_status_list,utils}/**/*
+
+.ios-device-rules:
+  rules:
+    - !reference [.device-test-rules, rules]
+    - <<: *device-test-mr
+      changes:
+        - wallet_core/wallet/platform_support/{ios,swift}/**/*
+        - scripts/find-cargo.sh
+        - deploy/qa-util/patch-wda-signing.rb
+
+.android-device-rules:
+  rules:
+    - !reference [.device-test-rules, rules]
+    - <<: *device-test-mr
+      changes:
+        - wallet_core/wallet/platform_support/{android,kotlin}/**/*
+
+.platform-support-ci-rules:
+  rules:
+    - <<: *device-test-mr
+      changes:
+        - deploy/gitlab/{platform-support-tests,sonar}.yml
+
+.wallet-device-rules:
+  rules:
+    - <<: *device-test-mr
+      changes:
+        - deploy/gitlab/wallet-device-tests.yml
+        - wallet_core/wallet/*.{rs,toml,json,dict}
+        - wallet_core/wallet/{assets,configuration,entity,migrations,src}/**/*
+        - wallet_core/wallet/device_integration_tests/Cargo.toml
+        - wallet_core/wallet/device_integration_tests/src/**/*
+        - wallet_core/wallet/examples/verify_close_proximity_response.rs
+        - wallet_core/lib/{attestation_data,dcql,jwe,oauth,openid4vc,sd_jwt,sd_jwt_vc_metadata,wscd}/**/*
+        - wallet_core/update_policy/model/**/*
+        - wallet_core/wallet_provider/{readable_identifier,wallet_account}/**/*
+
+.ios-wallet-device-rules:
+  rules:
+    - !reference [.ios-device-rules, rules]
+    - !reference [.wallet-device-rules, rules]
+    - <<: *device-test-mr
+      changes:
+        - wallet_app/ios/**/*
+        # The Xcode project resolves Flutter plugins before building the native test target.
+        - wallet_app/.fvmrc
+        - pubspec.{yaml,lock}
+        - wallet_app/**/pubspec.yaml
+        - wallet_app/plugins/*/ios/**/*
+
+.android-wallet-device-rules:
+  rules:
+    - !reference [.android-device-rules, rules]
+    - !reference [.wallet-device-rules, rules]
+    - <<: *device-test-mr
+      changes:
+        - wallet_app/android/gradlew
+        - wallet_app/android/{gradle,wallet-integration-tests}/**/*

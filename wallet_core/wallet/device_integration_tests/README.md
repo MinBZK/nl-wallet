@@ -172,7 +172,9 @@ ANDROID_SERIAL=<adb-serial> bundle exec fastlane android test_wallet_device
 ```
 
 `deploy/gitlab/wallet-device-tests.yml` runs `test-ios-wallet-device` and `test-android-wallet-device`
-on the Mac mini for default-branch and merge-request pipelines. Both share
+on the Mac mini in regular default-branch pipelines. On merge requests, a change to
+the shared Rust wallet scenarios selects both jobs. A change to one native wallet
+test harness selects that platform's job. Both share
 `real-device-automation-tests` with the PlatformSupport and other device jobs to prevent
 simultaneous access to the phones and Mac BLE reader.
 
