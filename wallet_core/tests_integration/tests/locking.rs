@@ -163,6 +163,8 @@ async fn ltc46_test_unlock_error() {
     );
     assert!(wallet.is_locked());
 
+    advance_time(200);
+
     let r4 = wallet
         .unlock(wrong_pin_3.clone())
         .await
@@ -176,9 +178,9 @@ async fn ltc46_test_unlock_error() {
     advance_time(50);
 
     let r5 = wallet
-        .unlock(wrong_pin_3.clone())
+        .unlock(correct_pin.clone())
         .await
-        .expect_err("invalid pin should return error");
+        .expect_err("correct pin should be rejected during timeout");
     assert_matches!(
         r5,
         WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: 150 })
