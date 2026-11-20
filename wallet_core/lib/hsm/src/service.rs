@@ -17,7 +17,6 @@ use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
 use cryptoki_sys::CK_AES_CTR_PARAMS;
 use derive_more::AsRef;
-use futures::future;
 use measure::measure;
 use p256::NistP256;
 use p256::ecdsa::Signature;
@@ -28,6 +27,8 @@ use sec1::der::Decode;
 use sec1::der::Encode;
 use sec1::der::asn1::OctetStringRef;
 use utils::spawn;
+use utils::vec_at_least;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::finalize::Pkcs11FinalizePool;
@@ -192,7 +193,7 @@ impl AesKeyUsage {
     }
 }
 
-pub trait Pkcs11Client {
+pub(crate) trait Pkcs11Client {
     async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
     async fn get_secret_key_handle(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn get_private_key_handle(&self, identifier: &str) -> Result<PrivateKeyHandle>;
@@ -232,32 +233,10 @@ pub trait Pkcs11Client {
         key: &PrivateKeyHandle,
         public_key: VerifyingKey,
     ) -> Result<WrappedKey>;
-    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey>;
-    async fn generate_wrapped_keys(
-        &self,
-        wrapping_key_identifier: &str,
-        count: NonZeroUsize,
-    ) -> Result<VecNonEmpty<(String, WrappedKey)>> {
-        future::try_join_all((0..count.get()).map(|_| async move {
-            let result = self.generate_wrapped_key(wrapping_key_identifier).await;
-            result.map(|wrapped| (verifying_key_sha256(wrapped.public_key()), wrapped))
-        }))
-        .await
-        .map(|keys| {
-            // Unwrap is safe because we generated `count` keys, which is a nonzero type
-            keys.try_into().unwrap()
-        })
-    }
-    async fn sign_wrapped(
-        &self,
-        wrapping_key_identifier: &str,
-        wrapped_key: WrappedKey,
-        data: [u8; 32],
-    ) -> Result<Signature>;
 }
 
 #[cfg(feature = "test")]
-pub trait TestPkcs11Client: Pkcs11Client {
+pub(crate) trait TestPkcs11Client: Pkcs11Client {
     async fn generate_aes_key(&self, identifier: &str, usage: AesKeyUsage) -> Result<SecretKeyHandle>;
     async fn generate_generic_secret_key(&self, identifier: &str) -> Result<SecretKeyHandle>;
     async fn generate_signing_key_pair(&self, identifier: &str) -> Result<(PublicKeyHandle, PrivateKeyHandle)>;
@@ -318,6 +297,67 @@ impl Pkcs11Hsm {
 
 impl Hsm for Pkcs11Hsm {
     type Error = HsmError;
+
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+    async fn generate_wrapped_keys(
+        &self,
+        wrapping_key_identifier: &str,
+        count: NonZeroUsize,
+    ) -> Result<VecNonEmpty<(String, WrappedKey)>> {
+        vec_at_least::try_join_all(vec_at_least::repeat_n((), count).map(|()| async move {
+            let wrapped = self.generate_wrapped_key(wrapping_key_identifier).await?;
+            Ok((verifying_key_sha256(wrapped.public_key()), wrapped))
+        }))
+        .await
+    }
+
+    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
+    async fn sign_wrapped(
+        &self,
+        wrapping_key_identifier: &str,
+        wrapped_key: WrappedKey,
+        prehashed_data: [u8; 32],
+    ) -> Result<Signature> {
+        let pool = self.pool.clone();
+        let wrapping_key_identifier = String::from(wrapping_key_identifier);
+
+        spawn::blocking(move || {
+            let session = pool.get()?;
+
+            let wrapping_key_handle = session
+                .find_objects(&[
+                    Attribute::Class(HandleType::Secret.to_object_class()),
+                    Attribute::Label(wrapping_key_identifier.clone().into()),
+                ])?
+                .first()
+                .copied()
+                .ok_or(HsmError::KeyNotFound(wrapping_key_identifier))?;
+
+            let unwrapped_key = session.unwrap_key(
+                &Mechanism::AesKeyWrapPad,
+                wrapping_key_handle,
+                wrapped_key.wrapped_private_key(),
+                &[
+                    Attribute::KeyType(KeyType::EC),
+                    Attribute::Token(false),
+                    Attribute::Private(true),
+                    Attribute::Class(ObjectClass::PRIVATE_KEY),
+                ],
+            )?;
+
+            let signature_result = session.sign(&Mechanism::Ecdsa, unwrapped_key, &prehashed_data);
+
+            // Delete the unwrapped key again without waiting for that to complete
+            tokio::task::spawn_blocking(move || {
+                if let Err(err) = session.destroy_object(unwrapped_key) {
+                    tracing::warn!("failed to delete private key: {err:?}");
+                }
+            });
+
+            Signature::from_slice(&signature_result?).map_err(HsmError::from)
+        })
+        .await
+    }
 
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey> {
         let handle = self.get_public_key_handle(identifier).await?;
@@ -702,70 +742,6 @@ impl Pkcs11Client for Pkcs11Hsm {
         })
         .await
     }
-
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey> {
-        // TODO: PVW-5862 handles can be used in different sessions that are
-        // either connected to a different PKCS11 device or the session can be
-        // closed by the pool which will cause the deletion of session objects.
-        let wrapping_handle = self.get_secret_key_handle(wrapping_key_identifier).await?;
-        let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
-        let verifying_key = Pkcs11Client::get_verifying_key(self, &public_handle).await?;
-
-        let result = self.wrap_key(&wrapping_handle, &private_handle, verifying_key).await;
-
-        self.clone().delete_keypair_in_background(private_handle, public_handle);
-
-        result
-    }
-
-    #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
-    async fn sign_wrapped(
-        &self,
-        wrapping_key_identifier: &str,
-        wrapped_key: WrappedKey,
-        prehashed_data: [u8; 32],
-    ) -> Result<Signature> {
-        let pool = self.pool.clone();
-        let wrapping_key_identifier = String::from(wrapping_key_identifier);
-
-        spawn::blocking(move || {
-            let session = pool.get()?;
-
-            let wrapping_key_handle = session
-                .find_objects(&[
-                    Attribute::Class(HandleType::Secret.to_object_class()),
-                    Attribute::Label(wrapping_key_identifier.clone().into()),
-                ])?
-                .first()
-                .copied()
-                .ok_or(HsmError::KeyNotFound(wrapping_key_identifier))?;
-
-            let unwrapped_key = session.unwrap_key(
-                &Mechanism::AesKeyWrapPad,
-                wrapping_key_handle,
-                wrapped_key.wrapped_private_key(),
-                &[
-                    Attribute::KeyType(KeyType::EC),
-                    Attribute::Token(false),
-                    Attribute::Private(true),
-                    Attribute::Class(ObjectClass::PRIVATE_KEY),
-                ],
-            )?;
-
-            let signature_result = session.sign(&Mechanism::Ecdsa, unwrapped_key, &prehashed_data);
-
-            // Delete the unwrapped key again without waiting for that to complete
-            tokio::task::spawn_blocking(move || {
-                if let Err(err) = session.destroy_object(unwrapped_key) {
-                    tracing::warn!("failed to delete private key: {err:?}");
-                }
-            });
-
-            Signature::from_slice(&signature_result?).map_err(HsmError::from)
-        })
-        .await
-    }
 }
 
 impl AesSivBackend for Pkcs11Hsm {
@@ -826,6 +802,21 @@ impl Pkcs11Hsm {
 }
 
 impl Pkcs11Hsm {
+    async fn generate_wrapped_key(&self, wrapping_key_identifier: &str) -> Result<WrappedKey> {
+        // TODO: PVW-5862 handles can be used in different sessions that are
+        // either connected to a different PKCS11 device or the session can be
+        // closed by the pool which will cause the deletion of session objects.
+        let wrapping_handle = self.get_secret_key_handle(wrapping_key_identifier).await?;
+        let (public_handle, private_handle) = self.generate_session_signing_key_pair().await?;
+        let verifying_key = Pkcs11Client::get_verifying_key(self, &public_handle).await?;
+
+        let result = self.wrap_key(&wrapping_handle, &private_handle, verifying_key).await;
+
+        self.clone().delete_keypair_in_background(private_handle, public_handle);
+
+        result
+    }
+
     fn delete_keypair_in_background(self, private_key_handle: PrivateKeyHandle, public_key_handle: PublicKeyHandle) {
         tokio::spawn(async move {
             if let Err(err) = Pkcs11Client::delete_key(&self, private_key_handle).await {

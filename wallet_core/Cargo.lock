@@ -3925,7 +3925,6 @@ dependencies = [
  "dashmap 6.1.0",
  "der 0.8.2",
  "derive_more",
- "futures",
  "hmac 0.13.0",
  "measure",
  "metrics",

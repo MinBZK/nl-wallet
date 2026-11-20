@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::io::Read;
 use std::io::Write;
+use std::num::NonZeroUsize;
 use std::path::Path;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -8,7 +9,6 @@ use std::sync::atomic::AtomicBool;
 
 use config::Config;
 use config::ConfigError;
-use crypto::aes_siv::AesSivBackend;
 use crypto::aes_siv::AesSivKey;
 use crypto::aes_siv::aes_siv_decrypt;
 use crypto::aes_siv::aes_siv_encrypt;
@@ -33,7 +33,7 @@ use crate::model::TestHsm;
 use crate::model::encrypted::Encrypted;
 use crate::model::encrypter::Decrypter;
 use crate::model::encrypter::Encrypter;
-use crate::model::mock::MockPkcs11Client;
+use crate::model::mock::MockHsm;
 use crate::service::AES_BLOCK_SIZE;
 use crate::service::AesKeyUsage;
 use crate::service::HsmError;
@@ -176,11 +176,11 @@ impl<H> TestCase<H> {
     }
 }
 
-impl TestCase<MockPkcs11Client<HsmError>> {
+impl TestCase<MockHsm<HsmError>> {
     pub fn mock(identifier_prefix: String) -> Self {
         Self {
             identifier_prefix,
-            hsm: MockPkcs11Client::default(),
+            hsm: MockHsm::default(),
         }
     }
 }
@@ -257,13 +257,41 @@ impl<H> TestCase<H> {
         assert_eq!(verifying_key, decrypted);
     }
 
-    pub async fn encrypt_ctr(self: TestCase<H>)
+    pub async fn wrap_key_and_sign(self: TestCase<H>)
     where
-        H: TestPkcs11Client,
+        H: TestHsm,
     {
         let (hsm, identifier) = self.test_params();
 
-        let key_handle = hsm.generate_aes_key(&identifier, AesKeyUsage::Encrypt).await.unwrap();
+        TestHsm::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
+            .await
+            .unwrap();
+
+        let (_, wrapped) = hsm
+            .generate_wrapped_keys(&identifier, NonZeroUsize::MIN)
+            .await
+            .unwrap()
+            .into_first();
+        let public_key = *wrapped.public_key();
+
+        // Sign the SHA-256 digest of a message, so that the signature verifies as a normal ECDSA signature
+        // over the message itself.
+        let message = random_bytes(32);
+        let signature = hsm.sign_wrapped(&identifier, wrapped, sha256(&message)).await.unwrap();
+
+        public_key.verify(&message, &signature).unwrap();
+    }
+}
+
+// These tests are not generic over `H`, unlike those above, because they use the crate-private
+// `Pkcs11Client` API directly, or need to import keys with known values. Only `Pkcs11Hsm` can do either.
+impl TestCase<Pkcs11Hsm> {
+    pub async fn encrypt_ctr(self: TestCase<Pkcs11Hsm>) {
+        let (hsm, identifier) = self.test_params();
+
+        let key_handle = TestPkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
+            .await
+            .unwrap();
 
         let data = random_bytes(32);
         let counter_block: [u8; AES_BLOCK_SIZE] = random_bytes(AES_BLOCK_SIZE).try_into().unwrap();
@@ -285,16 +313,15 @@ impl<H> TestCase<H> {
         assert_eq!(data, decrypted);
     }
 
-    pub async fn cmac(self: TestCase<H>)
-    where
-        H: TestPkcs11Client,
-    {
+    pub async fn cmac(self: TestCase<Pkcs11Hsm>) {
         let (hsm, identifier) = self.test_params();
 
         // Note that a CMAC key is generated here, not an encryption key: the two usages are
         // mutually exclusive. SoftHSM does not enforce CKA_SIGN, so it would accept an encryption
         // key here, but a stricter HSM will not.
-        let key_handle = hsm.generate_aes_key(&identifier, AesKeyUsage::Cmac).await.unwrap();
+        let key_handle = TestPkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Cmac)
+            .await
+            .unwrap();
 
         let data = random_bytes(32);
 
@@ -310,33 +337,7 @@ impl<H> TestCase<H> {
         assert_ne!(cmac, other_cmac);
     }
 
-    pub async fn wrap_key_and_sign(self: TestCase<H>)
-    where
-        H: TestPkcs11Client,
-    {
-        let (hsm, identifier) = self.test_params();
-
-        let _ = TestPkcs11Client::generate_aes_key(hsm, &identifier, AesKeyUsage::Encrypt)
-            .await
-            .unwrap();
-
-        let wrapped = hsm.generate_wrapped_key(&identifier).await.unwrap();
-        let public_key = *wrapped.public_key();
-
-        // Sign the SHA-256 digest of a message, so that the signature verifies as a normal ECDSA signature
-        // over the message itself.
-        let message = random_bytes(32);
-        let signature = Pkcs11Client::sign_wrapped(hsm, &identifier, wrapped, sha256(&message))
-            .await
-            .unwrap();
-
-        public_key.verify(&message, &signature).unwrap();
-    }
-
-    pub async fn aes_siv(self: TestCase<H>)
-    where
-        H: TestPkcs11Client + AesSivBackend<MacKey = SecretKeyHandle, EncryptionKey = SecretKeyHandle>,
-    {
+    pub async fn aes_siv(self: TestCase<Pkcs11Hsm>) {
         let mac_key_id = self.new_identifier();
         let enc_key_id = self.new_identifier();
 
@@ -344,8 +345,12 @@ impl<H> TestCase<H> {
 
         // Note the usages: CMAC needs CKA_SIGN, CTR needs CKA_ENCRYPT, and the two halves of K
         // must be distinct keys.
-        let mac_key = hsm.generate_aes_key(&mac_key_id, AesKeyUsage::Cmac).await.unwrap();
-        let encryption_key = hsm.generate_aes_key(&enc_key_id, AesKeyUsage::Encrypt).await.unwrap();
+        let mac_key = TestPkcs11Client::generate_aes_key(hsm, &mac_key_id, AesKeyUsage::Cmac)
+            .await
+            .unwrap();
+        let encryption_key = TestPkcs11Client::generate_aes_key(hsm, &enc_key_id, AesKeyUsage::Encrypt)
+            .await
+            .unwrap();
 
         let key = AesSivKey::try_new(mac_key, encryption_key).unwrap();
 
@@ -366,11 +371,7 @@ impl<H> TestCase<H> {
             );
         }
     }
-}
 
-// This test is not generic over `H`, unlike those above, because it needs to import keys with known
-// values, which only `Pkcs11Hsm` can do.
-impl TestCase<Pkcs11Hsm> {
     /// Runs the pinned AES-SIV vectors from the `crypto` crate through the HSM, checking that the
     /// PKCS#11 primitives produce RFC 5297 output rather than merely output they agree with
     /// themselves on.

@@ -2,14 +2,29 @@ pub mod encrypted;
 pub mod encrypter;
 pub mod wrapped_key;
 
+use std::num::NonZeroUsize;
+
 use p256::ecdsa::Signature;
 use p256::ecdsa::VerifyingKey;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::model::encrypted::Encrypted;
+use crate::model::wrapped_key::WrappedKey;
 
 pub trait Hsm {
     type Error: std::error::Error + Send + Sync;
 
+    async fn generate_wrapped_keys(
+        &self,
+        wrapping_key_identifier: &str,
+        count: NonZeroUsize,
+    ) -> Result<VecNonEmpty<(String, WrappedKey)>, Self::Error>;
+    async fn sign_wrapped(
+        &self,
+        wrapping_key_identifier: &str,
+        wrapped_key: WrappedKey,
+        prehashed_data: [u8; 32],
+    ) -> Result<Signature, Self::Error>;
     async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error>;
     async fn sign_ecdsa(&self, identifier: &str, data: &[u8]) -> Result<Signature, Self::Error>;
     async fn sign_hmac(&self, identifier: &str, data: &[u8]) -> Result<Vec<u8>, Self::Error>;
@@ -29,7 +44,9 @@ pub trait TestHsm: Hsm {
 pub mod mock {
     use std::error::Error;
     use std::marker::PhantomData;
+    use std::num::NonZeroUsize;
 
+    use crypto::p256_der::verifying_key_sha256;
     use crypto::utils::random_bytes;
     use dashmap::DashMap;
     use hmac::Hmac;
@@ -43,6 +60,9 @@ pub mod mock {
     use p256::ecdsa::signature::hazmat::RandomizedPrehashSigner;
     use p256::elliptic_curve::Generate;
     use sha2::Sha256;
+    use utils::vec_at_least::NonEmptyIterator;
+    use utils::vec_at_least::VecNonEmpty;
+    use utils::vec_at_least::repeat_n;
 
     use crate::model::Hsm;
     use crate::model::encrypted::Encrypted;
@@ -50,21 +70,13 @@ pub mod mock {
     use crate::model::encrypter::Decrypter;
     use crate::model::encrypter::Encrypter;
     use crate::model::wrapped_key::WrappedKey;
-    use crate::service::AES_BLOCK_SIZE;
     use crate::service::AesKeyUsage;
-    use crate::service::HsmError;
-    use crate::service::KeyHandle;
-    use crate::service::Pkcs11Client;
-    use crate::service::PrivateKeyHandle;
-    use crate::service::PublicKeyHandle;
-    use crate::service::SecretKeyHandle;
-    use crate::service::SignVerifyKeyHandle;
 
     type HmacSha256 = Hmac<Sha256>;
 
-    pub struct MockPkcs11Client<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
+    pub struct MockHsm<E>(DashMap<String, SigningKey>, DashMap<String, Vec<u8>>, PhantomData<E>);
 
-    impl<E> MockPkcs11Client<E> {
+    impl<E> MockHsm<E> {
         pub fn get_signing_key(&self, key_prefix: &str, identifier: &str) -> Result<SigningKey, E> {
             let key_identifier = format!("{key_prefix}_{identifier}");
             let entry = self.0.get(&key_identifier).unwrap();
@@ -81,13 +93,13 @@ pub mod mock {
         }
     }
 
-    impl<E> Default for MockPkcs11Client<E> {
+    impl<E> Default for MockHsm<E> {
         fn default() -> Self {
             Self(DashMap::new(), DashMap::new(), PhantomData)
         }
     }
 
-    impl<E: Error + Send + Sync> Encrypter<VerifyingKey> for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync> Encrypter<VerifyingKey> for MockHsm<E> {
         type Error = E;
 
         async fn encrypt(
@@ -100,7 +112,7 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync> Decrypter<VerifyingKey> for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync> Decrypter<VerifyingKey> for MockHsm<E> {
         type Error = E;
 
         async fn decrypt(
@@ -112,7 +124,7 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync + From<MacError>> crate::model::TestHsm for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync + From<MacError>> crate::model::TestHsm for MockHsm<E> {
         async fn generate_generic_secret_key(&self, identifier: &str) -> Result<(), Self::Error> {
             self.1.insert(String::from(identifier), random_bytes(32));
             Ok(())
@@ -130,8 +142,37 @@ pub mod mock {
         }
     }
 
-    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockPkcs11Client<E> {
+    impl<E: Error + Send + Sync + From<MacError>> Hsm for MockHsm<E> {
         type Error = E;
+
+        async fn generate_wrapped_keys(
+            &self,
+            _wrapping_key_identifier: &str,
+            count: NonZeroUsize,
+        ) -> Result<VecNonEmpty<(String, WrappedKey)>, Self::Error> {
+            let keys = repeat_n((), count)
+                .map(|()| {
+                    let key = SigningKey::generate();
+                    let wrapped = WrappedKey::new(key.to_bytes().to_vec(), *key.verifying_key());
+                    (verifying_key_sha256(wrapped.public_key()), wrapped)
+                })
+                .collect();
+
+            Ok(keys)
+        }
+
+        async fn sign_wrapped(
+            &self,
+            _wrapping_key_identifier: &str,
+            wrapped_key: WrappedKey,
+            prehashed_data: [u8; 32],
+        ) -> Result<Signature, Self::Error> {
+            let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
+            let signature = key
+                .sign_prehash_with_rng(&mut rand::rng(), prehashed_data.as_slice())
+                .unwrap();
+            Ok(signature)
+        }
 
         async fn get_verifying_key(&self, identifier: &str) -> Result<VerifyingKey, Self::Error> {
             let entry = self.0.get(identifier).unwrap();
@@ -179,103 +220,6 @@ pub mod mock {
             let mut data = encrypted.data;
             data.pop();
             Ok(data)
-        }
-    }
-
-    impl<E> Pkcs11Client for MockPkcs11Client<E> {
-        async fn generate_session_signing_key_pair(&self) -> Result<(PublicKeyHandle, PrivateKeyHandle), HsmError> {
-            todo!()
-        }
-        async fn get_secret_key_handle(&self, _identifier: &str) -> Result<SecretKeyHandle, HsmError> {
-            todo!()
-        }
-
-        async fn get_private_key_handle(&self, _identifier: &str) -> Result<PrivateKeyHandle, HsmError> {
-            todo!()
-        }
-
-        async fn get_public_key_handle(&self, _identifier: &str) -> Result<PublicKeyHandle, HsmError> {
-            todo!()
-        }
-
-        async fn get_verifying_key(&self, _public_key_handle: &PublicKeyHandle) -> Result<VerifyingKey, HsmError> {
-            todo!()
-        }
-
-        async fn delete_key(&self, _key_handle: impl KeyHandle) -> Result<(), HsmError> {
-            todo!()
-        }
-
-        async fn sign<KH: SignVerifyKeyHandle>(&self, _key_handle: &KH, _data: &[u8]) -> Result<Vec<u8>, HsmError> {
-            todo!()
-        }
-
-        async fn verify<KH: SignVerifyKeyHandle>(
-            &self,
-            _key_handle: &KH,
-            _data: &[u8],
-            _signature: Vec<u8>,
-        ) -> Result<(), HsmError> {
-            todo!()
-        }
-
-        async fn encrypt_gcm(
-            &self,
-            _key_handle: &SecretKeyHandle,
-            _data: Vec<u8>,
-        ) -> Result<(Vec<u8>, InitializationVector), HsmError> {
-            todo!()
-        }
-
-        async fn decrypt_gcm(
-            &self,
-            _key_handle: &SecretKeyHandle,
-            _iv: InitializationVector,
-            _encrypted_data: Vec<u8>,
-        ) -> Result<Vec<u8>, HsmError> {
-            todo!()
-        }
-
-        async fn encrypt_ctr(
-            &self,
-            _key_handle: &SecretKeyHandle,
-            _counter_block: [u8; AES_BLOCK_SIZE],
-            _data: impl AsRef<[u8]> + Send + 'static,
-        ) -> Result<Vec<u8>, HsmError> {
-            todo!()
-        }
-
-        async fn cmac(
-            &self,
-            _key_handle: &SecretKeyHandle,
-            _data: impl AsRef<[u8]> + Send + 'static,
-        ) -> Result<[u8; AES_BLOCK_SIZE], HsmError> {
-            todo!()
-        }
-
-        async fn wrap_key(
-            &self,
-            _wrapping_key: &SecretKeyHandle,
-            _key: &PrivateKeyHandle,
-            _public_key: VerifyingKey,
-        ) -> Result<WrappedKey, HsmError> {
-            todo!()
-        }
-
-        async fn generate_wrapped_key(&self, _wrapping_key_identifier: &str) -> Result<WrappedKey, HsmError> {
-            let key = SigningKey::generate();
-            Ok(WrappedKey::new(key.to_bytes().to_vec(), *key.verifying_key()))
-        }
-
-        async fn sign_wrapped(
-            &self,
-            _wrapping_key_identifier: &str,
-            wrapped_key: WrappedKey,
-            data: [u8; 32],
-        ) -> Result<Signature, HsmError> {
-            let key = SigningKey::from_slice(wrapped_key.wrapped_private_key()).unwrap();
-            let signature = key.sign_prehash_with_rng(&mut rand::rng(), data.as_slice())?;
-            Ok(signature)
         }
     }
 }
