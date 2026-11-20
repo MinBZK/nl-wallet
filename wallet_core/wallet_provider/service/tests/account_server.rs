@@ -131,7 +131,7 @@ async fn do_registration(
     );
 
     let challenge = account_server
-        .registration_challenge(certificate_signing_key, &user_state)
+        .registration_challenge(certificate_signing_key, &user_state, &MockTimeGenerator::default())
         .await
         .expect("Could not get registration challenge");
 

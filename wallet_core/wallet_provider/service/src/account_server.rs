@@ -664,6 +664,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -678,7 +679,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32).into(),
                 random: crypto::utils::random_bytes(32),
-                exp: Utc::now() + Duration::from_secs(60),
+                exp: time.generate() + Duration::from_secs(60),
             },
             certificate_signing_key,
         )
@@ -731,7 +732,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
-        let attestation_timestamp = Utc::now();
+        let attestation_timestamp = time.generate();
         let challenge_hash = crypto::utils::sha256(challenge);
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let pin_pubkey = unverified.payload.pin_pubkey.into_inner();
@@ -1101,7 +1102,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
             .await?;
 
-        self.sign_instruction_result(instruction_result_signing_key, instruction_result)
+        self.sign_instruction_result(instruction_result_signing_key, instruction_result, generators)
             .await
     }
 
@@ -1180,7 +1181,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
             .await?;
 
-        self.sign_instruction_result(instruction_result_signing_key, instruction_result)
+        self.sign_instruction_result(instruction_result_signing_key, instruction_result, generators)
             .await
     }
 
@@ -1272,7 +1273,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        let result = self.sign_instruction_result(signing_keys.0, wallet_certificate).await?;
+        let result = self
+            .sign_instruction_result(signing_keys.0, wallet_certificate, generators)
+            .await?;
 
         tx.commit().await?;
 
@@ -1351,7 +1354,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        self.sign_instruction_result(signing_keys.0, wallet_certificate).await
+        self.sign_instruction_result(signing_keys.0, wallet_certificate, generators)
+            .await
     }
 
     // Implements the logic behind the ChangePinRollback instruction.
@@ -1399,7 +1403,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .rollback_pin_change(&tx, &wallet_user.wallet_id)
             .await?;
 
-        let result = self.sign_instruction_result(instruction_result_signing_key, ()).await?;
+        let result = self
+            .sign_instruction_result(instruction_result_signing_key, (), generators)
+            .await?;
 
         tx.commit().await?;
 
@@ -1528,6 +1534,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     issuance_result,
                     certificate,
                 },
+                generators,
             )
             .await?;
 
@@ -1842,6 +1849,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         result: R,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<InstructionResult<R>, InstructionError>
     where
         R: Serialize + DeserializeOwned,
@@ -1849,7 +1857,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let claims = InstructionResultClaims {
             result,
             iss: self.name.to_string(),
-            iat: Utc::now(),
+            iat: time.generate(),
         };
 
         SignedJwt::sign_with_sub_and_kid(claims, instruction_result_signing_key)
@@ -2411,7 +2419,7 @@ mod tests {
         );
 
         let challenge = account_server
-            .registration_challenge(certificate_signing_key, &user_state)
+            .registration_challenge(certificate_signing_key, &user_state, &MockTimeGenerator::default())
             .await
             .expect("Could not get registration challenge");
 
@@ -4028,7 +4036,7 @@ mod tests {
         user_state.flags.set_solution_revoked().await.unwrap();
 
         let err = account_server
-            .registration_challenge(&setup.signing_key, &user_state)
+            .registration_challenge(&setup.signing_key, &user_state, &MockTimeGenerator::default())
             .await
             .expect_err("challenge should fail due to wallet solution revoked");
 
@@ -4041,7 +4049,7 @@ mod tests {
 
         // Get registration challenge
         let challenge = account_server
-            .registration_challenge(&SigningKey::generate(), &user_state)
+            .registration_challenge(&SigningKey::generate(), &user_state, &MockTimeGenerator::default())
             .await
             .expect("Could not get registration challenge");
 

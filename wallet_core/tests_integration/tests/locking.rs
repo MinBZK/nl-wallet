@@ -1,12 +1,14 @@
 use std::assert_matches;
-use std::time::Duration;
 
+use chrono::SubsecRound;
+use chrono::TimeDelta;
+use chrono::Utc;
 use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use rstest::rstest;
 use serial_test::serial;
 use tests_integration::common::*;
-use tokio::time::sleep;
+use utils::generator::mock::MockTimeGenerator;
 use wallet::Pin;
 use wallet::errors::InstructionError;
 use wallet::errors::WalletUnlockError;
@@ -105,9 +107,19 @@ async fn ltc46_test_unlock_error() {
     let wrong_pin_2: Pin = "555556".into();
     let wrong_pin_3: Pin = "555557".into();
 
-    let (mut wallet, _, _) =
-        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
-    wallet = do_wallet_registration(wallet, correct_pin.clone()).await;
+    // Whole seconds, so the timestamp survives the database roundtrip and the remaining timeouts are exact.
+    let time_generator = MockTimeGenerator::new(Utc::now().trunc_subsecs(0));
+    let advance_time = |millis| *time_generator.time.write() += TimeDelta::milliseconds(millis);
+
+    let wallet = setup_wallet_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        time_generator.clone(),
+    )
+    .await;
+    let mut wallet = do_wallet_registration(wallet, correct_pin.clone()).await;
 
     wallet.lock();
     assert!(wallet.is_locked());
@@ -151,8 +163,7 @@ async fn ltc46_test_unlock_error() {
     );
     assert!(wallet.is_locked());
 
-    // Sleeping before a timeout is expected influence timeout.
-    sleep(Duration::from_millis(200)).await;
+    advance_time(200);
 
     let r4 = wallet
         .unlock(wrong_pin_3.clone())
@@ -164,14 +175,19 @@ async fn ltc46_test_unlock_error() {
     );
     assert!(wallet.is_locked());
 
+    advance_time(50);
+
     let r5 = wallet
-        .unlock(wrong_pin_3.clone())
+        .unlock(correct_pin.clone())
         .await
-        .expect_err("invalid pin should return error");
-    assert_matches!(r5, WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: t }) if t < 200);
+        .expect_err("correct pin should be rejected during timeout");
+    assert_matches!(
+        r5,
+        WalletUnlockError::Instruction(InstructionError::Timeout { timeout_millis: 150 })
+    );
     assert!(wallet.is_locked());
 
-    sleep(Duration::from_millis(200)).await;
+    advance_time(150);
 
     let r6 = wallet
         .unlock(wrong_pin_3.clone())
@@ -222,7 +238,7 @@ async fn ltc46_test_unlock_error() {
     );
     assert!(wallet.is_locked());
 
-    sleep(Duration::from_millis(400)).await;
+    advance_time(400);
 
     wallet.unlock(correct_pin).await.expect("should unlock wallet");
     assert!(!wallet.is_locked());
