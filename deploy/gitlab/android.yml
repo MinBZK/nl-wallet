@@ -66,8 +66,6 @@ test-android:
       - "*.aab"
       - "*.apk"
   variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
     APP_BUILD_MODE: "release"
     APP_FILE_FORMAT: "aab"
     APP_MOCK: "false"
@@ -168,9 +166,6 @@ build-android-app-pub:
 .deploy-android-app:
   extends: [.env-k8s, .ruby-cache]
   stage: deploy
-  variables:
-    LC_ALL: "C.UTF-8"
-    LANG: "C.UTF-8"
   script:
     - JSON_KEY_DATA=$(kubectl get secret nl-wallet-play-store-api-key -o jsonpath='{.data.json}' | base64 --decode)
     - export JSON_KEY_DATA

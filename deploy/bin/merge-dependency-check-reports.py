@@ -8,6 +8,9 @@ directory with a JSON and XML report. Dependencies with the same SHA-1
 become one dependency, with the project references and vulnerabilities
 of all of them. Vulnerable dependencies come first, so the HTML anchors
 match the Quality-time links of both dependencies and security warnings.
+
+A SOURCE without a report, for example because its scan failed, is
+skipped with a warning.
 """
 
 import json
@@ -172,6 +175,12 @@ def main() -> None:
     if len(sys.argv) < 3:
         raise SystemExit(__doc__)
     target, *sources = map(Path, sys.argv[1:])
+    missing = [source for source in sources if not (source / f"{REPORT}.json").is_file()]
+    for source in missing:
+        print(f"WARNING: {source}: no report, skipping", file=sys.stderr)
+    sources = [source for source in sources if source not in missing]
+    if not sources:
+        raise SystemExit("ERROR: no reports to merge")
     report = merge_json([source / f"{REPORT}.json" for source in sources])
     _ = (target / f"{REPORT}.json").write_text(json.dumps(report))
     _ = (target / f"{REPORT}.html").write_text(html_out(report))
