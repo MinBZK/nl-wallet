@@ -17,7 +17,6 @@ use cryptoki::object::ObjectClass;
 use cryptoki::object::ObjectHandle;
 use cryptoki_sys::CK_AES_CTR_PARAMS;
 use derive_more::AsRef;
-use futures::future;
 use measure::measure;
 use p256::NistP256;
 use p256::ecdsa::Signature;
@@ -28,6 +27,8 @@ use sec1::der::Decode;
 use sec1::der::Encode;
 use sec1::der::asn1::OctetStringRef;
 use utils::spawn;
+use utils::vec_at_least;
+use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
 use crate::finalize::Pkcs11FinalizePool;
@@ -303,15 +304,11 @@ impl Hsm for Pkcs11Hsm {
         wrapping_key_identifier: &str,
         count: NonZeroUsize,
     ) -> Result<VecNonEmpty<(String, WrappedKey)>> {
-        future::try_join_all((0..count.get()).map(|_| async move {
-            let result = self.generate_wrapped_key(wrapping_key_identifier).await;
-            result.map(|wrapped| (verifying_key_sha256(wrapped.public_key()), wrapped))
+        vec_at_least::try_join_all(vec_at_least::repeat_n((), count).map(|()| async move {
+            let wrapped = self.generate_wrapped_key(wrapping_key_identifier).await?;
+            Ok((verifying_key_sha256(wrapped.public_key()), wrapped))
         }))
         .await
-        .map(|keys| {
-            // Unwrap is safe because we generated `count` keys, which is a nonzero type
-            keys.try_into().unwrap()
-        })
     }
 
     #[measure(name = "nlwallet_pkcs11_operations", "service" => "pkcs11")]
