@@ -179,7 +179,7 @@ fn signs_and_verifies_with_certificate() {
         .unwrap()
         .unwrap();
 
-    assert_eq!(cose.x5chain().unwrap().first(), key_pair.certificate());
+    assert_eq!(cose.unprotected_x5chain().unwrap().first(), key_pair.certificate());
     assert_eq!(
         cose.verify_against_trust_anchors(
             &ca.to_trust_anchors(),
@@ -297,7 +297,7 @@ async fn verifies_trust_anchor_in_x5chain() {
         ToyMessage::default()
     );
     assert_eq!(
-        cose.x5chain().unwrap(),
+        cose.unprotected_x5chain().unwrap(),
         vec_nonempty![key_pair.certificate().clone(), ca_certificate]
     );
 }
@@ -320,7 +320,7 @@ async fn crl_verification_accepts_trust_anchor_in_x5chain() {
         ToyMessage::default()
     );
     assert_eq!(
-        cose.x5chain().unwrap(),
+        cose.unprotected_x5chain().unwrap(),
         vec_nonempty![key_pair.certificate().clone(), ca_certificate]
     );
 }

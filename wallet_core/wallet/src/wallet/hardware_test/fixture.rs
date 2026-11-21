@@ -22,6 +22,7 @@ use crypto::server_keys::generate::Ca;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::Query;
 use mdoc::holder::Mdoc;
+use mockall::predicate::always;
 use mockall::predicate::eq;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
@@ -183,9 +184,9 @@ impl<C> Fixture<C> {
         Arc::get_mut(&mut wallet.status_list_client)
             .expect("fixture owns status-list client")
             .expect_fetch()
-            .with(eq(STATUS_LIST_URI.parse::<url::Url>()?))
+            .with(eq(STATUS_LIST_URI.parse::<url::Url>()?), always())
             .times(0..=1)
-            .return_once(move |_| registration_status_list);
+            .return_once(move |_, _| registration_status_list.map(Into::into));
         let account_client = Arc::get_mut(&mut wallet.account_provider_client).expect("fixture owns account client");
         // Rejected requests must never reach the account provider or use the holder signing key.
         let max_signing_calls = usize::from(rejection.is_none());

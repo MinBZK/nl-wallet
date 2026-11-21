@@ -1,9 +1,11 @@
+use attestation_types::credential_format::Format;
 use attestation_types::status_claim::StatusClaim;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use entity::revocation_info;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -15,6 +17,7 @@ use uuid::Uuid;
 #[cfg_attr(test, derive(derive_more::Constructor))]
 pub struct RevocationInfo {
     pub(super) attestation_copy_id: Uuid,
+    pub(super) format: Format,
     pub(super) status_claim: StatusClaim,
 }
 
@@ -30,7 +33,12 @@ impl RevocationInfo {
         time: &impl Generator<DateTime<Utc>>,
     ) -> RevocationStatus {
         revocation_verifier
-            .verify(issuer_trust_anchors, self.status_claim.clone(), time)
+            .verify(
+                issuer_trust_anchors,
+                self.status_claim.clone(),
+                StatusListFormat::for_credential_format(self.format),
+                time,
+            )
             .await
     }
 }
@@ -39,6 +47,7 @@ impl From<revocation_info::RevocationInfo> for RevocationInfo {
     fn from(value: revocation_info::RevocationInfo) -> Self {
         RevocationInfo {
             attestation_copy_id: value.attestation_copy_id,
+            format: value.attestation_format.into(),
             status_claim: StatusClaim::StatusList(StatusListClaim {
                 uri: value.status_list_url.parse().expect("URL has been parsed before"),
                 idx: value.status_list_index,
@@ -52,6 +61,7 @@ mod test {
     use std::assert_matches;
     use std::sync::Arc;
 
+    use attestation_types::credential_format::Format;
     use attestation_types::status_claim::StatusClaim;
     use crypto::server_keys::generate::Ca;
     use futures::FutureExt;
@@ -72,7 +82,7 @@ mod test {
         let revocation_verifier =
             RevocationVerifier::new_without_caching(Arc::new(StatusListClientStub::new(issuer_cert)));
 
-        let revocation_info = RevocationInfo::new(Uuid::new_v4(), StatusClaim::new_mock());
+        let revocation_info = RevocationInfo::new(Uuid::new_v4(), Format::SdJwt, StatusClaim::new_mock());
 
         let status = revocation_info
             .verify_revocation(

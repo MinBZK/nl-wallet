@@ -7,7 +7,9 @@ use http_utils::reqwest::default_reqwest_client_builder;
 use http_utils::urls::BaseUrl;
 use openid4vc::disclosure_session::DisclosureUriSource;
 use openid4vc::issuable_document::IssuableDocument;
+use pid_issuer::pid::rulebook::constants::PID_MDOC_DOCTYPE;
 use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
+use rstest::rstest;
 use serial_test::serial;
 use status_lists::postgres::revocation_helper::BatchIsRevoked;
 use tests_integration::common::*;
@@ -16,9 +18,12 @@ use wallet::AttestationPresentation;
 use wallet::DisclosureAttestationOptions;
 use wallet::Pin;
 
+#[rstest]
+#[case::sd_jwt(Format::SdJwt, PID_NL_SD_JWT_VCT)]
+#[case::mdoc(Format::MsoMdoc, PID_MDOC_DOCTYPE)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
-async fn test_revocation_pid_ok() {
+async fn test_revocation_pid_ok(#[case] format: Format, #[case] attestation_type: &str) {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
     let tempdir = tempfile::tempdir().unwrap();
@@ -30,7 +35,7 @@ async fn test_revocation_pid_ok() {
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin).await;
 
-    assert_revokeable(&mut wallet, PID_NL_SD_JWT_VCT, issuance_urls.pid_issuer.internal).await;
+    assert_revokeable(&mut wallet, attestation_type, issuance_urls.pid_issuer.internal).await;
 
     // Revoked attestations remain available for disclosure.
     let proposal = wallet
@@ -38,7 +43,7 @@ async fn test_revocation_pid_ok() {
             &universal_link(
                 issuance_urls.issuance_server.public.as_base_url(),
                 &issuance_urls.degree_client_ids,
-                Format::SdJwt,
+                format,
             ),
             DisclosureUriSource::Link,
         )
@@ -48,7 +53,7 @@ async fn test_revocation_pid_ok() {
     let [DisclosureAttestationOptions::Single(attestation)] = proposal.attestation_options.as_slice() else {
         panic!("expected a single PID attestation in the disclosure proposal");
     };
-    assert_eq!(attestation.attestation_type, PID_NL_SD_JWT_VCT);
+    assert_eq!(attestation.attestation_type, attestation_type);
     assert_eq!(attestation.validity.revocation_status, Some(RevocationStatus::Revoked));
 }
 

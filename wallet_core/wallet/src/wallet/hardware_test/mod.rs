@@ -27,6 +27,7 @@ use mdoc::SessionTranscript;
 use mdoc::holder::disclosure::create_doc_request;
 use mdoc::utils::serialization::cbor_deserialize;
 use mdoc::utils::serialization::cbor_serialize;
+use mockall::predicate::always;
 use mockall::predicate::eq;
 use p256::ecdsa::SigningKey;
 use platform_support::close_proximity_disclosure::CloseProximityDisclosureClient;
@@ -332,8 +333,8 @@ pub async fn verify_response(expected: &Verification, received: &ResponseArtifac
     let status_list = expected.credential_status_list.clone();
     status_list_client
         .expect_fetch()
-        .with(eq(CREDENTIAL_STATUS_LIST_URI.parse::<url::Url>()?))
-        .returning(move |_| Ok(status_list.clone()));
+        .with(eq(CREDENTIAL_STATUS_LIST_URI.parse::<url::Url>()?), always())
+        .returning(move |_, _| Ok(status_list.clone().into()));
     let revocation = RevocationVerifier::new_with_defaults(Arc::new(status_list_client), TimeGenerator);
     let documents = response
         .verify(

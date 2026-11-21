@@ -41,6 +41,7 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeDisplay;
 use serde_with::skip_serializing_none;
 use ssri::Integrity;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -589,7 +590,7 @@ impl UnverifiedSdJwtPresentation {
         let revocation_status = match &issuer_signed.payload().status {
             Some(status_claim) => {
                 let revocation_status = revocation_verifier
-                    .verify(trust_anchors, status_claim.clone(), time)
+                    .verify(trust_anchors, status_claim.clone(), StatusListFormat::Jwt, time)
                     .await;
                 Some(revocation_status)
             }

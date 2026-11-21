@@ -681,7 +681,7 @@ fn generate_and_validate_status_list_token() -> Result<()> {
 
     let token: StatusListJwt = std::str::from_utf8(&output)?.trim().parse()?;
     let trust_anchors = trust_anchors_from_pem(&ca_crt)?;
-    let claims = token.parse_and_verify(&trust_anchors, uri.clone(), &TimeGenerator)?;
+    let claims = token.parse_and_verify(&trust_anchors, &uri, &TimeGenerator)?;
 
     assert!(claims.iat.timestamp() >= before.timestamp() && claims.iat.timestamp() <= after.timestamp());
     let expiration = claims.exp.expect("token should have an expiration");
