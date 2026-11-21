@@ -11,6 +11,7 @@ import '../../../wallet_constants.dart';
 import '../dialog/ble_permission_dialog.dart';
 import '../widget/button/bottom_close_button.dart';
 import '../widget/menu_item.dart';
+import '../widget/text/body_text.dart';
 import '../widget/text/title_text.dart';
 import '../widget/wallet_scrollbar.dart';
 import 'wallet_modal_bottom_sheet.dart';
@@ -27,7 +28,15 @@ class QrActionSheet extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: TitleText(context.l10n.qrActionSheetTitle),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TitleText(context.l10n.qrActionSheetTitle),
+                const SizedBox(height: 4),
+                BodyText(context.l10n.qrActionSheetDescription),
+              ],
+            ),
           ),
           const Divider(),
           MenuItem(
