@@ -5,7 +5,6 @@ use std::sync::Arc;
 use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
 use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
@@ -796,7 +795,7 @@ where
     ) -> Result<VecNonEmpty<AttestationPresentation>, IssuanceError> {
         let preview_attestation_types_and_formats = credential_previews
             .iter()
-            .map(|preview| CredentialKind::new(preview.format, preview.credential_payload.attestation_type.to_owned()))
+            .map(|preview| preview.credential_kind().into_owned())
             .collect();
 
         let stored = self
@@ -837,7 +836,7 @@ where
     /// Creates an [`AttestationPresentation`] for every issued credential, in the same order. Its identity is that of
     /// the stored attestation the credential renews, if any.
     async fn process_issued_credentials(
-        &self,
+        &mut self,
         credentials: &VecNonEmpty<CredentialWithMetadata>,
         organization: &Organization,
         pid_purpose: Option<PidIssuancePurpose>,
