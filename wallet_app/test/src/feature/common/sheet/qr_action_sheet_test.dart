@@ -6,7 +6,7 @@ import '../../../../wallet_app_test_widget.dart';
 import '../../../test_util/golden_utils.dart';
 import '../../../test_util/test_utils.dart';
 
-const kGoldenSize = Size(390, 315);
+const kGoldenSize = Size(390, 341);
 
 void main() {
   group('goldens', () {
@@ -38,7 +38,7 @@ void main() {
       (tester) async {
         await tester.pumpWidgetWithAppWrapper(
           const QrActionSheet(),
-          surfaceSize: const Size(390, 680), // 680 == good
+          surfaceSize: const Size(390, 695),
           textScaleSize: 2,
         );
         await screenMatchesGolden('qr_action_sheet/light.scaled');
@@ -47,11 +47,12 @@ void main() {
   });
 
   group('widgets', () {
-    testWidgets('title is visible', (tester) async {
+    testWidgets('title and description are visible', (tester) async {
       await tester.pumpWidgetWithAppWrapper(const QrActionSheet());
 
       final l10n = await TestUtils.englishLocalizations;
       expect(find.text(l10n.qrActionSheetTitle), findsOneWidget);
+      expect(find.text(l10n.qrActionSheetDescription), findsOneWidget);
     });
 
     testWidgets('scan option label and description are visible', (tester) async {
