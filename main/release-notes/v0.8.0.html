@@ -195,6 +195,16 @@
              
   <section id="v0-8-0-dev">
 <h1>v0.8.0 (dev)<a class="headerlink" href="#v0-8-0-dev" title="Link to this heading"></a></h1>
+<section id="new-features">
+<h2>New Features<a class="headerlink" href="#new-features" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>The wallet now supports status lists in CWT format as well. Both formats are
+accepted when requesting a status list, preferring CWT for mdoc credentials
+and JWT for SD-JWT credentials.</p></li>
+<li><p>The size of a status list is limited to 5 MiB as received, and to 16 MiB after
+decompression. Larger status lists are rejected.</p></li>
+</ul>
+</section>
 <section id="upgrading">
 <h2>Upgrading<a class="headerlink" href="#upgrading" title="Link to this heading"></a></h2>
 <ul>
