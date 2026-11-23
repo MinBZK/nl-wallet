@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
@@ -106,6 +108,28 @@ where
         .map_err(PersistenceError::Execution)?;
 
     Ok(result.rows_affected == 1)
+}
+
+pub async fn list_all_denied_in<S, T>(
+    db: &T,
+    recovery_codes: HashSet<RecoveryCode>,
+) -> Result<HashSet<RecoveryCode>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    Ok(recovery_code::Entity::find()
+        .select_only()
+        .select_column(recovery_code::Column::RecoveryCode)
+        .filter(recovery_code::Column::IsDenied.eq(true))
+        .filter(recovery_code::Column::RecoveryCode.is_in(recovery_codes.iter().map(AsRef::as_ref)))
+        .into_tuple::<String>()
+        .all(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?
+        .into_iter()
+        .map(Into::into)
+        .collect::<HashSet<RecoveryCode>>())
 }
 
 pub async fn list<S, T>(db: &T) -> Result<Vec<RecoveryCode>, PersistenceError>

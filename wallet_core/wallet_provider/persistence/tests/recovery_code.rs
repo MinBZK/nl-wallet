@@ -1,13 +1,16 @@
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use crypto::utils::random_string;
 use db_test::DbSetup;
+use rstest::rstest;
 use tokio::time::Duration;
 use tokio::time::sleep;
 use utils::vec_nonempty;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::Committable;
+use wallet_provider_persistence::database::Db;
 use wallet_provider_persistence::recovery_code;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
@@ -302,4 +305,64 @@ async fn test_list_recovery_code() {
             .iter()
             .all(|code| !recovery_codes.contains(code))
     );
+}
+
+/// The denial state of a recovery code in the database, for tests of batch operations.
+#[derive(Debug, Clone, Copy)]
+enum CodeState {
+    /// Stored and denied.
+    Denied,
+    /// Stored and allowed.
+    Allowed,
+    /// Not stored.
+    Unknown,
+}
+
+/// Returns a new recovery code in `state`.
+async fn create_recovery_code(db: &Db, state: CodeState) -> RecoveryCode {
+    let recovery_code: RecoveryCode = random_string(64).into();
+    match state {
+        CodeState::Denied => recovery_code::deny_many(db, &vec_nonempty![recovery_code.clone()].into())
+            .await
+            .expect("should insert denied recovery code"),
+        CodeState::Allowed => {
+            if recovery_code::is_denied(db, recovery_code.clone())
+                .await
+                .expect("should insert recovery code")
+            {
+                recovery_code::set_allowed(db, &recovery_code)
+                    .await
+                    .expect("should set recovery code to allowed");
+            }
+        }
+        CodeState::Unknown => {}
+    }
+    recovery_code
+}
+
+#[rstest]
+#[case::only_denied(&[CodeState::Denied])]
+#[case::mixed(&[CodeState::Denied, CodeState::Allowed, CodeState::Unknown, CodeState::Denied])]
+#[case::none_denied(&[CodeState::Allowed, CodeState::Unknown])]
+#[case::empty(&[])]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_list_all_denied_in_returns_denied_codes_of_input(#[case] states: &[CodeState]) {
+    let db_setup = DbSetup::create().await;
+    let db = db_from_setup(&db_setup).await;
+
+    let mut input = HashSet::new();
+    let mut expected = HashSet::new();
+    for state in states {
+        let recovery_code = create_recovery_code(&db, *state).await;
+        if matches!(state, CodeState::Denied) {
+            expected.insert(recovery_code.clone());
+        }
+        input.insert(recovery_code);
+    }
+
+    let denied = recovery_code::list_all_denied_in(&db, input)
+        .await
+        .expect("should list denied recovery codes");
+
+    assert_eq!(denied, expected);
 }
