@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-11-16T16:36:10+01:00",
+    "@@last_modified": "2026-11-23T10:54:35+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -862,7 +862,7 @@
             }
         }
     },
-    "issuanceReviewCardsPageAddAndRenewTitle": "{cards, plural, one {Wil je deze kaart toevoegen of bijwerken?} other {Wil je deze kaarten toevoegen of bijwerken?}}",
+    "issuanceReviewCardsPageAddAndRenewTitle": "{cards, plural, one {Controleer de gegevens van elke kaart voordat je die toevoegt of vervangt} other {Controleer de gegevens van elke kaart voordat je die toevoegt of vervangt}}",
     "@issuanceReviewCardsPageAddAndRenewTitle": {
         "placeholders": {
             "cards": {
@@ -872,7 +872,7 @@
         }
     },
     "issuanceReviewCardsPageDeclineCta": "Stop",
-    "issuanceReviewCardsPageRenewOnlyTitle": "{cards, plural, one {Wil je deze kaart bijwerken?} other {Wil je deze kaarten bijwerken?}}",
+    "issuanceReviewCardsPageRenewOnlyTitle": "{cards, plural, one {Controleer de gegevens van de kaart voordat je die vervangt} other {Controleer de gegevens van elke kaart voordat je die vervangt}}",
     "@issuanceReviewCardsPageRenewOnlyTitle": {
         "placeholders": {
             "cards": {
@@ -913,7 +913,7 @@
             }
         }
     },
-    "issuanceReviewCardsPageTitle": "{cards, plural, one {Wil je deze kaart toevoegen?} other {Wil je deze kaarten toevoegen?}}",
+    "issuanceReviewCardsPageTitle": "{cards, plural, one {Controleer de gegevens van deze kaart voordat je die toevoegt} other {Controleer de gegevens van elke kaart voordat je die toevoegt}}",
     "@issuanceReviewCardsPageTitle": {
         "placeholders": {
             "cards": {
