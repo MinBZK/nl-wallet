@@ -287,22 +287,18 @@ finally, we’ll point you to the issuer API specifications.</p>
 <section id="architecture-overview">
 <h2>Architecture overview<a class="headerlink" href="#architecture-overview" title="Link to this heading"></a></h2>
 <p>Our issuance implementation adheres to the <a class="reference external" href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OpenID4VCI</a> specification.</p>
-<p>For PID issuance, we have a specialized issuer called <code class="docutils literal notranslate"><span class="pre">pid_issuer</span></code> which
-interacts with <a class="reference external" href="https://www.logius.nl/onze-dienstverlening/toegang/digid">DigiD</a> through <a class="reference external" href="https://github.com/minvws/nl-rdo-max">RDO Max</a>, and which can obtain citizen
-data from <a class="reference external" href="https://www.rvig.nl/basisregistratie-personen">RViG’s BRP</a>. This document does not cover PID issuance, although
-many parts of this document do apply to PID issuance equally.</p>
 <p>This document is about generic issuance, where the wallet can disclose certain
 attributes to an issuer in order to obtain new, different attestations, hence
 the name “disclosure-based issuance”.</p>
 <p>You can find the general project start architecture documents for the NL Wallet
-on <a class="reference external" href="https://github.com/minvws/nl-rdo-max">Pleio</a> .These document the general platform architecture, solution
+on <a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Pleio</a> .These document the general platform architecture, solution
 architecture, design considerations and global functional design use cases.</p>
 <p>To get a clear view on what issuance (in both its specialized PID issuance, and
 generic disclosure-based issuance form) looks like on the NL Wallet platform,
 have a look at the following documents:</p>
 <ul class="simple">
-<li><p><a class="reference external" href="https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet">Issuance with OpenID4VCI</a></p></li>
-<li><p><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html"><span class="doc std std-doc">Disclosure-based Iissuance</span></a></p></li>
+<li><p><a class="reference internal" href="../architecture/use-cases/issuance-with-openid4vci.html"><span class="doc std std-doc">Issuance with OpenID4VCI</span></a></p></li>
+<li><p><a class="reference internal" href="../architecture/use-cases/disclosure-based-issuance.html"><span class="doc std std-doc">Disclosure-based Iissuance</span></a></p></li>
 </ul>
 <section id="platform-components-overview">
 <h3>Platform components overview<a class="headerlink" href="#platform-components-overview" title="Link to this heading"></a></h3>
