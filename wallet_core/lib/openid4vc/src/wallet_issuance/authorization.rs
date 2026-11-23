@@ -181,7 +181,7 @@ impl AttestedRequest<'_> {
                     attestation_challenge,
                 } => {
                     if retried {
-                        return Err(WalletIssuanceError::UseDpopNonce(nonce));
+                        return Err(WalletIssuanceError::DpopNonceRejected);
                     }
                     self.challenge = self.challenge.after_response(attestation_challenge);
                     dpop.nonce = Some(nonce);
@@ -1261,7 +1261,7 @@ mod tests {
         par_challenge.assert_calls_async(1).await;
         par_retry.assert_calls_async(1).await;
         if repeated_challenge {
-            assert_matches!(session, Err(WalletIssuanceError::UseDpopNonce(_)));
+            assert_matches!(session, Err(WalletIssuanceError::DpopNonceRejected));
             return;
         }
         let session = session.unwrap();

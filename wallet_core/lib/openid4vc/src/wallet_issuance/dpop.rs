@@ -70,7 +70,10 @@ where
         Err(WalletIssuanceError::UseDpopNonce(new_nonce)) => {
             nonce = Some(new_nonce);
             let proof = Dpop::new(signing_key, url.clone(), &Method::POST, access_token, nonce.clone())?;
-            request(proof).await?
+            request(proof).await.map_err(|error| match error {
+                WalletIssuanceError::UseDpopNonce(_) => WalletIssuanceError::DpopNonceRejected,
+                other => other,
+            })?
         }
         result => result?,
     };
@@ -179,6 +182,8 @@ pub(super) mod tests {
     use base64::Engine;
     use base64::prelude::BASE64_URL_SAFE_NO_PAD;
     use crypto::keys::PublicKey;
+    use error_category::Category;
+    use error_category::ErrorCategory;
     use http::HeaderValue;
     use http_utils::httpmock::httpmock_reqwest_client_builder;
     use http_utils::reqwest::HttpClient;
@@ -496,7 +501,7 @@ pub(super) mod tests {
         .await
         .unwrap_err();
         if expected_requests == 2 {
-            assert_matches!(error, WalletIssuanceError::UseDpopNonce(_));
+            assert_matches!(error, WalletIssuanceError::DpopNonceRejected);
         } else if nonce == Some("invalid nonce") {
             assert_matches!(error, WalletIssuanceError::DpopNonce(_));
         } else {
@@ -552,7 +557,8 @@ pub(super) mod tests {
         .await
         .unwrap_err();
         if expected_requests == 2 {
-            assert_matches!(error, WalletIssuanceError::UseDpopNonce(_));
+            assert_matches!(error, WalletIssuanceError::DpopNonceRejected);
+            assert_eq!(error.category(), Category::Critical);
         }
         mock.assert_calls_async(expected_requests).await;
     }

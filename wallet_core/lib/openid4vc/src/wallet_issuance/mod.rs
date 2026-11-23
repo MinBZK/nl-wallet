@@ -92,6 +92,10 @@ pub enum WalletIssuanceError {
     #[category(expected)]
     UseDpopNonce(DpopNonce),
 
+    #[error("issuer rejected the DPoP nonce it supplied")]
+    #[category(critical)]
+    DpopNonceRejected,
+
     #[error("response contains multiple DPoP-Nonce headers")]
     #[category(pd)]
     MultipleDpopNonceHeaders,
