@@ -95,21 +95,6 @@ where
         .map_err(PersistenceError::Execution)
 }
 
-pub async fn set_allowed<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<bool, PersistenceError>
-where
-    S: ConnectionTrait,
-    T: PersistenceConnection<S>,
-{
-    let result = recovery_code::Entity::update_many()
-        .col_expr(recovery_code::Column::IsDenied, Expr::value(false))
-        .filter(recovery_code::Column::RecoveryCode.eq(recovery_code.as_ref()))
-        .exec(db.connection())
-        .await
-        .map_err(PersistenceError::Execution)?;
-
-    Ok(result.rows_affected == 1)
-}
-
 pub async fn set_allowed_many<S, T>(db: &T, recovery_codes: &[RecoveryCode]) -> Result<u64, PersistenceError>
 where
     S: ConnectionTrait,

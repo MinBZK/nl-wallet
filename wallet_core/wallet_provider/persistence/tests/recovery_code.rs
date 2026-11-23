@@ -210,12 +210,12 @@ async fn test_recovery_code_repeatable_reads() {
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_remove_recovery_code() {
-    let recovery_code = random_string(64).into();
+    let recovery_code = RecoveryCode::from(random_string(64));
 
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
 
-    recovery_code::set_allowed(&db, &recovery_code)
+    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
         .await
         .expect("should be able to set non-denied recovery code to allowed");
 
@@ -226,7 +226,7 @@ async fn test_remove_recovery_code() {
     let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
     assert!(is_denied);
 
-    recovery_code::set_allowed(&db, &recovery_code)
+    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
         .await
         .expect("should be able to set denied recovery code to allowed");
 
@@ -234,7 +234,7 @@ async fn test_remove_recovery_code() {
     assert!(!is_denied);
 
     // verify idempotency
-    recovery_code::set_allowed(&db, &recovery_code)
+    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
         .await
         .expect("should be able to set non-denied recovery code to allowed");
 
@@ -281,7 +281,7 @@ async fn test_list_recovery_code() {
     );
 
     // removing the first should result in only the second being listed
-    recovery_code::set_allowed(&db, &recovery_code)
+    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
         .await
         .expect("should be able to set denied recovery code to allowed");
 
@@ -292,7 +292,7 @@ async fn test_list_recovery_code() {
     assert!(recovery_codes.contains(&another_recovery_code));
 
     // removing the second should result in an empty list
-    recovery_code::set_allowed(&db, &another_recovery_code)
+    recovery_code::set_allowed_many(&db, std::slice::from_ref(&another_recovery_code))
         .await
         .expect("should be able to set another denied recovery code to allowed");
 
@@ -330,7 +330,7 @@ async fn create_recovery_code(db: &Db, state: CodeState) -> RecoveryCode {
                 .await
                 .expect("should insert recovery code")
             {
-                recovery_code::set_allowed(db, &recovery_code)
+                recovery_code::set_allowed_many(db, std::slice::from_ref(&recovery_code))
                     .await
                     .expect("should set recovery code to allowed");
             }

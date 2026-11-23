@@ -706,15 +706,6 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn allow_recovery_code(
-        &self,
-        transaction: &Self::TransactionType,
-        recovery_code: &RecoveryCode,
-    ) -> Result<bool, PersistenceError> {
-        recovery_code::set_allowed(transaction, recovery_code).await
-    }
-
-    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn allow_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
@@ -1159,12 +1150,6 @@ pub mod mock {
             ) -> Result<HashSet<RecoveryCode>, PersistenceError>;
 
             async fn list_denied_recovery_codes(&self, transaction: &MockTransaction) -> Result<Vec<RecoveryCode>, PersistenceError>;
-
-            async fn allow_recovery_code(
-                &self,
-                transaction: &MockTransaction,
-                recovery_code: &RecoveryCode,
-            ) -> Result<bool, PersistenceError>;
 
             async fn allow_recovery_codes(
                 &self,
@@ -1672,14 +1657,6 @@ pub mod mock {
             _transaction: &Self::TransactionType,
         ) -> Result<Vec<RecoveryCode>, PersistenceError> {
             Ok(vec![])
-        }
-
-        async fn allow_recovery_code(
-            &self,
-            _transaction: &Self::TransactionType,
-            _recovery_code: &RecoveryCode,
-        ) -> Result<bool, PersistenceError> {
-            Ok(false)
         }
 
         async fn allow_recovery_codes(

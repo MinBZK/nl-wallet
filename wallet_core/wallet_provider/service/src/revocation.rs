@@ -336,11 +336,14 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let tx = user_state.repositories.begin_transaction().await?;
-    let removed = user_state.repositories.allow_recovery_code(&tx, recovery_code).await?;
+    let removed = user_state
+        .repositories
+        .allow_recovery_codes(&tx, std::slice::from_ref(recovery_code))
+        .await?;
 
     tx.commit().await?;
 
-    if !removed {
+    if removed != 1 {
         return Err(RevocationError::RecoveryCodeNotFound(recovery_code.to_owned()));
     }
 
