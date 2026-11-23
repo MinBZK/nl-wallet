@@ -162,8 +162,15 @@ export class AdminPortalPage {
     return this.detailRow(label).getByRole("listitem")
   }
 
+  /** Opens a task from 'my tasks' or the history. */
   async openTaskDetails(taskId) {
     await this.taskRow(taskId).getByRole("link", { name: "BEKIJK DETAILS" }).click()
+    await this.page.waitForURL(`**/tasks/${taskId}`)
+  }
+
+  /** Opens a task of another user from 'open tasks'. */
+  async openReviewableTask(taskId) {
+    await this.taskRow(taskId).getByRole("link", { name: "BEOORDEEL" }).click()
     await this.page.waitForURL(`**/tasks/${taskId}`)
   }
 

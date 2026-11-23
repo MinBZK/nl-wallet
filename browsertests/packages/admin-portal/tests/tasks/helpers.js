@@ -112,7 +112,7 @@ export async function openTaskToReview(page, adminPortal) {
   await mockTaskLists(page, { reviewable: [task] })
   await page.route(reviewUrl, (route) => route.fulfill({ json: { ...task, status: "approved" } }))
   await adminPortal.openAs(USERS.operator)
-  await adminPortal.openTaskDetails(task.taskId)
+  await adminPortal.openReviewableTask(task.taskId)
   return reviewUrl
 }
 
