@@ -36,7 +36,7 @@ variables:
       namespace: ${K8S_NAMESPACE}
 
 .env-macos-runner:
-  image: tahoe-wallet:0.4.1
+  image: tahoe-wallet:0.4.2
   tags:
     - macos
 
