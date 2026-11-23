@@ -107,14 +107,14 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
+    use std::convert::Infallible;
     use std::fmt::Display;
+    use std::sync::Mutex;
 
     use sea_orm::JsonValue;
 
     use super::AuditLog;
     use super::AuditUser;
-
-    pub struct MockAuditLog;
 
     pub struct MockAuditUser(String);
 
@@ -136,6 +136,8 @@ pub mod mock {
         }
     }
 
+    pub struct MockAuditLog;
+
     impl AuditLog for MockAuditLog {
         type Error = !;
 
@@ -150,6 +152,61 @@ pub mod mock {
             F: AsyncFnOnce() -> Result<T, E>,
         {
             operation().await
+        }
+    }
+
+    #[derive(Default)]
+    pub struct InMemoryAuditLog(Mutex<Vec<String>>);
+
+    impl AuditLog for InMemoryAuditLog {
+        type Error = Infallible;
+
+        async fn audit<F, T, E>(
+            &self,
+            operation_name: impl Into<String>,
+            parameters: JsonValue,
+            user_id: Option<String>,
+            operation: F,
+        ) -> Result<T, E>
+        where
+            F: AsyncFnOnce() -> Result<T, E>,
+        {
+            let result = operation().await;
+
+            let operation_name = operation_name.into();
+            let user_string = user_id.map(|user_id| format!(" by {user_id}")).unwrap_or_default();
+            let arguments = parameters.to_string();
+            let operation_succeeded = match &result {
+                Ok(_) => "SUCCESS",
+                Err(_) => "FAILED",
+            };
+
+            let mut lock = self.0.lock().unwrap();
+            lock.push(format!(
+                "AUDIT_LOG: {operation_name}{user_string} with {arguments} -> {operation_succeeded}"
+            ));
+
+            result
+        }
+    }
+
+    impl InMemoryAuditLog {
+        pub fn len(&self) -> usize {
+            let lock = self.0.lock().unwrap();
+            lock.len()
+        }
+
+        pub fn is_empty(&self) -> bool {
+            let lock = self.0.lock().unwrap();
+            lock.is_empty()
+        }
+
+        pub fn contains_match<F>(&self, pattern: F) -> bool
+        where
+            F: FnMut(&String) -> bool,
+        {
+            let lock = self.0.lock().unwrap();
+            lock.iter().any(pattern)
         }
     }
 }

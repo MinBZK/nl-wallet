@@ -3,6 +3,9 @@ use std::time::Duration;
 
 use audit_log::model::DbAuditLog;
 use audit_log::repository::PostgresAuditLogRepository;
+use axum::body::Body;
+use axum::http::Request;
+use axum::http::header;
 use crypto::keys::EcdsaKey;
 use crypto::kid::Kid;
 use crypto::server_keys::KeyPair;
@@ -19,6 +22,7 @@ use hsm::service::Pkcs11Hsm;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::test::get_test_trust_anchor;
 use p256::pkcs8::EncodePublicKey;
+use serde::Serialize;
 use status_lists::config::StatusListConfig;
 use status_lists::postgres::PostgresStatusListService;
 use status_lists::publish::PublishDir;
@@ -61,6 +65,17 @@ impl std::ops::Deref for TestState {
 type TestFlags = WalletRepoFlags<Repositories>;
 type TestStatusList = PostgresStatusListService<HsmEcdsaKey, TestFlags>;
 type TestUserState = UserState<Repositories, TestFlags, Pkcs11Hsm, HsmEcdsaKey, TestStatusList>;
+
+/// Builds a JSON POST request authenticated with the provided cookie header value.
+pub fn post_json_request(uri: &str, cookie: &str, body: &impl Serialize) -> Request<Body> {
+    Request::builder()
+        .method("POST")
+        .uri(uri)
+        .header(header::COOKIE, cookie)
+        .header(header::CONTENT_TYPE, "application/json")
+        .body(Body::from(serde_json::to_string(body).unwrap()))
+        .unwrap()
+}
 
 pub async fn setup_state() -> TestState {
     let hsm_setup = HsmSetup::new();

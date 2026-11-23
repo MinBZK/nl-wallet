@@ -3,6 +3,7 @@ use sea_orm::Condition;
 use sea_orm::ConnectionTrait;
 use sea_orm::DbErr;
 use sea_orm::EntityTrait;
+use sea_orm::NotSet;
 use sea_orm::QueryFilter;
 use sea_orm::QueryOrder;
 use sea_orm::QuerySelect;
@@ -14,7 +15,6 @@ use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewAdminTask;
 use wallet_provider_domain::model::admin_task::TaskListView;
-use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::repository::PersistenceError;
@@ -32,11 +32,9 @@ impl TryFrom<CreateAdminTask> for admin_task::ActiveModel {
             created_at: Set(task.created_at.into()),
             created_by_user_id: Set(task.created_by_user_id),
             created_by_display_name: Set(task.created_by_display_name),
-            task_type: Set(task.payload.task_type().to_string()),
-            task_parameters: Set(task
-                .payload
-                .parameters_json()
-                .map_err(PersistenceError::TaskParametersConversion)?),
+            task_payload: Set(serde_json::to_value(&task.payload).map_err(PersistenceError::TaskParametersConversion)?),
+            // `task_type` is generated from the payload by the database (see migration).
+            task_type: NotSet,
             task_reason: Set(task.task_reason),
             status: Set(TaskStatus::Created.to_string()),
             withdrawal_comment: Set(None),
@@ -61,11 +59,7 @@ impl TryFrom<admin_task::Model> for AdminTask {
             created_at: model.created_at.into(),
             created_by_user_id: model.created_by_user_id,
             created_by_display_name: model.created_by_display_name,
-            payload: TaskPayload::from_parts(
-                model.task_type.parse().map_err(PersistenceError::EnumConversion)?,
-                model.task_parameters,
-            )
-            .map_err(PersistenceError::TaskParametersConversion)?,
+            payload: serde_json::from_value(model.task_payload).map_err(PersistenceError::TaskParametersConversion)?,
             task_reason: model.task_reason,
             status: model.status.parse().map_err(PersistenceError::EnumConversion)?,
             withdrawal_comment: model.withdrawal_comment,
@@ -248,6 +242,7 @@ mod tests {
     use chrono::Utc;
     use serde_json::json;
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
+    use wallet_provider_domain::model::admin_task::TaskPayload;
 
     use super::*;
 
@@ -267,7 +262,7 @@ mod tests {
             created_by_user_id: "creator-id".into(),
             created_by_display_name: "Creator name".into(),
             task_type: "revoke_wallet".into(),
-            task_parameters: json!({"walletIds": ["wallet-1"]}),
+            task_payload: json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1"]}}),
             task_reason: "task reason".into(),
             status: "approved".into(),
             withdrawal_comment: None,
@@ -309,8 +304,8 @@ mod tests {
         );
         assert_eq!(active.created_by_user_id, Set(row.created_by_user_id));
         assert_eq!(active.created_by_display_name, Set(row.created_by_display_name));
-        assert_eq!(active.task_type, Set(row.task_type));
-        assert_eq!(active.task_parameters, Set(row.task_parameters));
+        assert_eq!(active.task_type, NotSet);
+        assert_eq!(active.task_payload, Set(row.task_payload));
         assert_eq!(active.task_reason, Set(row.task_reason));
         assert_eq!(active.status, Set("created".to_owned()));
         assert_eq!(active.withdrawal_comment, Set(None));
@@ -353,28 +348,21 @@ mod tests {
     }
 
     #[test]
-    fn model_with_invalid_task_type_or_status_fails_conversion() {
-        for row in [
-            admin_task::Model {
-                task_type: "unknown".into(),
-                ..model()
-            },
-            admin_task::Model {
-                status: "unknown".into(),
-                ..model()
-            },
-        ] {
-            assert!(matches!(
-                AdminTask::try_from(row),
-                Err(PersistenceError::EnumConversion(_))
-            ));
-        }
+    fn model_with_invalid_status_fails_conversion() {
+        let row = admin_task::Model {
+            status: "unknown".into(),
+            ..model()
+        };
+        assert!(matches!(
+            AdminTask::try_from(row),
+            Err(PersistenceError::EnumConversion(_))
+        ));
     }
 
     #[test]
-    fn model_with_invalid_task_parameters_fails_conversion() {
+    fn model_with_invalid_payload_fails_conversion() {
         let row = admin_task::Model {
-            task_parameters: json!({}),
+            task_payload: json!({}),
             ..model()
         };
         assert!(matches!(

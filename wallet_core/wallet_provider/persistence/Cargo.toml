@@ -70,6 +70,7 @@ derive_more = { workspace = true, features = ["as_ref", "from"] }
 metrics.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
 serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 serde_with = { workspace = true, features = ["chrono"] }
 sea-orm = { workspace = true, features = [
     "macros",
@@ -97,6 +98,7 @@ apple_app_attest.path = "../../lib/apple_app_attest"
 crypto.path = "../../lib/crypto"
 hsm.path = "../../lib/hsm"
 measure.path = "../../lib/measure"
+utils.path = "../../lib/utils"
 wallet_account.path = "../wallet_account"
 wallet_provider_domain.path = "../domain"
 
@@ -105,4 +107,3 @@ db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
 rstest.workspace = true
-serde_json.workspace = true

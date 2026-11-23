@@ -1993,14 +1993,17 @@ mod tests {
             .times(2)
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_deny_recovery_code()
+            .expect_deny_recovery_codes()
             .times(2)
-            .returning(move |_, recovery_code| {
-                called_denied_recovery_codes.lock().unwrap().insert(recovery_code);
+            .returning(move |_, recovery_codes| {
+                let mut denied = called_denied_recovery_codes.lock().unwrap();
+                for recovery_code in recovery_codes {
+                    denied.insert(recovery_code.clone());
+                }
                 Ok(())
             });
         wallet_user_repo
-            .expect_find_wallet_user_ids_by_recovery_code()
+            .expect_find_wallet_user_ids_by_recovery_codes()
             .times(2)
             .returning(|_, _| Ok(vec![Uuid::new_v4()]));
         wallet_user_repo

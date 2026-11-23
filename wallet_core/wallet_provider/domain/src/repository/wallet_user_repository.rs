@@ -8,6 +8,7 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::wrapped_key::WrappedKey;
 use p256::ecdsa::VerifyingKey;
 use semver::Version;
+use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 
@@ -61,11 +62,19 @@ pub trait WalletUserRepository {
         revocation_code_hmac: &[u8],
     ) -> Result<WalletUserQueryResult>;
 
-    async fn find_wallet_user_ids_by_recovery_code(
+    /// Returns the wallet user IDs per recovery code. The map contains an entry for every requested recovery code, with
+    /// an empty `Vec` for codes without wallet users.
+    async fn find_wallet_user_ids_by_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &[RecoveryCode],
+    ) -> Result<Vec<Uuid>>;
+
+    async fn find_wallet_user_states_by_recovery_code(
         &self,
         transaction: &Self::TransactionType,
         recovery_code: &RecoveryCode,
-    ) -> Result<Vec<Uuid>>;
+    ) -> Result<Vec<WalletUserState>>;
 
     async fn clear_instruction_challenge(
         &self,
@@ -260,12 +269,23 @@ pub trait WalletUserRepository {
         revocation_date_time: DateTime<Utc>,
     ) -> Result<RevokedWalletUsers>;
 
-    async fn deny_recovery_code(&self, transaction: &Self::TransactionType, recovery_code: RecoveryCode) -> Result<()>;
+    async fn deny_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+    ) -> Result<()>;
 
     async fn recovery_code_is_denied(
         &self,
         transaction: &Self::TransactionType,
         recovery_code: RecoveryCode,
+    ) -> Result<bool>;
+
+    /// Returns whether the recovery code is denied, or `None` when the recovery code has no record.
+    async fn find_recovery_code_is_denied(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &RecoveryCode,
     ) -> Result<bool>;
 
     async fn list_denied_recovery_codes(&self, transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>>;
@@ -353,12 +373,20 @@ pub mod mock {
             Ok(QueryResult::Found(Box::new(wallet_user::mock::wallet_user_1())))
         }
 
-        async fn find_wallet_user_ids_by_recovery_code(
+        async fn find_wallet_user_ids_by_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_codes: &[RecoveryCode],
+        ) -> Result<Vec<Uuid>> {
+            Ok(vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")])
+        }
+
+        async fn find_wallet_user_states_by_recovery_code(
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: &RecoveryCode,
-        ) -> Result<Vec<Uuid>> {
-            Ok([uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")].into())
+        ) -> Result<Vec<WalletUserState>> {
+            Ok(vec![WalletUserState::Active])
         }
 
         async fn clear_instruction_challenge(
@@ -630,10 +658,10 @@ pub mod mock {
             })
         }
 
-        async fn deny_recovery_code(
+        async fn deny_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: RecoveryCode,
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<()> {
             Ok(())
         }
@@ -642,6 +670,14 @@ pub mod mock {
             &self,
             _transaction: &Self::TransactionType,
             _recovery_code: RecoveryCode,
+        ) -> Result<bool> {
+            Ok(false)
+        }
+
+        async fn find_recovery_code_is_denied(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &RecoveryCode,
         ) -> Result<bool> {
             Ok(false)
         }

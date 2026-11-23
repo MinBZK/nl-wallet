@@ -70,10 +70,47 @@ pub struct LoggedInUser {
     pub privileges: Vec<String>,
 }
 
+/// The user lacks the privilege for every one of the `required` task types, i.e. at least one of them was needed.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+#[error("denied; user lacks any privilege in: {0:?}")]
+pub struct MissingPrivileges(Vec<TaskType>);
+
+impl MissingPrivileges {
+    pub fn new(required: Vec<TaskType>) -> Self {
+        Self(required)
+    }
+
+    #[cfg(test)]
+    /// The task types of which the user needed at least one.
+    pub fn required(&self) -> &[TaskType] {
+        &self.0
+    }
+}
+
 impl LoggedInUser {
-    /// Verify whether this user is authorized to execute `task_type`.
-    pub fn is_authorized_to(&self, task_type: &TaskType) -> bool {
-        self.authorized_task_types().any(|privilege| privilege == *task_type)
+    /// Whether this user holds the privilege for `task_type`.
+    pub fn is_authorized_to(&self, task_type: TaskType) -> bool {
+        self.authorized_task_types().any(|privilege| privilege == task_type)
+    }
+
+    /// Returns [`MissingPrivileges`] unless this user holds the privilege for `task_type`.
+    pub fn verify_authorized_to(&self, task_type: TaskType) -> Result<(), MissingPrivileges> {
+        self.verify_authorized_to_any_of([task_type])
+    }
+
+    /// Returns [`MissingPrivileges`] unless this user holds the privilege for at least one of `task_types`.
+    /// An empty `task_types` always fails.
+    pub fn verify_authorized_to_any_of(
+        &self,
+        task_types: impl IntoIterator<Item = TaskType>,
+    ) -> Result<(), MissingPrivileges> {
+        let required: Vec<TaskType> = task_types.into_iter().collect();
+
+        if required.iter().any(|&task_type| self.is_authorized_to(task_type)) {
+            Ok(())
+        } else {
+            Err(MissingPrivileges::new(required))
+        }
     }
 
     /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
@@ -579,6 +616,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
 
@@ -588,6 +626,7 @@ mod tests {
     use crate::admin_portal::LoginError;
     use crate::admin_portal::TokenVerificationError;
     use crate::admin_portal::UuidV7Generator;
+    use crate::admin_portal::test_support::user;
     use crate::admin_portal::to_privileges;
 
     // Test-only 2048 bit RSA key, used to sign fake Keycloak tokens and serve a matching JWKS.
@@ -848,6 +887,22 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = service_with_repository(&keycloak_url, repository);
 
         assert_eq!(service.session_ttl(), Duration::from_secs(3600));
+    }
+
+    #[test]
+    fn verify_authorized_to_any_of_accepts_any_of_task_types() {
+        let user = user("user-1", &[TaskType::UnblockUser]);
+
+        assert!(
+            user.verify_authorized_to_any_of([TaskType::BlockUser, TaskType::UnblockUser])
+                .is_ok()
+        );
+        assert!(user.verify_authorized_to_any_of([TaskType::UnblockUser]).is_ok());
+        assert!(
+            user.verify_authorized_to_any_of([TaskType::BlockUser, TaskType::RevokeWallet])
+                .is_err()
+        );
+        assert!(user.verify_authorized_to_any_of([]).is_err());
     }
 
     #[tokio::test]
