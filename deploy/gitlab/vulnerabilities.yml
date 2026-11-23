@@ -22,7 +22,6 @@ dependency-check:
         - "**/pnpm-lock.yaml"
         - "**/Podfile.lock"
         - "**/pubspec.lock"
-        - "**/pubspec.yaml"
         - "**/requirements.txt"
       interruptible: true
       variables:
@@ -49,7 +48,7 @@ dependency-check:
       done
     - dependency-check.sh --data dependency_check_data --out dependency_check_cli --disableNodeJS
       --disablePip --disablePyPkg --enableExperimental --format "HTML" --format "JSON" --format "XML" --scan "."
-      --exclude ".gradle/**" --suppression deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
+      --exclude ".gradle/**" --exclude "**/pubspec.yaml" --suppression deploy/dependencies/dependency-check-suppressions.xml --nvdApiKey "$NVD_API_KEY" --ossIndexUsername "$OSS_INDEX_USERNAME" --ossIndexPassword "$OSS_INDEX_PASSWORD" --failOnCVSS 0.1 || status=1
     - deploy/bin/merge-dependency-check-reports.py . dependency_check_cli
         $(printf 'dependency_check_gradle/%s ' $GRADLE_BUILDS)
     - for ext in json html xml; do deploy/bin/store-artifact.sh dependency-check-report.$ext
