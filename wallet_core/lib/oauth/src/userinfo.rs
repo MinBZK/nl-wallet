@@ -1,6 +1,4 @@
 use http_utils::reqwest::HttpClient;
-use jwe::algorithm::EncryptionAlgorithm;
-use jwe::decryption::JweDecrypter;
 use jwt::Algorithm;
 use jwt::Header;
 use jwt::JwtTyp;
@@ -36,9 +34,6 @@ pub enum UserInfoError {
     #[error("error requesting userinfo: {0:?}")]
     RequestingUserInfo(Box<RemoteErrorResponse<AuthBearerErrorCode>>),
 
-    #[error("received an unsigned userinfo response")]
-    UnsignedResponse,
-
     #[error("received an encrypted userinfo response")]
     EncryptedResponse,
 
@@ -67,18 +62,8 @@ pub enum AuthBearerErrorCode {
     InsufficientScope,
 }
 
-/// Configuration needed to decrypt an encrypted UserInfo Response. Not every OpenID Provider encrypts (or even
-/// signs) its UserInfo Response, so callers that know their provider never does so can simply pass `None` for this
-/// and skip the JWE machinery entirely.
-#[derive(Debug, Clone, Copy)]
-pub struct UserInfoDecryption<'a> {
-    pub decrypter: &'a JweDecrypter,
-    pub expected_enc_algs: &'a [EncryptionAlgorithm],
-}
-
 /// Fetch the raw UserInfo Response body, given a previously obtained `access_token`. The body is returned as-is: it
-/// may be a plain JSON object, a signed JWT (JWS) or a signed-and/or-encrypted JWT (JWE), depending on the
-/// provider's configuration.
+/// may be a plain JSON object, a signed JWT (JWS), depending on the provider's configuration.
 async fn request_userinfo_body(
     http_client: &HttpClient,
     config: &OidcProviderMetadata,
@@ -120,12 +105,11 @@ fn looks_like_compact_jwe(token: &str) -> bool {
     token.trim().matches('.').count() == 4
 }
 
-/// Request the UserInfo claims for a previously obtained `access_token` (see [`request_token`]) and decode them,
-/// handling every combination of signing and encryption that
+/// Request the UserInfo claims for a previously obtained `access_token` (see [`request_token`]) and decode them.
+///
 /// [OpenID Connect Core §5.3.2](https://openid.net/specs/openid-connect-core-1_0.html#UserInfoResponse) allows:
 /// a plain JSON response, a signed-only JWS, or a JWE (which may itself wrap either a signed JWS or plain claims).
-/// Pass `decryption` when the provider is known to encrypt its response; omit it (`None`) otherwise, in which case
-/// an encrypted response results in [`UserInfoError::EncryptedResponseWithoutDecrypter`].
+/// Only plain JSON or signed-only JWS responses are supported.
 pub async fn request_userinfo<C>(
     http_client: &HttpClient,
     config: &OidcProviderMetadata,
@@ -436,7 +420,6 @@ mod tests {
             })
             .await;
 
-        // No `decryption` is configured: this provider never encrypts its UserInfo Response.
         let http_client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
         let token_response = request_token::<AuthorizationCodeGrantType, TokenResponse, TestTokenErrorCode>(
             &http_client,
