@@ -110,6 +110,21 @@ where
     Ok(result.rows_affected == 1)
 }
 
+pub async fn set_allowed_many<S, T>(db: &T, recovery_codes: &[RecoveryCode]) -> Result<u64, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    let result = recovery_code::Entity::update_many()
+        .col_expr(recovery_code::Column::IsDenied, Expr::value(false))
+        .filter(recovery_code::Column::RecoveryCode.is_in(recovery_codes.iter().map(AsRef::as_ref)))
+        .exec(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?;
+
+    Ok(result.rows_affected)
+}
+
 pub async fn list_all_denied_in<S, T>(
     db: &T,
     recovery_codes: HashSet<RecoveryCode>,

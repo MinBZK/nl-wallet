@@ -301,6 +301,12 @@ pub trait WalletUserRepository {
         transaction: &Self::TransactionType,
         recovery_code: &RecoveryCode,
     ) -> Result<bool>;
+
+    async fn allow_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_code: &[RecoveryCode],
+    ) -> Result<u64>;
 }
 
 #[cfg(feature = "mock")]
@@ -698,6 +704,14 @@ pub mod mock {
             _recovery_code: &RecoveryCode,
         ) -> Result<bool> {
             Ok(false)
+        }
+
+        async fn allow_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_code: &[RecoveryCode],
+        ) -> Result<u64> {
+            Ok(0)
         }
 
         async fn list_denied_recovery_codes_in(
