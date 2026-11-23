@@ -73,7 +73,7 @@ void main() {
 
     test('continue pid issuance without previews is returned as such', () async {
       when(core.continueIssuance('uri')).thenAnswer(
-        (_) async => IssuanceContinueResult.noPreviews(issuer: CoreMockData.organization),
+        (_) async => const IssuanceContinueResult.noPreviews(issuer: CoreMockData.organization),
       );
 
       expect(await pidRepository.continuePidIssuance('uri'), const ContinuePidIssuanceResult.noPreviews());
