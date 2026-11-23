@@ -349,22 +349,20 @@ where
     let response = state
         .issuer
         .process_credential_request(&access_token, dpop, &credential_request_jwe, &TimeGenerator)
-        .await
-        .inspect_err(|error| warn!("processing credential request failed: {}", error));
+        .await;
     let response = match response {
         Err(CredentialRequestError::MissingDpopNonce) => {
             // Only challenge after the access token and DPoP signature/key binding have been verified.
-            let nonce = state
-                .issuer
-                .generate_dpop_nonce()
-                .await
-                .map_err(|error| CredentialRequestError::DpopNonceStore(Box::new(error)))?;
+            let nonce = state.issuer.generate_dpop_nonce().await.map_err(|error| {
+                warn!("could not generate a DPoP nonce for the credential challenge");
+                CredentialRequestError::DpopNonceStore(Box::new(error))
+            })?;
             return Err(CredentialErrorResponse {
                 error: CredentialRequestError::MissingDpopNonce.into(),
                 dpop_nonce: Some(nonce),
             });
         }
-        result => result?,
+        result => result.inspect_err(|error| warn!("processing credential request failed: {error}"))?,
     };
 
     // According to <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-2.2>, the

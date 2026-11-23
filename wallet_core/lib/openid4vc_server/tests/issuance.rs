@@ -4,6 +4,8 @@ use std::collections::HashSet;
 use std::num::NonZeroU8;
 use std::num::NonZeroUsize;
 use std::sync::Arc;
+use std::sync::atomic::AtomicUsize;
+use std::sync::atomic::Ordering;
 use std::time::Duration;
 
 use attestation_data::credential_payload::CredentialPayload;
@@ -102,6 +104,9 @@ use rstest::rstest;
 use sd_jwt_vc_metadata::TypeMetadata;
 use tokio::net::TcpListener;
 use tower::ServiceExt;
+use tracing::Level;
+use tracing_subscriber::filter::Targets;
+use tracing_subscriber::layer::SubscriberExt;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::generator::mock::MockTimeGenerator;
@@ -1763,6 +1768,16 @@ async fn pre_authorized_code_flow_credential_request() {
         .parse::<Url>()
         .unwrap();
 
+    let issuer_warnings = Arc::new(AtomicUsize::new(0));
+    let warnings = Arc::clone(&issuer_warnings);
+    let subscriber = tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer().with_writer(move || {
+            warnings.fetch_add(1, Ordering::Relaxed);
+            std::io::sink()
+        }))
+        .with(Targets::new().with_target("openid4vc_server::issuer", Level::WARN));
+    let _guard = tracing::subscriber::set_default(subscriber);
+
     // A missing nonce only produces a challenge after validating the DPoP key and access-token binding.
     let wrong_key = SigningKey::generate();
     let wrong_proof = Dpop::new(
@@ -1787,6 +1802,12 @@ async fn pre_authorized_code_flow_credential_request() {
     assert!(!response.headers().contains_key(DPOP_NONCE_HEADER_NAME));
     assert_invalid_dpop_response(response).await;
 
+    assert_eq!(
+        issuer_warnings.swap(0, Ordering::Relaxed),
+        1,
+        "an invalid proof should warn"
+    );
+
     let proof_without_nonce = Dpop::new(
         &dpop_key,
         credential_url.clone(),
@@ -1807,6 +1828,11 @@ async fn pre_authorized_code_flow_credential_request() {
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    assert_eq!(
+        issuer_warnings.load(Ordering::Relaxed),
+        0,
+        "a nonce challenge should be quiet"
+    );
     assert_eq!(
         response.headers().get(header::WWW_AUTHENTICATE).unwrap(),
         "DPoP error=\"use_dpop_nonce\", algs=\"ES256\""
