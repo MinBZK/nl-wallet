@@ -508,6 +508,42 @@ async fn test_create_unblock_user_task_accepts_denied_recovery_code() {
 
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_unblock_user_task_approval_allows_recovery_code() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let bob = TestUser::new("bob");
+    let cookie = seed_session(&repositories, &bob, &[TaskType::UnblockUser]).await;
+    let recovery_code = new_recovery_code();
+    deny_recovery_code(&repositories, &recovery_code).await;
+    let task_id = seed_task_with_payload(
+        &repositories,
+        &alice,
+        unblock_user_payload(std::slice::from_ref(&recovery_code)),
+    )
+    .await;
+
+    let response = app
+        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Approved);
+    assert_eq!(task.execution_successful, Some(true));
+    assert_eq!(task.execution_details, Some("unblocked 1 recovery code(s)".to_string()));
+
+    let transaction = repositories.begin_transaction().await.unwrap();
+    let is_denied = repositories
+        .recovery_code_is_denied(&transaction, RecoveryCode::from(recovery_code))
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
+    assert!(!is_denied);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_task_succeeds() {
     let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
