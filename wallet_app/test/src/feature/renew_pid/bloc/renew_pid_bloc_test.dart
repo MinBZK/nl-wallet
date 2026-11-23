@@ -222,11 +222,11 @@ void main() {
     );
 
     blocTest<RenewPidBloc, RenewPidState>(
-      'ltc66 emits RenewPidDigidMismatch when a WrongDigidError is received',
+      'ltc66 emits RenewPidDigidMismatch when a WrongIdentityError is received',
       build: () {
         when(
           continuePidIssuanceUseCase.invoke(any),
-        ).thenAnswer((_) async => const Result.error(WrongDigidError(sourceError: 'test')));
+        ).thenAnswer((_) async => const Result.error(WrongIdentityError(sourceError: 'test')));
         when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
         return RenewPidBloc(
           getPidRenewalUrlUseCase,
@@ -244,11 +244,11 @@ void main() {
     );
 
     blocTest<RenewPidBloc, RenewPidState>(
-      'ltc66 emits RenewPidDigidLoginCancelled when a DeniedDigidError is received',
+      'ltc66 emits RenewPidDigidLoginCancelled when a DeniedPidIssuanceError is received',
       build: () {
         when(
           continuePidIssuanceUseCase.invoke(any),
-        ).thenAnswer((_) async => const Result.error(DeniedDigidError(sourceError: 'test')));
+        ).thenAnswer((_) async => const Result.error(DeniedPidIssuanceError(sourceError: 'test')));
         when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
         return RenewPidBloc(
           getPidRenewalUrlUseCase,

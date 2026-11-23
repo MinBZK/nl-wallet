@@ -97,7 +97,7 @@ human-readable end product, sorted by what actually needs attention.
 | Job | What it scans | Variables |
 |---|---|---|
 | `ai-security-scan-diff` | Code changed in a commit range | `SCAN_COMMIT_RANGE` — any range `git diff` accepts (default: the last commit, `HEAD~1..HEAD`) |
-| `ai-security-scan-full` | A source tree (defaults to the Rust core) | `SCAN_TARGET` — path relative to the repo root (default `wallet_core`; a narrower target like `wallet_core/lib/jwt` is faster and cheaper), `SCAN_EXCLUDES` — `--exclude` flags, relative to `SCAN_TARGET` (default drops `target`, `tests_integration`, `demo`, `gba_hc_converter`, `wallet_server/pid_issuer`) |
+| `ai-security-scan-full` | A source tree (defaults to the Rust core) | `SCAN_TARGET` — path relative to the repo root (default `wallet_core`; a narrower target like `wallet_core/lib/jwt` is faster and cheaper), `SCAN_EXCLUDES` — `--exclude` flags, relative to `SCAN_TARGET` (default drops `target`, `tests_integration`, `demo`, `wallet_server/pid_issuer`) |
 
 > **Keep the diff range off merge commits.** `git diff A..B` compares the two
 > tree snapshots directly, so a range that spans a merge (e.g. `HEAD~5..HEAD`

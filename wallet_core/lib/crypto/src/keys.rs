@@ -3,8 +3,6 @@ use std::hash::Hash;
 
 use aes_gcm::AeadCore;
 use aes_gcm::Aes256Gcm;
-use aes_gcm::Key;
-use aes_gcm::KeySizeUser;
 use aes_gcm::aead::Aead;
 use aes_gcm::aead::Generate;
 use aes_gcm::aead::Nonce;
@@ -18,7 +16,6 @@ use p256::ecdsa::VerifyingKey;
 use rsa::traits::PublicKeyParts;
 use serde::Deserialize;
 use serde::Serialize;
-use serde::de;
 
 #[derive(Debug, thiserror::Error)]
 pub enum PublicKeyError {
@@ -228,49 +225,6 @@ pub trait CredentialEcdsaKey: WithVerifyingKey {
 #[derive(Debug, Clone, From, Into, AsRef, Serialize, Deserialize)]
 #[as_ref(forward)]
 pub struct AppleAssertion(Vec<u8>);
-
-/// Represents a symmetric encryption key.
-///
-/// The `SymmetricKey` struct is used to encapsulate the raw bytes of a symmetric key,
-/// which can be used in cryptographic operations such as encryption and decryption.
-/// It can be deserialized from a hex-encoded string, e.g. `"01020304"`.
-///
-/// # Attributes
-/// - `bytes` (`Vec<u8>`): A vector of bytes representing the symmetric key.
-///
-/// # Example
-/// ```rust
-/// use crypto::keys::SymmetricKey;
-///
-/// let key_bytes = vec![0x01, 0x02, 0x03, 0x04];
-/// let symmetric_key: SymmetricKey = key_bytes.into();
-/// ```
-#[derive(Clone, From, Into, AsRef)]
-pub struct SymmetricKey {
-    bytes: Vec<u8>,
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("symmetric key has an invalid length for this cipher")]
-pub struct InvalidKeyLength;
-
-impl SymmetricKey {
-    pub fn key<B>(&self) -> Result<&Key<B>, InvalidKeyLength>
-    where
-        B: KeySizeUser,
-    {
-        <&Key<B>>::try_from(self.bytes.as_slice()).map_err(|_| InvalidKeyLength)
-    }
-}
-
-impl<'de> Deserialize<'de> for SymmetricKey {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
-        String::deserialize(deserializer)
-            .map(hex::decode)?
-            .map(Into::into)
-            .map_err(de::Error::custom)
-    }
-}
 
 #[cfg(any(test, feature = "mock_secure_keys"))]
 mod mock_secure_keys {

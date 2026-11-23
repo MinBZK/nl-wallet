@@ -9,7 +9,7 @@ use derive_more::Index;
 use itertools::Itertools;
 use nonempty_collections::FromNonEmptyIterator;
 pub use nonempty_collections::IntoNonEmptyIterator;
-use nonempty_collections::Singleton;
+pub use nonempty_collections::Singleton;
 pub use nonempty_collections::iter::NonEmptyIterator;
 use rand::seq::IndexedRandom;
 use serde::Deserialize;
@@ -18,7 +18,9 @@ use serde::Serialize;
 use serde::Serializer;
 use serde::de;
 use serde_with::DeserializeAs;
+use serde_with::OneOrMany;
 use serde_with::SerializeAs;
+use serde_with::formats::Format;
 
 #[derive(Debug, thiserror::Error)]
 #[error("{kind}")]
@@ -425,6 +427,16 @@ impl<T> Singleton for VecNonEmpty<T> {
     }
 }
 
+// A type that can be instantiated via a single item
+// <https://docs.rs/nonempty-collections/1.1.0/nonempty_collections/trait.Singleton.html>
+impl<T> Singleton for VecNonEmptyUnique<T> {
+    type Item = T;
+
+    fn singleton(item: Self::Item) -> Self {
+        VecNonEmptyUnique::new(vec![item]).unwrap_or_else(|_| panic!("singleton should never fail"))
+    }
+}
+
 // The trait implementations below allow this type to be used in combination
 // with `serde_with` by specifying a `#[serde_as(as = "Vec<T>")]` macro.
 
@@ -471,6 +483,34 @@ where
         let vec_at_least = vec.try_into().map_err(de::Error::custom)?;
 
         Ok(vec_at_least)
+    }
+}
+
+impl<T, U, F, const N: usize, const UNIQUE: bool> SerializeAs<VecAtLeastN<T, N, UNIQUE>> for OneOrMany<U, F>
+where
+    F: Format,
+    Self: SerializeAs<Vec<T>>,
+{
+    fn serialize_as<S>(source: &VecAtLeastN<T, N, UNIQUE>, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        <Self as SerializeAs<Vec<T>>>::serialize_as(&source.0, serializer)
+    }
+}
+
+impl<'de, T, U, F, const N: usize, const UNIQUE: bool> DeserializeAs<'de, VecAtLeastN<T, N, UNIQUE>> for OneOrMany<U, F>
+where
+    F: Format,
+    Self: DeserializeAs<'de, Vec<T>>,
+    VecAtLeastN<T, N, UNIQUE>: TryFrom<Vec<T>, Error = VecAtLeastNError<T>>,
+{
+    fn deserialize_as<D>(deserializer: D) -> Result<VecAtLeastN<T, N, UNIQUE>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let vec: Vec<T> = <Self as DeserializeAs<'de, Vec<T>>>::deserialize_as(deserializer)?;
+        vec.try_into().map_err(de::Error::custom)
     }
 }
 
@@ -540,7 +580,10 @@ mod tests {
     use nonempty_collections::IntoNonEmptyIterator;
     use nonempty_collections::NonEmptyIterator;
     use rstest::rstest;
+    use serde_json::Value;
     use serde_json::json;
+    use serde_with::OneOrMany;
+    use serde_with::serde_as;
     use tokio::time::Instant;
     use tokio::time::sleep;
     use tokio::time::timeout;
@@ -821,5 +864,34 @@ mod tests {
         .expect("try_join_all should return as soon as a future fails");
 
         assert_eq!(result, Err(failing_index));
+    }
+
+    #[serde_as]
+    #[derive(Debug, PartialEq, serde::Serialize, serde::Deserialize)]
+    #[serde(transparent)]
+    struct TestOneOrMany(#[serde_as(as = "OneOrMany<_>")] VecNonEmpty<i32>);
+
+    #[test]
+    fn test_serde_one_or_many_with_one() {
+        let items = TestOneOrMany(vec_nonempty![1]);
+        let serialized = serde_json::to_value(&items).unwrap();
+        assert_eq!(json!(1), serialized);
+
+        let deserialized = serde_json::from_value(serialized.clone()).unwrap();
+        assert_eq!(items, deserialized);
+
+        // Test same for multiple items
+        let deserialized = serde_json::from_value(Value::Array(vec![serialized])).unwrap();
+        assert_eq!(items, deserialized);
+    }
+
+    #[test]
+    fn test_serde_one_or_many_with_many() {
+        let items = TestOneOrMany(vec_nonempty![1, 2, 3]);
+        let serialized = serde_json::to_value(&items).unwrap();
+        assert_eq!(json!([1, 2, 3]), serialized);
+
+        let deserialized = serde_json::from_value(serialized).unwrap();
+        assert_eq!(items, deserialized);
     }
 }

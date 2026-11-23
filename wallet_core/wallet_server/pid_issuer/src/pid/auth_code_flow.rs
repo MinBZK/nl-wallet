@@ -1,30 +1,25 @@
 use std::collections::HashSet;
 use std::sync::Arc;
 
-use attestation_data::attributes::Attribute;
-use attestation_data::attributes::AttributesHandlingError;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use axum::Form;
 use axum::Router;
 use axum::extract::Query;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::Redirect;
-use axum::routing::get;
+use axum::routing::post;
 use crypto::utils::random_string;
 use hsm::service::HsmError;
-use http_utils::urls::BaseUrl;
 use issuer_common::state_bridge_store::IssuerStateBridgeStore;
 use issuer_common::state_bridge_store::IssuerStateBridgeStoreError;
 use itertools::Either;
 use itertools::Itertools;
-use jwk_simple::Key;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::BodyOrRedirectErrorResponse;
 use oauth::errors::ErrorWithCode;
 use oauth::errors::RedirectError;
-use oauth::pkce::PkcePair;
-use oauth::pkce::S256PkcePair;
 use oauth::token::AuthorizationCode;
 use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
 use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -48,29 +43,17 @@ use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::pid::brp::client::BrpClient;
-use crate::pid::brp::client::BrpError;
-use crate::pid::brp::client::HttpBrpClient;
-use crate::pid::brp::data::BrpPerson;
-use crate::pid::digid;
-use crate::pid::digid::DigidClient;
-use crate::pid::digid::DigidMetadataClient;
-use crate::pid::digid::HttpDigidClient;
+use crate::pid::attributes::Persons;
 use crate::pid::rulebook::constants::pid_attestation_type;
 use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
 
-const ISSUER_STATE_LENGTH: usize = 32;
+const LOGIN_STATE_LENGTH: usize = 32;
 
-const DIGID_CALLBACK_PATH: &str = "/digid/callback";
-
-/// Errors raised by [`UpstreamOidcAuthorizationCodeFlow`] on either half of the flow.
+/// Errors raised by [`LoginAuthorizationCodeFlow`] on either half of the flow.
 #[derive(Debug, thiserror::Error)]
-pub enum Error {
+pub enum LoginAuthorizationCodeFlowError {
     #[error("unsupported credential type(s) requested: {}", .0.iter().join(", "))]
     UnsupportedCredentialType(Vec<CredentialKind>),
-
-    #[error("DigiD error: {0}")]
-    Digid(#[source] digid::Error),
 
     #[error("authorization flow state expired before the callback was received")]
     ExpiredState,
@@ -81,14 +64,8 @@ pub enum Error {
     #[error("could not find attributes for BSN")]
     NoAttributesFound,
 
-    #[error("error retrieving from BRP: {0}")]
-    Brp(#[source] BrpError),
-
     #[error("error creating issuable documents")]
     InvalidIssuableDocuments,
-
-    #[error("error retrieving BSN: {0}")]
-    RetrievingBsn(#[source] AttributesHandlingError),
 
     #[error("failed to compute BSN HMAC: {0}")]
     Hmac(#[source] HsmError),
@@ -97,7 +74,7 @@ pub enum Error {
     CompleteAuthorization(#[source] CompleteAuthorizationError),
 }
 
-impl ErrorWithCode for Error {
+impl ErrorWithCode for LoginAuthorizationCodeFlowError {
     type ErrorCode = AuthorizationErrorCode;
 
     fn error_code(&self) -> Self::ErrorCode {
@@ -106,184 +83,100 @@ impl ErrorWithCode for Error {
 
             Self::ExpiredState => AuthorizationErrorCode::InvalidRequest,
 
-            Self::Digid(_)
-            | Self::StateBridge(_)
-            | Self::NoAttributesFound
-            | Self::Brp(_)
-            | Self::InvalidIssuableDocuments
-            | Self::RetrievingBsn(_)
-            | Self::Hmac(_) => AuthorizationErrorCode::ServerError,
+            Self::StateBridge(_) | Self::NoAttributesFound | Self::InvalidIssuableDocuments | Self::Hmac(_) => {
+                AuthorizationErrorCode::ServerError
+            }
 
             Self::CompleteAuthorization(error) => error.error_code(),
         }
     }
 }
 
-/// One state-bridge entry, written at `/authorize` and consumed by the upstream callback handler.
-///
-/// Linked to the upstream provider by a random `bridge_key` we send as `state` in the upstream
-/// redirect, which the upstream then echoes back to our callback. Carries everything the callback
-/// needs to (a) complete the upstream `/token` + `/userinfo` exchange and (b) build the
-/// wallet-facing redirect.
+/// One state-bridge entry, written at `/authorize` and consumed when the user selects a card.
 #[derive(Serialize, Deserialize)]
 struct StateBridgeEntry {
     context: WalletAuthorizationContext,
-    upstream_code_verifier: String,
     formats: VecNonEmpty<Format>,
 }
 
-/// Query parameters sent by the upstream provider when redirecting the user back to the issuer's
-/// callback URL after a successful authentication.
+/// Query parameters sent by login page
 #[derive(Deserialize)]
-struct DigidCallbackQuery {
-    code: AuthorizationCode,
+struct StateQuery {
     state: String,
 }
 
-/// Concrete [`AuthorizationCodeFlow`] for the pid_issuer's upstream-OIDC (DigiD) flow.
+/// Form parameters sent by login page when user selects a card.
+#[derive(Deserialize)]
+struct LoginForm {
+    bsn: String,
+}
+
+/// Concrete [`AuthorizationCodeFlow`] for the pid_issuer.
 ///
 /// Owns:
-/// - upstream OIDC discovery cache + client (for the authorize-endpoint URL and the `/userinfo`-based BSN exchange);
-/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`) to the wallet's
-///   original `redirect_uri`, `state`, PKCE challenge and our upstream PKCE verifier;
-/// - the BRP client (BSN → person attributes) and the recovery-code HMAC key;
-/// - the issuer's own callback URL, used both as the upstream `redirect_uri` and as the `redirect_uri` parameter of the
-///   upstream `/token` exchange.
-pub struct UpstreamOidcAuthorizationCodeFlow<B = HttpBrpClient, O = HttpDigidClient> {
-    brp_client: B,
-    digid_client: O,
+/// - the issuer metadata
+/// - the state-bridge store, linking the random `login_state` passed to the login page to the wallet's
+/// - the recovery-code HMAC key;
+/// - the issuer's own login URL.
+/// - the persons database.
+pub struct LoginAuthorizationCodeFlow {
     recovery_code_secret_key: SecretKeyVariant,
     issuer_metadata: PidIssuerMetadata,
     state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
-    callback_url: Url,
-    client_id: String,
-    mock_login_uri: Option<Url>,
+    login_url: Url,
+    persons: Persons,
 }
 
-impl UpstreamOidcAuthorizationCodeFlow {
-    #[expect(clippy::too_many_arguments, reason = "Constructor wiring upstream-OIDC dependencies")]
-    pub fn try_new(
-        brp_client: HttpBrpClient,
-        bsn_privkey: &Key,
-        client_id: impl Into<String>,
-        digid_metadata_client: DigidMetadataClient,
-        recovery_code_secret_key: SecretKeyVariant,
-        issuer_metadata: PidIssuerMetadata,
-        store_connection: StoreConnection,
-        callback_base_url: &BaseUrl,
-    ) -> Result<Self, Error> {
-        let client_id: String = client_id.into();
-        let digid_client =
-            HttpDigidClient::try_new(bsn_privkey, client_id.clone(), digid_metadata_client).map_err(Error::Digid)?;
-
-        Ok(Self::new(
-            brp_client,
-            digid_client,
-            recovery_code_secret_key,
-            issuer_metadata,
-            store_connection,
-            callback_base_url,
-            client_id,
-        ))
-    }
-}
-
-impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
+impl LoginAuthorizationCodeFlow {
     /// Construct the flow, building its [`IssuerStateBridgeStore`] from `store_connection`. The
     /// store's entry type is an internal detail of this flow, so callers only supply the connection.
-    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     pub fn new(
-        brp_client: B,
-        digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
         issuer_metadata: PidIssuerMetadata,
         store_connection: StoreConnection,
-        callback_base_url: &BaseUrl,
-        client_id: String,
+        login_url: Url,
+        persons: Persons,
     ) -> Self {
         Self::new_with_store(
-            brp_client,
-            digid_client,
             recovery_code_secret_key,
             issuer_metadata,
             Arc::new(IssuerStateBridgeStore::new(store_connection)),
-            callback_base_url,
-            client_id,
+            login_url,
+            persons,
         )
     }
 
-    #[expect(clippy::too_many_arguments, reason = "Constructor")]
     fn new_with_store(
-        brp_client: B,
-        digid_client: O,
         recovery_code_secret_key: SecretKeyVariant,
         issuer_metadata: PidIssuerMetadata,
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
-        callback_base_url: &BaseUrl,
-        client_id: String,
+        login_url: Url,
+        persons: Persons,
     ) -> Self {
         Self {
-            brp_client,
-            digid_client,
             recovery_code_secret_key,
             issuer_metadata,
             state_bridge_store,
-            callback_url: callback_base_url.join(DIGID_CALLBACK_PATH),
-            client_id,
-            mock_login_uri: None,
+            login_url,
+            persons,
         }
     }
 
-    /// Enable (or disable) the pid_issuer-hosted mock login page. When `Some`, `authorize` redirects
-    /// the user-agent there instead of directly to nl-rdo-max.
-    pub fn with_mock_login_uri(mut self, mock_login_uri: Option<Url>) -> Self {
-        self.mock_login_uri = mock_login_uri;
-        self
-    }
-
-    /// Mount the `/digid/callback` route owned by this flow on a fresh [`Router`]. The
-    /// pid_issuer's `server` module merges this with the `openid4vc` layer's authorization and
-    /// issuance routers. The handler reads its flow state via [`AuthorizingIssuer::flow`].
-    pub fn callback_router<K, L, S, N, PAS>(
-        authorizing_issuer: DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>,
-    ) -> Router
-    where
-        K: Send + Sync + 'static,
-        L: Send + Sync + 'static,
-        S: SessionStore<IssuanceData> + Send + Sync + 'static,
-        N: Send + Sync + 'static,
-        PAS: Send + Sync + 'static,
-        B: BrpClient + Send + Sync + 'static,
-        O: DigidClient + Send + Sync + 'static,
-    {
-        Router::new()
-            .route(DIGID_CALLBACK_PATH, get(digid_callback))
-            .with_state(authorizing_issuer)
-    }
-
-    /// Exchange the upstream `code` for the user's BSN, look up attributes, build and return the issuable documents.
     async fn fetch_issuable_documents(
         &self,
-        upstream_code: AuthorizationCode,
-        upstream_code_verifier: String,
+        bsn: &str,
         formats: VecNonEmpty<Format>,
-    ) -> Result<VecNonEmpty<IssuableDocument>, Error>
-    where
-        B: BrpClient,
-        O: DigidClient,
-    {
-        let bsn = self
-            .digid_client
-            .bsn(upstream_code, upstream_code_verifier, self.callback_url.clone())
-            .await
-            .map_err(Error::Digid)?;
+    ) -> Result<VecNonEmpty<IssuableDocument>, LoginAuthorizationCodeFlowError> {
+        // Fetch person from the in-memory store
+        let person = self
+            .persons
+            .as_ref()
+            .get(bsn)
+            .ok_or_else(|| LoginAuthorizationCodeFlowError::NoAttributesFound)?
+            .clone();
 
-        let mut persons = self.brp_client.get_person_by_bsn(&bsn).await.map_err(Error::Brp)?;
-        if persons.persons.len() != 1 {
-            return Err(Error::NoAttributesFound);
-        }
-        let person = persons.persons.remove(0);
-        let recovery_code = recovery_code(&person, &self.recovery_code_secret_key).await?;
+        // Generate recovery code and issuer metadata
+        let recovery_code = recovery_code(bsn, &self.recovery_code_secret_key).await?;
         let issuer_metadata = self.issuer_metadata.clone();
 
         // Create an `IssuableDocument` for each requested format.
@@ -307,18 +200,14 @@ impl<B, O> UpstreamOidcAuthorizationCodeFlow<B, O> {
                 )
             })
             .collect::<Result<_, _>>()
-            .map_err(|_| Error::InvalidIssuableDocuments)?;
+            .map_err(|_| LoginAuthorizationCodeFlowError::InvalidIssuableDocuments)?;
 
         Ok(issuable_documents)
     }
 }
 
-impl<B, O> AuthorizationCodeFlow for UpstreamOidcAuthorizationCodeFlow<B, O>
-where
-    B: BrpClient + Send + Sync,
-    O: DigidClient + Send + Sync,
-{
-    type Error = Error;
+impl AuthorizationCodeFlow for LoginAuthorizationCodeFlow {
+    type Error = LoginAuthorizationCodeFlowError;
 
     async fn authorize(&self, context: WalletAuthorizationContext) -> Result<AuthorizeOutcome, Self::Error> {
         // Return an error if any of the attestation types are not the PID attestation type and retain only the
@@ -336,7 +225,9 @@ where
             });
 
         if !unsupported.is_empty() {
-            return Err(Error::UnsupportedCredentialType(unsupported.into_iter().collect()));
+            return Err(Self::Error::UnsupportedCredentialType(
+                unsupported.into_iter().collect(),
+            ));
         }
 
         let formats = formats.into_iter().collect_vec().try_into().expect(
@@ -344,67 +235,57 @@ where
              unsupported attestation types",
         );
 
-        // Generate the upstream PKCE pair and a random `bridge_key` we'll use as `state` in
-        // the upstream redirect. The upstream provider will echo it back to our callback.
-        let upstream_pkce = S256PkcePair::generate();
-        let upstream_state = random_string(ISSUER_STATE_LENGTH);
+        // Generate a random `login_state` to keep track of the flow
+        let login_state = random_string(LOGIN_STATE_LENGTH);
 
-        let redirect_url = self
-            .digid_client
-            .authorization_request(
-                self.client_id.clone(),
-                self.callback_url.clone(),
-                upstream_state.clone(),
-                &upstream_pkce,
-            )
-            .await
-            .map_err(Error::Digid)?;
+        // Create the login URL to which the wallet should redirect
+        let mut login_url = self.login_url.clone();
+        login_url.query_pairs_mut().append_pair("state", login_state.as_str());
 
         // Retain the wallet-side context so the callback can redirect the user-agent back to the
         // wallet and the `openid4vc` layer's /token handler can verify the wallet's PKCE challenge.
-        let entry = StateBridgeEntry {
-            context,
-            upstream_code_verifier: upstream_pkce.into_code_verifier(),
-            formats,
-        };
+        let entry = StateBridgeEntry { context, formats };
         self.state_bridge_store
-            .store(upstream_state, entry)
+            .store(login_state, entry)
             .await
-            .map_err(Error::StateBridge)?;
+            .map_err(Self::Error::StateBridge)?;
 
-        // Send the user-agent to our own card page instead of straight to nl-rdo-max, carrying the nl-rdo-max authorize
-        // URL so a selected card can drive the bridge. The upstream `state` is present in that URL as well, so the
-        // `/digid/callback` still consumes the same bridge entry.
-        let outcome_url = match &self.mock_login_uri {
-            Some(mock_login_uri) => {
-                let mut mock_login_url = mock_login_uri.clone();
-                mock_login_url
-                    .query_pairs_mut()
-                    .append_pair("authorize_url", redirect_url.as_str());
-                mock_login_url
-            }
-            None => redirect_url,
-        };
-
-        Ok(AuthorizeOutcome::RedirectTo(outcome_url))
+        Ok(AuthorizeOutcome::RedirectTo(login_url))
     }
 
     async fn cleanup(&self) -> Result<(), Self::Error> {
-        self.state_bridge_store.cleanup().await.map_err(Error::StateBridge)
+        self.state_bridge_store
+            .cleanup()
+            .await
+            .map_err(Self::Error::StateBridge)
     }
 }
 
-/// `GET /digid/callback`: termination point for the upstream OIDC redirect. Exchanges the upstream
-/// `code` for a BSN, looks up attributes in the BRP, builds the [`IssuableDocument`]s, and hands
-/// them to the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`] which generates the
-/// issuer-side authorization code and writes the `AuthCodeIssued` session. Errors surface to the
-/// wallet as an OAuth error redirect, since the wallet's redirect_uri is known by then.
-type DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B = HttpBrpClient, O = HttpDigidClient> =
-    Arc<AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>>;
+/// Issuer that incorporates a login submit handle that fetches the chosen BSN from the in-memory
+/// store and hands them to the `openid4vc` layer's [`AuthorizingIssuer::complete_authorization`]
+/// which generates the issuer-side authorization code and writes the `AuthCodeIssued` session.
+/// Errors surface to the wallet as an OAuth error redirect, since the wallet's redirect_uri is
+/// known by then.
+type LoginAuthorizingIssuer<K, L, S, N, PAS> = Arc<AuthorizingIssuer<K, L, S, N, PAS, LoginAuthorizationCodeFlow>>;
 
-async fn digid_callback<K, L, S, N, PAS, B, O>(
-    State(authorizing_issuer): State<DigidCallbackAuthorizingIssuer<K, L, S, N, PAS, B, O>>,
-    Query(DigidCallbackQuery { code, state }): Query<DigidCallbackQuery>,
+/// Create a [`Router`] that handles the login select on the given path.
+pub fn login_router<K, L, S, N, PAS>(authorizing_issuer: LoginAuthorizingIssuer<K, L, S, N, PAS>, path: &str) -> Router
+where
+    K: Send + Sync + 'static,
+    L: Send + Sync + 'static,
+    S: SessionStore<IssuanceData> + Send + Sync + 'static,
+    N: Send + Sync + 'static,
+    PAS: Send + Sync + 'static,
+{
+    Router::new()
+        .route(path, post(login_submit))
+        .with_state(authorizing_issuer)
+}
+
+async fn login_submit<K, L, S, N, PAS>(
+    State(authorizing_issuer): State<LoginAuthorizingIssuer<K, L, S, N, PAS>>,
+    Query(StateQuery { state }): Query<StateQuery>,
+    Form(LoginForm { bsn }): Form<LoginForm>,
 ) -> Result<Redirect, BodyOrRedirectErrorResponse<AuthorizationErrorCode>>
 where
     K: Send + Sync + 'static,
@@ -412,29 +293,27 @@ where
     S: SessionStore<IssuanceData> + Send + Sync + 'static,
     N: Send + Sync + 'static,
     PAS: Send + Sync + 'static,
-    B: BrpClient + Send + Sync + 'static,
-    O: DigidClient + Send + Sync + 'static,
 {
     let flow = authorizing_issuer.flow();
 
-    // The upstream provider echoes back only the opaque `state` (the bridge key); the wallet's `redirect_uri` lives
-    // solely inside the bridge entry. So once the entry is gone there is nothing left to send the user-agent back to.
-    // An `Absent` entry (never existed, or deleted after the cleanup leeway) therefore dead-ends as a plain-text
-    // body. An `Expired` entry, however, still carries the `redirect_uri`, so we send the user back to the wallet
-    // with an OAuth error instead of a dead-end; this is exactly what the cleanup leeway buys us.
     let entry: StateBridgeEntry = match flow.state_bridge_store.consume(state.as_str()).await {
         Ok(Consumed::Live(entry)) => entry,
         Ok(Consumed::Expired(entry)) => {
-            warn!("digid callback: bridge entry expired; redirecting to wallet with error");
+            warn!("login callback: bridge entry expired; redirecting to wallet with error");
 
             let WalletAuthorizationContext {
                 state, request_values, ..
             } = entry.context;
 
-            return Err(RedirectError::new(Error::ExpiredState, Box::new(request_values.redirect_uri), state).into());
+            return Err(RedirectError::new(
+                LoginAuthorizationCodeFlowError::ExpiredState,
+                Box::new(request_values.redirect_uri),
+                state,
+            )
+            .into());
         }
         Ok(Consumed::Absent) => {
-            warn!("digid callback: unknown bridge key");
+            warn!("login callback: unknown bridge key");
 
             return Err(BodyOrRedirectErrorResponse::new_body(
                 StatusCode::BAD_REQUEST,
@@ -442,7 +321,7 @@ where
             ));
         }
         Err(error) => {
-            warn!("digid callback: state bridge consume failed: {error}");
+            warn!("login callback: state bridge consume failed: {error}");
 
             return Err(BodyOrRedirectErrorResponse::new_body(
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -451,30 +330,18 @@ where
         }
     };
 
-    let StateBridgeEntry {
-        context: WalletAuthorizationContext {
-            state, request_values, ..
-        },
-        upstream_code_verifier,
-        formats,
-    } = entry;
-    let redirect_uri = request_values.redirect_uri.clone();
+    let redirect_uri = entry.context.request_values.redirect_uri.clone();
+    let state = entry.context.state;
 
-    let code = match complete_digid_callback(
-        &authorizing_issuer,
-        request_values,
-        upstream_code_verifier,
-        formats,
-        code,
-    )
-    .await
+    let code = match complete_login_authorization(&authorizing_issuer, entry.context.request_values, bsn, entry.formats)
+        .await
     {
         Ok(code) => code,
         Err(error) => {
-            warn!("digid callback: completion failed: {error}");
+            warn!("login callback: completion failed: {error}");
 
-            // Return any error from completing the callback as a 303 redirect to the `redirect_uri`, including the
-            // `state` if it was present in the Authorization Request.
+            // Return any error from completing login as a 303 redirect to the `redirect_uri`, including the `state`
+            // if it was present in the Authorization Request.
             return Err(RedirectError::new(error, Box::new(redirect_uri), state).into());
         }
     };
@@ -484,61 +351,54 @@ where
     Ok(Redirect::to(url.as_str()))
 }
 
-/// Exchange the upstream `code` for the issuable documents, then hand them to the `openid4vc` layer's
+/// Create issuable documents for the BSN and hand them to the `openid4vc` layer's
 /// [`AuthorizingIssuer::complete_authorization`], which generates the issuer-side authorization code,
 /// writes the `AuthCodeIssued` session, and returns the code.
-async fn complete_digid_callback<K, L, S, N, PAS, B, O>(
-    authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, UpstreamOidcAuthorizationCodeFlow<B, O>>,
+async fn complete_login_authorization<K, L, S, N, PAS>(
+    authorizing_issuer: &AuthorizingIssuer<K, L, S, N, PAS, LoginAuthorizationCodeFlow>,
     auth_request_values: AuthRequestValues,
-    upstream_code_verifier: String,
+    bsn: String,
     formats: VecNonEmpty<Format>,
-    digid_code: AuthorizationCode,
-) -> Result<AuthorizationCode, Error>
+) -> Result<AuthorizationCode, LoginAuthorizationCodeFlowError>
 where
     S: SessionStore<IssuanceData>,
-    B: BrpClient,
-    O: DigidClient,
 {
     let issuable_documents = authorizing_issuer
         .flow()
-        .fetch_issuable_documents(digid_code, upstream_code_verifier, formats)
+        .fetch_issuable_documents(&bsn, formats)
         .await?;
 
     authorizing_issuer
         .complete_authorization(issuable_documents, auth_request_values)
         .await
-        .map_err(Error::CompleteAuthorization)
+        .map_err(LoginAuthorizationCodeFlowError::CompleteAuthorization)
 }
 
-/// The recovery code of a person (an HMAC over the BSN) as an attribute
-async fn recovery_code(person: &BrpPerson, secret_key: &SecretKeyVariant) -> Result<Attribute, Error> {
+/// The recovery code of a person (an HMAC over the BSN)
+async fn recovery_code(bsn: &str, secret_key: &SecretKeyVariant) -> Result<String, LoginAuthorizationCodeFlowError> {
     let hmac = secret_key
-        .sign_hmac(person.bsn().as_bytes())
+        .sign_hmac(bsn.as_bytes())
         .await
-        .map_err(Error::Hmac)?;
-    Ok(Attribute::Text(hex::encode(hmac)))
+        .map_err(LoginAuthorizationCodeFlowError::Hmac)?;
+    Ok(hex::encode(hmac))
 }
 
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
-    use std::collections::HashMap;
     use std::collections::HashSet;
     use std::fs;
     use std::path::Path;
     use std::sync::Arc;
     use std::sync::LazyLock;
 
-    use attestation_data::attributes::Attribute;
     use attestation_types::credential_format::Format;
     use attestation_types::credential_kind::CredentialKind;
-    use futures::FutureExt;
     use issuer_common::state_bridge_store::IssuerStateBridgeStore;
     use itertools::Itertools;
     use oauth::issuer_identifier::IssuerIdentifier;
     use oauth::par::PAR_TTL;
     use oauth::scope::Scope;
-    use oauth::token::AuthorizationCode;
     use openid4vc::authorization::VciAuthorizationRequest;
     use openid4vc::authorization_code_flow::AuthorizationCodeFlow;
     use openid4vc::authorization_code_flow::AuthorizeOutcome;
@@ -560,8 +420,6 @@ mod tests {
     use openid4vc::test::MockObtainingStatusListService;
     use openid4vc::test::setup_mock_issuer_with_metadata;
     use p256::ecdsa::SigningKey;
-    use ring::hmac;
-    use ring::hmac::HMAC_SHA256;
     use sd_jwt_vc_metadata::TypeMetadataDocuments;
     use server_utils::keys::SecretKeyVariant;
     use server_utils::settings::SecretKey;
@@ -569,16 +427,12 @@ mod tests {
     use utils::path::prefix_local_path;
     use utils::vec_nonempty;
 
-    use super::DIGID_CALLBACK_PATH;
-    use super::Error;
+    use super::LoginAuthorizationCodeFlow;
+    use super::LoginAuthorizationCodeFlowError;
     use super::StateBridgeEntry;
-    use super::UpstreamOidcAuthorizationCodeFlow;
-    use super::complete_digid_callback;
+    use super::complete_login_authorization;
     use super::recovery_code;
-    use crate::pid::brp::client::BrpClient;
-    use crate::pid::mock::MOCK_BSN;
-    use crate::pid::mock::MockBrpClient;
-    use crate::pid::mock::MockDigidClient;
+    use crate::pid::mock::MOCK_PERSON;
     use crate::pid::rulebook::constants::PID_MDOC_DOCTYPE;
     use crate::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
     use crate::pid::rulebook::constants::pid_attestation_type;
@@ -593,11 +447,10 @@ mod tests {
         MemorySessionStore<IssuanceData>,
         MemoryNonceStore,
         MemoryStore<String, VciAuthorizationRequest>,
-        UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient>,
+        LoginAuthorizationCodeFlow,
     >;
 
-    const CLIENT_ID: &str = "issuer-client-id";
-    const CALLBACK_BASE_URL: &str = "https://issuer.example.com/";
+    const LOGIN_URL: &str = "https://issuer.example.com/login";
     const WALLET_REDIRECT_URI: &str = "https://wallet.example.com/callback";
     const WALLET_STATE: &str = "wallet-state";
     const WALLET_SCOPE: &str = "wallet-scope";
@@ -635,23 +488,19 @@ mod tests {
         Arc::new(IssuerStateBridgeStore::new(StoreConnection::Memory))
     }
 
-    fn flow_with_clients(
-        brp_client: MockBrpClient,
-        digid_client: MockDigidClient,
+    fn flow_with_store(
         state_bridge_store: Arc<IssuerStateBridgeStore<StateBridgeEntry>>,
-    ) -> UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient> {
+    ) -> LoginAuthorizationCodeFlow {
         let issuer_metadata = PidIssuerMetadata {
             issuing_country: IsoCountryCode::Netherlands,
             issuing_authority: "Test Issuing Authority".to_owned(),
         };
-        UpstreamOidcAuthorizationCodeFlow::new_with_store(
-            brp_client,
-            digid_client,
+        LoginAuthorizationCodeFlow::new_with_store(
             recovery_code_secret_key(),
             issuer_metadata,
             state_bridge_store,
-            &CALLBACK_BASE_URL.parse().unwrap(),
-            String::from(CLIENT_ID),
+            LOGIN_URL.parse().unwrap(),
+            MOCK_PERSON.clone().into(),
         )
     }
 
@@ -662,7 +511,7 @@ mod tests {
     /// Note that the [`AuthorizingIssuer`] needs to be configured with the real PID SD-JWT VC Type Metadata, as
     /// completing the callback will lead to the [`IssuableDocument`]s being validated against it.
     fn authorizing_issuer_with_flow(
-        flow: UpstreamOidcAuthorizationCodeFlow<MockBrpClient, MockDigidClient>,
+        flow: LoginAuthorizationCodeFlow,
     ) -> (TestAuthorizingIssuer, Arc<MemorySessionStore<IssuanceData>>) {
         let sessions = Arc::new(MemorySessionStore::default());
 
@@ -722,16 +571,14 @@ mod tests {
                     ]),
                 ),
             },
-            upstream_code_verifier: "upstream-verifier".to_string(),
             formats: vec_nonempty![Format::MsoMdoc, Format::SdJwt],
         }
     }
 
     #[tokio::test]
     async fn test_recovery_code() {
-        let bsn = MOCK_BSN;
+        // Static key, if changed, update the expected recovery code
         let key: Vec<_> = (0..32).collect();
-
         let secret_key = SecretKeyVariant::from_settings(
             SecretKey::Software {
                 secret_key: key.clone().try_into().unwrap(),
@@ -740,31 +587,17 @@ mod tests {
         )
         .unwrap();
 
-        let person = MockBrpClient::default()
-            .get_person_by_bsn(bsn)
-            .now_or_never()
-            .unwrap()
-            .unwrap()
-            .persons
-            .remove(0);
-        let recovery_code = recovery_code(&person, &secret_key).await.unwrap();
-
-        let hmac_key = &hmac::Key::new(HMAC_SHA256, &key);
-        let expected_hmac = hex::encode(hmac::sign(hmac_key, bsn.as_bytes()));
-
-        let expected_recovery_code = Attribute::Text(expected_hmac);
-
-        assert_eq!(recovery_code, expected_recovery_code,);
+        let recovery_code = recovery_code(&MOCK_PERSON.bsn, &secret_key).await.unwrap();
+        assert_eq!(
+            &recovery_code,
+            "298134f31030565bada59326e608e86a99801ee9c87dfe338828a17f9eb4d5dc"
+        );
     }
 
     #[tokio::test]
-    async fn authorize_builds_upstream_redirect_and_bridge_entry() {
+    async fn authorize_sets_bridge_entry() {
         let bridge = memory_bridge_store();
-        let flow = flow_with_clients(
-            MockBrpClient::from_fixture("frouke"),
-            MockDigidClient::default(),
-            Arc::clone(&bridge),
-        );
+        let flow = flow_with_store(Arc::clone(&bridge));
 
         let context = wallet_context(HashSet::from([
             CredentialKind::new(Format::SdJwt, PID_NL_SD_JWT_VCT.to_owned()),
@@ -776,20 +609,18 @@ mod tests {
 
         let outcome = flow.authorize(context).await.unwrap();
         let AuthorizeOutcome::RedirectTo(redirect_url) = outcome else {
-            panic!("authorize should redirect the user-agent to the upstream provider");
+            panic!("authorize should redirect the user-agent to the login page");
         };
 
-        // The flow asked the digid client for the upstream redirect, handing it the issuer's
-        // callback URL and a generated `bridge_key` as the upstream `state`; the mock client
-        // echoes both back in the redirect URL, and that same `bridge_key` keys the bridge entry.
-        assert_eq!(redirect_url.path(), DIGID_CALLBACK_PATH);
-        let query_params: HashMap<_, _> = redirect_url.query_pairs().into_owned().collect();
-        let upstream_state = query_params
-            .get("state")
-            .expect("upstream redirect should carry the bridge key as state");
+        // The flow redirects to the login URL with a state parameter.
+        assert!(redirect_url.as_str().starts_with(LOGIN_URL));
+        let mut pairs = redirect_url.query_pairs();
+        let (query_param_key, login_state) = pairs.next().expect("should have one query param");
+        assert_eq!(query_param_key, "state");
+        assert!(pairs.next().is_none());
 
         let entry: StateBridgeEntry = bridge
-            .consume(upstream_state.as_str())
+            .consume(login_state.as_ref())
             .await
             .unwrap()
             .live()
@@ -803,7 +634,6 @@ mod tests {
             entry.context.request_values.scope,
             HashSet::from([WALLET_SCOPE.parse().unwrap()])
         );
-        assert!(!entry.upstream_code_verifier.is_empty());
         assert!(
             entry
                 .formats
@@ -817,11 +647,7 @@ mod tests {
     #[tokio::test]
     async fn test_authorize_error_unsupported_attestation_type() {
         let bridge = memory_bridge_store();
-        let flow = flow_with_clients(
-            MockBrpClient::from_fixture("frouke"),
-            MockDigidClient::default(),
-            Arc::clone(&bridge),
-        );
+        let flow = flow_with_store(Arc::clone(&bridge));
 
         let context = wallet_context(HashSet::from([
             CredentialKind::new(Format::SdJwt, "foo".to_string()),
@@ -836,7 +662,7 @@ mod tests {
 
         assert_matches!(
             error,
-            Error::UnsupportedCredentialType(unsupported)
+            LoginAuthorizationCodeFlowError::UnsupportedCredentialType(unsupported)
                 if unsupported
                     .iter()
                     .map(|credential_kind| &credential_kind.attestation_type)
@@ -846,27 +672,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn complete_callback_happy_path() {
-        let flow = flow_with_clients(
-            MockBrpClient::from_fixture("frouke"),
-            MockDigidClient::default(),
-            memory_bridge_store(),
-        );
+    async fn complete_login_happy_path() {
+        let flow = flow_with_store(memory_bridge_store());
         let (authorizing_issuer, sessions) = authorizing_issuer_with_flow(flow);
-        let StateBridgeEntry {
-            context,
-            upstream_code_verifier,
-            formats,
-        } = state_bridge_entry();
+        let StateBridgeEntry { context, formats } = state_bridge_entry();
 
         let expected_auth_request_values = context.request_values.clone();
 
-        let code = complete_digid_callback(
+        let code = complete_login_authorization(
             &authorizing_issuer,
             context.request_values,
-            upstream_code_verifier,
+            MOCK_PERSON.bsn.clone(),
             formats,
-            AuthorizationCode::from("upstream-code".to_string()),
         )
         .await
         .unwrap();
@@ -898,29 +715,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn complete_callback_rejects_when_no_attributes_found() {
-        let flow = flow_with_clients(
-            MockBrpClient::from_fixture("empty"),
-            MockDigidClient::default(),
-            memory_bridge_store(),
-        );
+    async fn complete_login_rejects_when_no_attributes_found() {
+        let flow = flow_with_store(memory_bridge_store());
         let (authorizing_issuer, _sessions) = authorizing_issuer_with_flow(flow);
-        let StateBridgeEntry {
-            context,
-            upstream_code_verifier,
-            formats,
-        } = state_bridge_entry();
+        let StateBridgeEntry { context, formats } = state_bridge_entry();
 
-        let error = complete_digid_callback(
-            &authorizing_issuer,
-            context.request_values,
-            upstream_code_verifier,
-            formats,
-            AuthorizationCode::from("upstream-code".to_string()),
-        )
-        .await
-        .unwrap_err();
+        let error =
+            complete_login_authorization(&authorizing_issuer, context.request_values, "unknown".into(), formats)
+                .await
+                .unwrap_err();
 
-        assert_matches!(error, Error::NoAttributesFound);
+        assert_matches!(error, LoginAuthorizationCodeFlowError::NoAttributesFound);
     }
 }

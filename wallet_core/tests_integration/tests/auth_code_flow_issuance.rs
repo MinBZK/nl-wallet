@@ -24,6 +24,8 @@ use reqwest::header;
 use reqwest::redirect::Policy;
 use serial_test::serial;
 use tests_integration::common::*;
+use tests_integration::fake_auth::extract_redirect_url;
+use tests_integration::fake_auth::setup_auth_redirect;
 use url::Url;
 use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmptyUnique;
@@ -285,7 +287,7 @@ async fn test_acf_demo_issuer_loyalty_wallet_issuance() {
     };
 
     // For Immediate usecases, /authorize skips the consent page and redirects straight to the wallet.
-    let redirect_uri = follow_authorization_redirects(authorization_url).await;
+    let redirect_uri = fake_direct_auth(authorization_url).await;
     let IssuanceContinueResult::Previews(previews) = wallet
         .continue_issuance(redirect_uri)
         .await
@@ -339,37 +341,19 @@ pub fn create_auth_code_credential_offer(
     CredentialOfferContainer::new_offer(offer).to_credential_offer_url()
 }
 
+/// Drive the acf demo issuer's direct flow the way a browser would: follow the wallet's authorize URL.
+pub async fn fake_direct_auth(authorization_url: Url) -> Url {
+    setup_auth_redirect(authorization_url).await.1
+}
+
 /// Drive the acf demo issuer's consent flow the way a browser would: follow the wallet's authorize URL
 /// to the consent page, submit consent, and return the wallet-facing redirect (carrying the
-/// issuer-minted code + the wallet's `state`) that [`Wallet::continue_issuance`] expects. The acf
-/// analogue of [`fake_digid_auth`](crate::fake_digid::fake_digid_auth), but without the upstream
-/// SAML/DigiD hops.
+/// issuer-minted code + the wallet's `state`) that [`Wallet::continue_issuance`] expects.
 pub async fn fake_consent_auth(authorization_url: Url) -> Url {
-    let client = default_reqwest_client_builder()
-        .redirect(Policy::none())
-        .build()
-        .unwrap();
-
-    // The wallet's authorize URL (PAR already pushed) redirects to the issuer's consent page.
-    let authorize_response = client.get(authorization_url).send().await.unwrap();
-    let consent_url: Url = authorize_response
-        .headers()
-        .get(header::LOCATION)
-        .expect("authorize should redirect to the consent page")
-        .to_str()
-        .unwrap()
-        .parse()
-        .expect("failed to parse consent page url");
+    let (client, consent_url) = setup_auth_redirect(authorization_url).await;
 
     // Submit consent. The handler generates the authorization code, writes the `AuthCodeIssued` session and
     // redirects back to the wallet's redirect_uri with the code and echoed state.
     let consent_response = client.post(consent_url).send().await.unwrap();
-    consent_response
-        .headers()
-        .get(header::LOCATION)
-        .expect("consent submission should redirect back to the wallet")
-        .to_str()
-        .unwrap()
-        .parse()
-        .expect("failed to parse wallet redirect url")
+    extract_redirect_url(&consent_response)
 }

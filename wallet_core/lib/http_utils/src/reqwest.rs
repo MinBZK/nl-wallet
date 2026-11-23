@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
@@ -24,7 +23,6 @@ use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
 
-use crate::error::APPLICATION_PROBLEM_JSON;
 use crate::urls::BaseUrl;
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
@@ -188,10 +186,6 @@ pub fn parse_content_type(response: &Response) -> Option<Mime> {
         .get(header::CONTENT_TYPE)
         .and_then(|content_type| content_type.to_str().ok())
         .and_then(|content_type| content_type.parse().ok())
-}
-
-pub fn is_problem_json_response(response: &Response) -> bool {
-    parse_content_type(response).as_ref() == Some(LazyLock::force(&APPLICATION_PROBLEM_JSON))
 }
 
 /// Create a [`ClientBuilder`] with sensible defaults that should be applied project-wide.

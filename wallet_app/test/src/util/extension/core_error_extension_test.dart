@@ -170,21 +170,21 @@ void main() {
       });
     });
 
-    test('CoreWrongDigidError maps to WrongDigidError', () async {
-      const coreError = CoreWrongDigidError('description');
+    test('CoreWrongIdentityError maps to WrongIdentityError', () async {
+      const coreError = CoreWrongIdentityError('description');
 
       final applicationError = await coreError.asApplicationError();
 
-      expect(applicationError, isA<WrongDigidError>());
+      expect(applicationError, isA<WrongIdentityError>());
       expect(applicationError.sourceError, coreError);
     });
 
-    test('CoreDeniedDigidError maps to DeniedDigidError', () async {
-      const coreError = CoreDeniedDigidError('description');
+    test('CoreDeniedPidIssuanceError maps to DeniedPidIssuanceError', () async {
+      const coreError = CoreDeniedPidIssuanceError('description');
 
       final applicationError = await coreError.asApplicationError();
 
-      expect(applicationError, isA<DeniedDigidError>());
+      expect(applicationError, isA<DeniedPidIssuanceError>());
       expect(applicationError.sourceError, coreError);
     });
 

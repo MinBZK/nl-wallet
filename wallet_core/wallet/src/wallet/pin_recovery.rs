@@ -751,7 +751,7 @@ mod tests {
     // Failing unit tests for continue_pin_recovery()
 
     #[tokio::test]
-    async fn continue_pin_recovery_no_digid_session() {
+    async fn continue_pin_recovery_no_pid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
@@ -830,19 +830,6 @@ mod tests {
     async fn complete_pin_recovery_no_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let err = wallet
-            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
-            .await
-            .unwrap_err();
-
-        assert_matches!(err, PinRecoveryError::SessionState);
-    }
-
-    #[tokio::test]
-    async fn complete_pin_recovery_has_digid_session() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // complete_pin_recovery_internal without an active issuance session should return SessionState.
         let err = wallet
             .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
             .await

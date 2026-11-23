@@ -530,11 +530,11 @@ mod tests {
     }
 
     #[rstest]
-    #[case::digid(false, auth_session(), WalletState::InIssuanceFlow)]
+    #[case::pid_issuance(false, pid_issuance_session(), WalletState::InIssuanceFlow)]
     #[case::issuance(false, issuance_session(), WalletState::InIssuanceFlow)]
     #[case::disclosure(false, disclosure_session(), WalletState::InDisclosureFlow)]
     #[case::pin_recovery(false, pin_recovery_session(), WalletState::InPinRecoveryFlow)]
-    #[case::locked_digid(true, auth_session(), WalletState::InIssuanceFlow.lock())]
+    #[case::locked_pid_issuance(true, pid_issuance_session(), WalletState::InIssuanceFlow.lock())]
     #[tokio::test]
     async fn test_wallet_session(
         #[case] is_locked: bool,
@@ -570,7 +570,7 @@ mod tests {
         Some(State::Begin),
         Some(empty_transfer_data()),
         Some(PinRecoveryData),
-        Some(auth_session()),
+        Some(pid_issuance_session()),
         WalletState::TransferPossible.lock(),
     )]
     #[case::check_transfer_first(
@@ -579,7 +579,7 @@ mod tests {
         Some(State::Begin),
         Some(empty_transfer_data()),
         Some(PinRecoveryData),
-        Some(auth_session()),
+        Some(pid_issuance_session()),
         WalletState::TransferPossible
     )]
     #[case::check_transfer_first_empty(
@@ -588,7 +588,7 @@ mod tests {
         Some(State::Begin),
         Some(empty_transfer_data()),
         Some(PinRecoveryData),
-        Some(auth_session()),
+        Some(pid_issuance_session()),
         WalletState::TransferPossible
     )]
     #[case::check_session_second(
@@ -597,7 +597,7 @@ mod tests {
         Some(State::Begin),
         None,
         Some(PinRecoveryData),
-        Some(auth_session()),
+        Some(pid_issuance_session()),
         WalletState::InIssuanceFlow
     )]
     #[case::check_session_second_empty(
@@ -606,7 +606,7 @@ mod tests {
         Some(State::Begin),
         None,
         Some(PinRecoveryData),
-        Some(auth_session()),
+        Some(pid_issuance_session()),
         WalletState::InIssuanceFlow
     )]
     #[case::check_pin_recovery_third(
@@ -741,7 +741,7 @@ mod tests {
         }
     }
 
-    fn auth_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
+    fn pid_issuance_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
             session_state: SessionState::Authorization {

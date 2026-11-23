@@ -240,73 +240,6 @@ update-policy-server-${DEPLOY_ENV}:
     RELEASE_NAME: update-policy-server
     CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,${DEPLOY_ENV}/update-policy-server.yaml"
 
-brpproxy-${DEPLOY_ENV}:
-  extends: .deploy-helm
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: brpproxy
-    RELEASE_NAME: brpproxy
-    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/brpproxy.yaml"
-
-gbamock-${DEPLOY_ENV}:
-  extends: .deploy-helm
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: gbamock
-    RELEASE_NAME: gbamock
-    CONFIG_FILES: "general/global.yaml,${DEPLOY_ENV}/gbamock.yaml"
-
-gba-hc-converter-${DEPLOY_ENV}:
-  extends: .deploy-base
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: gba-hc-converter
-    RELEASE_NAME: gba-hc-converter
-    CONFIG_FILES: "general/global.yaml,general/http-route-default-headers.yaml,${DEPLOY_ENV}/gba-hc-converter.yaml"
-  script:
-    - !reference [.build-helm-dependency, script]
-    - !reference [.replace-chart-app-version, script]
-    - PATH_CHART=${HELM_CHARTS_PATH}/${CHART_NAME}
-    - sed -i 's/{{bsn}}/{{`{{bsn}}`}}/g' wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml
-    - scripts/convert-gba-hc-converter-values.sh xmlFiles wallet_core/gba_hc_converter/resources/gba-v-responses > ${PATH_CHART}/xmlFiles.yaml
-    - scripts/convert-gba-hc-converter-values.sh zoekXmlFiles wallet_core/gba_hc_converter/resources/remote/bsn_zoeken_template.xml > ${PATH_CHART}/zoekXmlFiles.yaml
-    - !reference [.parse-config-files, script]
-    - |
-      helm upgrade --install --atomic --timeout 5m ${RELEASE_NAME} ${PATH_CHART} \
-      --set global.imageRegistry=${HARBOR_REGISTRY} \
-      --set image.tag=${DEPLOY_IMAGE_VERSION} \
-      -f ${PATH_CHART}/xmlFiles.yaml \
-      -f ${PATH_CHART}/zoekXmlFiles.yaml \
-      $FILE_OPTIONS
-
-redis-${DEPLOY_ENV}:
-  extends: .deploy-helm
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-  variables:
-    CHART_NAME: redis
-    RELEASE_NAME: redis
-    CONFIG_FILES: "general/global.yaml,general/redis.yaml"
-
-digid-connector-${DEPLOY_ENV}:
-  extends: .deploy-helm
-  needs:
-    - pipeline: $PARENT_PIPELINE_ID
-      job: create-deployment-${DEPLOY_ENV}
-    - job: redis-${DEPLOY_ENV}
-      artifacts: false
-  variables:
-    CHART_NAME: rdo-max
-    RELEASE_NAME: digid-connector
-    CONFIG_FILES: "general/global.yaml,general/rdo-max.yaml,${DEPLOY_ENV}/digid-connector.yaml"
-
 keycloak-${DEPLOY_ENV}:
   extends: .deploy-helm
   needs:
@@ -316,16 +249,6 @@ keycloak-${DEPLOY_ENV}:
     CHART_NAME: keycloak
     RELEASE_NAME: keycloak
     CONFIG_FILES: "general/global.yaml,general/keycloak.yaml,${DEPLOY_ENV}/keycloak.yaml"
-
-run-encrypt-gba-v-testdata-${DEPLOY_ENV}:
-  extends: .deploy-base
-  needs:
-    - job: gba-hc-converter-${DEPLOY_ENV}
-      artifacts: false
-  script:
-    - kubectl create job --from=cronjob/encrypt-gba-v-testdata gba-encrypt-test-data-$(date +%s)
-  allow_failure: true
-  when: manual
 
 run-demo-issuer-issuance-server-reset-${DEPLOY_ENV}:
   extends: .deploy-base
@@ -408,4 +331,3 @@ reset-${DEPLOY_ENV}:
   manual_confirmation: >
     This will wipe the complete environment (except HSM and static-server).
     You need to deploy the environment by restarting the already completed jobs in this pipeline.
-    You also need to encrypt the GBA-V responses via the designated job.

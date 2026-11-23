@@ -98,7 +98,7 @@ pub enum IssuanceError {
     #[category(critical)]
     NoPidPresent,
 
-    #[error("user denied DigiD authentication")]
+    #[error("user denied authentication")]
     #[category(expected)]
     AuthorizationDenied,
 

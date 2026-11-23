@@ -1,7 +1,7 @@
 package feature.disclosure
 
-import helper.GbaDataHelper
-import helper.GbaDataHelper.Field.FIRST_NAME
+import helper.PidDataHelper
+import helper.PidDataHelper.Field.FIRST_NAME
 import helper.OrganizationMetadataHelper
 import helper.OrganizationMetadataHelper.Organization.MIJN_AMSTERDAM
 import helper.OrganizationMetadataHelper.Organization.XYZ_BANK
@@ -46,14 +46,14 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
     private lateinit var targetXyzBankWebPage: RelyingPartyXyzBankWebPage
     private lateinit var targetAmsterdamWebPage: RelyingPartyAmsterdamWebPage
 
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
     private lateinit var tasData: TasDataHelper
     private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
 
     fun setUp(testInfo: TestInfo) {
         startDrivers(testInfo)
 
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
         tasData = TasDataHelper()
         organizationAuthMetadata = OrganizationMetadataHelper()
 
@@ -103,7 +103,7 @@ class CrossDeviceDisclosureTests : TwoDeviceTestBase() {
 
         useTargetDevice {
             targetXyzBankWebPage.clickCloseButton()
-            assertTrue(targetXyzBankWebPage.sharedAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "Shared attribute not visible on target device")
+            assertTrue(targetXyzBankWebPage.sharedAttributeVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "Shared attribute not visible on target device")
         }
     }
 

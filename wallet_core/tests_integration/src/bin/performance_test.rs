@@ -1,5 +1,3 @@
-use base64::Engine;
-use base64::prelude::BASE64_STANDARD;
 use crypto::kid::VerifyingKeyWithKid;
 use ctor::ctor;
 use http_utils::client::TlsPinningConfig;
@@ -11,10 +9,9 @@ use openid4vc_server::verifier::StartDisclosureRequest;
 use openid4vc_server::verifier::StartDisclosureResponse;
 use openid4vc_server::verifier::StatusParams;
 use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
-use reqwest::Certificate;
 use reqwest::StatusCode;
 use tests_integration::default;
-use tests_integration::fake_digid::fake_digid_auth;
+use tests_integration::fake_auth::fake_pid_auth;
 use tests_integration::logging::init_logging;
 use tests_integration::test_credential::new_mock_mdoc_pid_example;
 use tracing::instrument;
@@ -57,14 +54,6 @@ async fn main() {
     let verification_server_url = option_env!("VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3005/");
     let internal_verification_server_url =
         option_env!("INTERNAL_VERIFICATION_SERVER_URL").unwrap_or("http://localhost:3006/");
-    let digid_trust_anchors: Vec<Certificate> = option_env!("DIGID_TRUST_ANCHORS")
-        .unwrap_or_default()
-        .split(',')
-        .filter(|s| !s.is_empty())
-        .map(|s| {
-            Certificate::from_der(BASE64_STANDARD.decode(s).unwrap().as_slice()).expect("Could not parse trust anchor")
-        })
-        .collect();
 
     let config_server_config = default_config_server_config();
     let wallet_config = default_wallet_config();
@@ -104,7 +93,7 @@ async fn main() {
         .await
         .expect("Could not create pid issuance auth url");
 
-    let redirect_url = fake_digid_auth(authorization_url, digid_trust_anchors, "999991772").await;
+    let redirect_url = fake_pid_auth(authorization_url, "999991772".into()).await;
 
     let _attestations = wallet
         .continue_issuance(redirect_url)

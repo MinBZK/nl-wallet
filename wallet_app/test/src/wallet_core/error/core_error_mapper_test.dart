@@ -280,26 +280,26 @@ void main() {
       );
     });
 
-    test('mapping FlutterApiErrorType.wrongDigid results in CoreWrongDigidError', () {
+    test('mapping FlutterApiErrorType.wrongIdentity results in CoreWrongIdentityError', () {
       final error = const FlutterApiError(
-        type: FlutterApiErrorType.wrongDigid,
+        type: FlutterApiErrorType.wrongIdentity,
         description: defaultDescription,
         data: null,
       );
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
-      expect(result, const CoreWrongDigidError(defaultDescription));
+      expect(result, const CoreWrongIdentityError(defaultDescription));
     });
 
-    test('mapping FlutterApiErrorType.deniedDigid results in CoreDeniedDigidError', () {
+    test('mapping FlutterApiErrorType.deniedPidIssuance results in CoreDeniedPidIssuanceError', () {
       final error = const FlutterApiError(
-        type: FlutterApiErrorType.deniedDigid,
+        type: FlutterApiErrorType.deniedPidIssuance,
         description: defaultDescription,
         data: null,
       );
       final errorJson = jsonEncode(error);
       final result = errorMapper.map(errorJson);
-      expect(result, const CoreDeniedDigidError(defaultDescription));
+      expect(result, const CoreDeniedPidIssuanceError(defaultDescription));
     });
 
     test('mapping FlutterApiErrorType.revoked results in CoreAccountRevokedError', () {

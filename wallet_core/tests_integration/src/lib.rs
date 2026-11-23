@@ -10,8 +10,8 @@ pub mod test_credential;
 #[cfg(feature = "test_common")]
 pub mod utils;
 
-#[cfg(feature = "fake_digid")]
-pub mod fake_digid;
+#[cfg(feature = "fake_auth")]
+pub mod fake_auth;
 
 #[cfg(feature = "performance_test")]
 pub mod default {

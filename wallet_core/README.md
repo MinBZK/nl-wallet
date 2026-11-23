@@ -9,7 +9,6 @@ The list below is not exhaustive, but is meant as a starting point for understan
 
 - `demo`: Demo Pelying Party and Demo Issuer server, mocks multiple use cases.
 - `flutter_api`: Contains `flutter_rust_bridge` bindings. This allows Flutter to use the functionality from the `wallet` crate.
-- `gba_hc_converter`: Web server that converts GBA-V XML responses to HaalCentraal JSON format.
 - `lib`: Contains multiple libraries and protocols that are shared between the `wallet` and other applications.
 - `static_server`: Static server for local development hosting configuration and WIA status lists.
 - `tests_integration`: Integration tests for the `wallet` and core applications.

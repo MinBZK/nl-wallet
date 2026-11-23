@@ -1,5 +1,9 @@
 use attestation_data::attributes::Attribute;
+use serde::Deserialize;
 use serde_with::DeserializeFromStr;
+use serde_with::OneOrMany;
+use serde_with::serde_as;
+use utils::vec_at_least::VecNonEmpty;
 use utils::vec_at_least::VecNonEmptyUnique;
 
 /// ISO 3166-1 alpha-2 country codes, covering every code currently assigned by the standard.
@@ -509,7 +513,8 @@ pub enum IsoCountryCode {
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
 /// the Rulebook defines.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
+#[serde(untagged)]
 pub enum RulebookNationality {
     Iso(IsoCountryCode),
     Other(String),
@@ -526,6 +531,12 @@ impl From<RulebookNationality> for Attribute {
     }
 }
 
+impl From<IsoCountryCode> for RulebookNationality {
+    fn from(value: IsoCountryCode) -> Self {
+        RulebookNationality::Iso(value)
+    }
+}
+
 /// The Rulebook's `nationality` value
 ///
 /// > One or more alpha-2 country codes as specified in [ISO 3166-1], representing the nationality of the user to whom
@@ -534,11 +545,15 @@ impl From<RulebookNationality> for Attribute {
 ///
 /// The encoded array is never empty, never mixes `QU` and `QS` with known countries, and never contains the same
 /// country twice.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub enum RulebookNationalities {
+    #[serde(rename = "QU")]
     Unknown,
+    #[serde(rename = "QS")]
     Stateless,
-    Known(VecNonEmptyUnique<RulebookNationality>),
+    #[serde(untagged)]
+    Known(#[serde_as(as = "OneOrMany<_>")] VecNonEmptyUnique<RulebookNationality>),
 }
 
 impl From<RulebookNationalities> for Attribute {
@@ -550,6 +565,12 @@ impl From<RulebookNationalities> for Attribute {
         };
 
         Attribute::Array(values)
+    }
+}
+
+impl From<VecNonEmpty<RulebookNationality>> for RulebookNationalities {
+    fn from(value: VecNonEmpty<RulebookNationality>) -> Self {
+        RulebookNationalities::Known(value.into())
     }
 }
 
@@ -565,7 +586,8 @@ impl From<RulebookNationalities> for Attribute {
 ///
 /// `Other` is added for territories with no official ISO 3166-1 code (currently only "XK" for Kosovo), not something
 /// the Rulebook defines. There is no equivalent variant for "unknown".
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(untagged)]
 pub enum RulebookCountryCode {
     Iso(IsoCountryCode),
     Other(String),
@@ -579,5 +601,63 @@ impl From<RulebookCountryCode> for Attribute {
         };
 
         Attribute::Text(text)
+    }
+}
+
+impl From<IsoCountryCode> for RulebookCountryCode {
+    fn from(value: IsoCountryCode) -> Self {
+        RulebookCountryCode::Iso(value)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use rstest::rstest;
+    use serde_json::value::Value;
+    use utils::vec_nonempty;
+
+    use super::IsoCountryCode;
+    use super::RulebookNationalities;
+    use crate::pid::rulebook::country_code::RulebookNationality;
+
+    #[rstest]
+    #[case(RulebookNationalities::Unknown, "QU")]
+    #[case(RulebookNationalities::Stateless, "QS")]
+    fn test_serde_rulebook_specific(#[case] nationalities: RulebookNationalities, #[case] serialized: &str) {
+        assert_eq!(
+            nationalities,
+            serde_json::from_value(Value::String(serialized.into())).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_serde_known_single() {
+        let nationalities: RulebookNationalities = vec_nonempty![IsoCountryCode::Netherlands.into()].into();
+        let serialized = Value::String("NL".into());
+        assert_eq!(nationalities, serde_json::from_value(serialized.clone()).unwrap());
+        assert_eq!(
+            nationalities,
+            serde_json::from_value(Value::Array(vec![serialized])).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_serde_known_multiple() {
+        let nationalities: RulebookNationalities =
+            vec_nonempty![IsoCountryCode::Belgium.into(), RulebookNationality::Other("XX".into())].into();
+        assert_eq!(
+            nationalities,
+            serde_json::from_value(Value::Array(vec!["BE".into(), "XX".into()])).unwrap()
+        );
+    }
+
+    #[test]
+    fn test_deserialize_invalid_type() {
+        let error = serde_json::from_value::<RulebookNationalities>(Value::Null).unwrap_err();
+
+        assert_eq!(
+            error.to_string(),
+            "data did not match any variant of untagged enum RulebookNationalities"
+        );
     }
 }

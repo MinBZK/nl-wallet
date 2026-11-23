@@ -241,7 +241,7 @@ void main() {
   );
 
   blocTest(
-    'ltc1 emits WalletPersonalizeDigidCancelled when a DeniedDigidError is received',
+    'ltc1 emits WalletPersonalizeDigidCancelled when a DeniedPidIssuanceError is received',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -251,7 +251,7 @@ void main() {
     ),
     setUp: () {
       when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
-        (_) async => const Result.error(DeniedDigidError(sourceError: 'test')),
+        (_) async => const Result.error(DeniedPidIssuanceError(sourceError: 'test')),
       );
     },
     act: (bloc) async {

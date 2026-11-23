@@ -110,7 +110,6 @@ osv-scanner:
       "nl-wallet-app-builder-ci-ansible"
       )
       OTHER_IMAGES=(
-      "nl-rdo-max"
       "nl-wallet-hsm-simulator"
       )
     - set -euo pipefail
@@ -212,15 +211,6 @@ trivy-publish:
       artifacts: false
       optional: true
     - job: build-admin-portal-image
-      artifacts: false
-      optional: true
-    - job: build-gba-hc-converter-image
-      artifacts: false
-      optional: true
-    - job: build-gba-fetch-image
-      artifacts: false
-      optional: true
-    - job: build-gba-fetch-frontend-image
       artifacts: false
       optional: true
     - job: build-update-policy-server-image

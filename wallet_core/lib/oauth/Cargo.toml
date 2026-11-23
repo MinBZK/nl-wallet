@@ -33,7 +33,6 @@ url = { workspace = true, features = ["serde"] }
 crypto.path = "../crypto"
 error_category.path = "../error_category"
 http_utils = { path = "../http_utils", features = ["client"] }
-jwe.path = "../jwe"
 jwt.path = "../jwt"
 utils.path = "../utils"
 
@@ -51,16 +50,13 @@ test = []
 [dev-dependencies]
 httpmock.workspace = true
 mime.workspace = true
-josekit.workspace = true
 jsonwebtoken.workspace = true
-jwk-simple.workspace = true
 mockall.workspace = true
 rstest.workspace = true
 serde_qs.workspace = true
 tokio = { workspace = true, features = ["test-util"] }
 
 http_utils = { path = "../http_utils", features = ["httpmock"] }
-jwe = { path = "../jwe", features = ["rsa"] }
 
 [lints]
 workspace = true

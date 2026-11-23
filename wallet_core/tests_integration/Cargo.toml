@@ -34,11 +34,6 @@ path = "tests/health_metrics.rs"
 required-features = ["integration_test"]
 
 [[test]]
-name = "digid_issuance"
-path = "tests/digid_issuance.rs"
-required-features = ["digid_test"]
-
-[[test]]
 name = "disclosure_based_issuance"
 path = "tests/disclosure_based_issuance.rs"
 required-features = ["integration_test"]
@@ -145,7 +140,6 @@ test_common = [
     "dep:ctor",
     "dep:db_test",
     "dep:futures",
-    "dep:gba_hc_converter",
     "dep:health_checkers",
     "dep:indexmap",
     "dep:issuance_server",
@@ -171,6 +165,7 @@ test_common = [
     "dep:wallet_provider",
     "dep:wallet_provider_domain",
     "dep:wallet_provider_persistence",
+    "fake_auth",
     "hsm/test",
     "http_utils/client",
     "http_utils/server",
@@ -191,9 +186,8 @@ test_common = [
     "wscd/mock",
 ]
 
-# Include the fake_digid submodule
-fake_digid = [
-    "dep:pid_issuer",
+# Include the fake_auth submodule
+fake_auth = [
     "dep:reqwest",
     "dep:tracing",
     "dep:url",
@@ -238,41 +232,25 @@ integration_test = [
     "wallet_account/client",
 ]
 
-# Optional feature for running integration tests that depend on the DigiD connector
-digid_test = [
-    "allow_insecure_url",
-    "dep:gba_hc_converter",
-    "dep:rand_core",
-    "dep:ring",
-    "dep:rustls-pki-types",
-    "dep:wallet_account",
-    "fake_digid",
-    "test_common",
-]
-
 # Should be enabled when building the performance_test binary
 performance_test = [
     "apple_app_attest/mock",
     "dcql/mock",
-    "dep:base64",
     "dep:ctor",
     "dep:crypto",
     "dep:dotenvy",
-    "dep:indexmap",
-    "dep:oauth",
     "dep:openid4vc",
     "dep:reqwest",
     "dep:server_utils",
     "dep:serde_qs",
     "dep:tempfile",
-    "dep:tracing",
     "dep:url",
     "dep:utils",
-    "fake_digid",
+    "dep:verification_server",
+    "fake_auth",
     "logging",
     "openid4vc_server/disclosure",
     "openid4vc_server/issuance",
-    "pid_issuer/mock",
     "platform_support/mock",
     "platform_support/mock_attested_key_apple_ca",
     "test_credentials",
@@ -284,7 +262,6 @@ performance_test = [
 [dependencies]
 axum = { workspace = true, optional = true }
 axum-server = { workspace = true, optional = true }
-base64 = { workspace = true, optional = true }
 chrono = { workspace = true, optional = true }
 ctor = { workspace = true, optional = true }
 futures = { workspace = true, optional = true }
@@ -296,9 +273,7 @@ p256 = { workspace = true, optional = true }
 rand_core = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
-ring = { workspace = true, optional = true }
 rustls = { workspace = true, optional = true }
-rustls-pki-types = { workspace = true, optional = true }
 sea-orm = { workspace = true, optional = true }
 semver = { workspace = true, optional = true }
 serde = { workspace = true, optional = true }
@@ -319,7 +294,6 @@ audit_log = { path = "../wallet_provider/audit_log", optional = true }
 crypto = { path = "../lib/crypto", optional = true }
 db_test = { path = "../lib/db_test", optional = true }
 dcql = { path = "../lib/dcql", optional = true }
-gba_hc_converter = { path = "../gba_hc_converter", optional = true }
 health_checkers = { path = "../lib/health_checkers", optional = true }
 hsm = { path = "../lib/hsm", optional = true }
 http_utils = { path = "../lib/http_utils", optional = true }

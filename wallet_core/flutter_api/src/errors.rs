@@ -80,7 +80,7 @@ enum FlutterApiErrorType {
     /// The wallet is in an unexpected state.
     WalletState,
 
-    /// Failed to finish the DigiD session and get an authorization code.
+    /// Failed to finish the issuance session and get an authorization code.
     RedirectUri,
 
     /// Device does not support hardware backed keys.
@@ -101,11 +101,11 @@ enum FlutterApiErrorType {
     /// A close proximity disclosure session disconnected.
     CloseProximityDisconnected,
 
-    /// The wrong DigiD was used for PID renewal or PIN recovery.
-    WrongDigid,
+    /// The wrong identity was used for PID renewal or PIN recovery.
+    WrongIdentity,
 
-    /// DigiD authentication was cancelled.
-    DeniedDigid,
+    /// PID issuance was cancelled.
+    DeniedPidIssuance,
 
     /// A pre-authorized (QR/deeplink) issuance code is no longer valid: it has expired or was already used.
     PreAuthorizedCodeExpired,
@@ -325,9 +325,10 @@ impl FlutterApiErrorFields for IssuanceError {
 
             IssuanceError::Attestation { .. } | IssuanceError::IssuerServer { .. } => FlutterApiErrorType::Issuer,
 
-            IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
+            // TODO PVW-6518: Properly split this error into PID error or generic issuance error
+            IssuanceError::AuthorizationDenied => FlutterApiErrorType::DeniedPidIssuance,
             IssuanceError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
-                FlutterApiErrorType::WrongDigid
+                FlutterApiErrorType::WrongIdentity
             }
 
             IssuanceError::Instruction(error) => FlutterApiErrorType::from(error),
@@ -738,9 +739,9 @@ impl FlutterApiErrorFields for PinRecoveryError {
             PinRecoveryError::CheckPreconditions(error) => error.typ(),
             PinRecoveryError::NotRegistered | PinRecoveryError::SessionState => FlutterApiErrorType::WalletState,
             PinRecoveryError::Issuance(issuance_error) => issuance_error.typ(),
-            PinRecoveryError::AuthorizationDenied => FlutterApiErrorType::DeniedDigid,
+            PinRecoveryError::AuthorizationDenied => FlutterApiErrorType::DeniedPidIssuance,
             PinRecoveryError::RecoveryCode(RecoveryCodeError::IncorrectRecoveryCode { .. }) => {
-                FlutterApiErrorType::WrongDigid
+                FlutterApiErrorType::WrongIdentity
             }
             PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingPid)
             | PinRecoveryError::RecoveryCode(RecoveryCodeError::MissingIssuedRecoveryCode) => {
@@ -938,7 +939,7 @@ mod tests {
             expected: "a".to_string(),
             received: "b".to_string()
         }),
-        FlutterApiErrorType::WrongDigid,
+        FlutterApiErrorType::WrongIdentity,
         serde_json::Value::Null
     )]
     #[case::issuance_instruction(
