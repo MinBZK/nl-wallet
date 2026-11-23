@@ -43,6 +43,7 @@ build {
     inline = [
       "source ~/.zprofile",
       "rbenv version | grep -v system | xargs -n1 rbenv uninstall -f",
+      "brew update",
       "brew upgrade ruby-build",
       "rbenv install 3.3.14",
       "rbenv global 3.3.14",
