@@ -1841,6 +1841,7 @@ mod tests {
     use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::authorization::AuthorizationServerResponse;
     use crate::wallet_issuance::issuance_session::CredentialRequestBody;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
@@ -2104,7 +2105,7 @@ mod tests {
             token_request: &VciTokenRequest,
             dpop_header: &Dpop,
             wia: &WiaDisclosure,
-        ) -> Result<(VciTokenResponse, Option<DpopNonce>), WalletIssuanceError> {
+        ) -> Result<AuthorizationServerResponse<(VciTokenResponse, Option<DpopNonce>)>, WalletIssuanceError> {
             let wia = self.wia_override.as_ref().unwrap_or(wia);
             let token_response = self
                 .issuer
@@ -2115,7 +2116,7 @@ mod tests {
 
                     WalletIssuanceError::VciTokenRequest(Box::new(error_response.into()))
                 })?;
-            Ok((token_response, None))
+            Ok(AuthorizationServerResponse::Success((token_response, None)))
         }
 
         async fn request_challenge(&self, _url: Url) -> Result<Nonce, WalletIssuanceError> {

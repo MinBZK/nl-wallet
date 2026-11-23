@@ -18,7 +18,8 @@ use url::Url;
 
 use super::WalletIssuanceError;
 
-/// Retain the authorization server's DPoP key and nonce across PAR, app restarts and the token request.
+/// The wallet's DPoP key and the authorization server's nonce. Persist both across the authorization redirect
+/// so the token request can use the key established at PAR, including after an app restart.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub(crate) struct DpopState {
     #[debug(skip)]
@@ -48,8 +49,8 @@ fn deserialize_signing_key<'de, D: Deserializer<'de>>(deserializer: D) -> Result
     SigningKey::from_slice(&bytes).map_err(serde::de::Error::custom)
 }
 
-/// Retry only a nonce challenge, once, with a newly signed proof for the same key, URI, method and access token.
-/// Return the last nonce used so authorization-server nonces can be retained between PAR and token requests.
+/// Send a credential request with its access-token-bound DPoP proof. On a nonce challenge, sign a fresh proof
+/// for the same request and retry once. The returned nonce is the one used in the successful attempt.
 pub(super) async fn request_with_dpop_retry<T, Fut>(
     signing_key: &SigningKey,
     url: &Url,
@@ -176,17 +177,23 @@ pub(super) mod tests {
     use http_utils::reqwest::HttpClient;
     use httpmock::HttpMockRequest;
     use httpmock::MockServer;
+    use jwt::nonce::Nonce;
     use oauth::dpop::DPOP_HEADER_NAME;
     use oauth::errors::RemoteErrorCode;
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
-    use wscd::wia::WiaClient;
+    use wscd::payload::wia::WIA_CLIENT_CHALLENGE_HEADER_NAME;
+    use wscd::payload::wia::WIA_POP_HEADER_NAME;
+    use wscd::payload::wia::WiaPop;
     use wscd::wia::mock::MockWiaClient;
 
     use super::*;
+    use crate::client_auth::ClientAttestationChallengeMechanism;
+    use crate::client_auth::ClientAttestationChallengeMechanismError;
     use crate::errors::CredentialErrorCode;
     use crate::token::VciTokenRequest;
+    use crate::wallet_issuance::authorization::AttestedRequest;
     use crate::wallet_issuance::issuance_session::CredentialRequestBody;
     use crate::wallet_issuance::issuance_session::HttpVcMessageClient;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
@@ -205,6 +212,17 @@ pub(super) mod tests {
             return false;
         };
         payload.get("nonce").and_then(Value::as_str) == expected
+    }
+
+    pub fn wia_challenge_matches(request: &HttpMockRequest, expected: Option<&str>) -> bool {
+        let headers = request.headers();
+        let pop = headers[WIA_POP_HEADER_NAME]
+            .to_str()
+            .unwrap()
+            .parse::<WiaPop>()
+            .unwrap();
+        let (_, claims) = pop.dangerous_parse_unverified().unwrap();
+        claims.challenge.as_ref().map(Nonce::as_ref) == expected
     }
 
     fn jwt_id(proof: &Dpop) -> String {
@@ -320,14 +338,36 @@ pub(super) mod tests {
         assert!(serde_json::from_value::<DpopState>(json!({"signing_key": key, "nonce": null})).is_err());
     }
 
+    #[rstest]
     #[tokio::test]
-    async fn token_http_challenge_retries_with_returned_nonce() {
+    async fn token_retry_fetches_a_fresh_attestation_challenge(#[values(false, true)] conflicting_header: bool) {
+        use std::sync::atomic::AtomicUsize;
+        use std::sync::atomic::Ordering;
+
         let server = MockServer::start_async().await;
+        let challenge = server
+            .mock_async(|when, then| {
+                let sequence = AtomicUsize::new(1);
+                when.method(httpmock::Method::POST).path("/challenge");
+                then.respond_with(move |_| {
+                    let challenge = format!("challenge_{}", sequence.fetch_add(1, Ordering::Relaxed));
+                    http::Response::builder()
+                        .body(json!({"attestation_challenge": challenge}).to_string())
+                        .unwrap()
+                        .into()
+                });
+            })
+            .await;
         let first = server
             .mock_async(|when, then| {
-                when.method(httpmock::Method::POST)
-                    .path("/token")
-                    .is_true(|request| request_nonce_matches(request, None));
+                when.method(httpmock::Method::POST).path("/token").is_true(|request| {
+                    request_nonce_matches(request, None) && wia_challenge_matches(request, Some("challenge_1"))
+                });
+                let then = if conflicting_header {
+                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "header_challenge")
+                } else {
+                    then
+                };
                 then.status(400)
                     .header(DPOP_NONCE_HEADER_NAME, "retry_nonce")
                     .json_body(json!({"error":"use_dpop_nonce"}));
@@ -335,30 +375,52 @@ pub(super) mod tests {
             .await;
         let second = server
             .mock_async(|when, then| {
-                when.method(httpmock::Method::POST)
-                    .path("/token")
-                    .is_true(|request| request_nonce_matches(request, Some("retry_nonce")));
+                when.method(httpmock::Method::POST).path("/token").is_true(|request| {
+                    request_nonce_matches(request, Some("retry_nonce"))
+                        && wia_challenge_matches(request, Some("challenge_2"))
+                });
                 then.status(200)
                     .json_body(json!({"access_token":"token", "token_type":"DPoP"}));
             })
             .await;
         let client = HttpVcMessageClient::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let url = server.url("/token").parse().unwrap();
-        let key = SigningKey::generate();
         let request = VciTokenRequest::new_pre_authorized("code".to_string().into());
-        let wia = MockWiaClient::new().issue_wia(server.base_url(), None).await.unwrap();
-        let ((response, _), _) = tokio::spawn(async move {
-            request_with_dpop_retry(&key, &url, None, None, async |proof| {
-                client.request_token(url.clone(), &request, &proof, &wia).await
-            })
+        let issuer = server.base_url().parse().unwrap();
+        let mechanism =
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(server.url("/challenge").parse().unwrap());
+        let result = tokio::spawn(async move {
+            AttestedRequest {
+                endpoint: &url,
+                audience: &issuer,
+                challenge: mechanism,
+            }
+            .send_with_dpop_retry(
+                &mut DpopState::default(),
+                &MockWiaClient::new(),
+                |url| client.request_challenge(url),
+                async |proof, wia| client.request_token(url.clone(), &request, &proof, &wia).await,
+            )
             .await
         })
         .await
-        .unwrap()
         .unwrap();
-        assert_eq!(response.oauth_response.access_token.as_ref(), "token");
         first.assert_calls_async(1).await;
-        second.assert_calls_async(1).await;
+        if conflicting_header {
+            assert_matches!(
+                result,
+                Err(WalletIssuanceError::ClientAttestationChallengeMechanism(
+                    ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
+                ))
+            );
+            challenge.assert_calls_async(1).await;
+            second.assert_calls_async(0).await;
+        } else {
+            let (response, _) = result.unwrap();
+            assert_eq!(response.oauth_response.access_token.as_ref(), "token");
+            challenge.assert_calls_async(2).await;
+            second.assert_calls_async(1).await;
+        }
     }
 
     #[rstest]
@@ -389,10 +451,17 @@ pub(super) mod tests {
         let client = HttpVcMessageClient::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
         let url = server.url("/token").parse().unwrap();
         let request = VciTokenRequest::new_pre_authorized("code".to_string().into());
-        let wia = MockWiaClient::new().issue_wia(server.base_url(), None).await.unwrap();
-        let error = request_with_dpop_retry(&SigningKey::generate(), &url, None, None, async |proof| {
-            client.request_token(url.clone(), &request, &proof, &wia).await
-        })
+        let error = AttestedRequest {
+            endpoint: &url,
+            audience: &server.base_url().parse().unwrap(),
+            challenge: ClientAttestationChallengeMechanism::None,
+        }
+        .send_with_dpop_retry(
+            &mut DpopState::default(),
+            &MockWiaClient::new(),
+            |url| client.request_challenge(url),
+            async |proof, wia| client.request_token(url.clone(), &request, &proof, &wia).await,
+        )
         .await
         .unwrap_err();
         if expected_requests == 2 {

@@ -43,7 +43,6 @@ use oauth::issuer_identifier::IssuerUrl;
 use oauth::scope::Scope;
 use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
-use reqwest::StatusCode;
 use reqwest::header::AUTHORIZATION;
 use sd_jwt::error::DecoderError;
 use sd_jwt::sd_jwt::DecodedSdJwt;
@@ -74,6 +73,8 @@ use super::OfferedCredentialMetadata;
 use super::OfferedCredentialPreview;
 use super::SUPPORTED_MDOC_ISSUER_ALGORITHMS;
 use super::WalletIssuanceError;
+use super::authorization::AttestedRequest;
+use super::authorization::AuthorizationServerResponse;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
 use super::credential::IssuedCredentialMetadata;
@@ -128,13 +129,15 @@ pub enum CredentialRequestBody<'a> {
 /// Contract for sending OpenID4VCI protocol messages.
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
+    /// Send one token request. On success, return the token response and any new DPoP nonce.
+    /// On a DPoP nonce challenge, return both challenge headers so the caller can rebuild the request proofs.
     async fn request_token(
         &self,
         url: Url,
         token_request: &VciTokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
-    ) -> Result<(VciTokenResponse, Option<DpopNonce>), WalletIssuanceError>;
+    ) -> Result<AuthorizationServerResponse<(VciTokenResponse, Option<DpopNonce>)>, WalletIssuanceError>;
 
     async fn request_challenge(&self, url: Url) -> Result<Nonce, WalletIssuanceError>;
 
@@ -179,7 +182,7 @@ impl VcMessageClient for HttpVcMessageClient {
         token_request: &VciTokenRequest,
         dpop_header: &Dpop,
         wia: &WiaDisclosure,
-    ) -> Result<(VciTokenResponse, Option<DpopNonce>), WalletIssuanceError> {
+    ) -> Result<AuthorizationServerResponse<(VciTokenResponse, Option<DpopNonce>)>, WalletIssuanceError> {
         self.http_client
             .post(url, |builder| {
                 builder
@@ -194,19 +197,13 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
 
                 if status.is_client_error() || status.is_server_error() {
-                    let nonce = nonce_from_headers(response.headers());
-                    let error = response
-                        .json::<RemoteErrorResponse<VciTokenErrorCode>>()
-                        .await
-                        .map_err(WalletIssuanceError::TokenRequestHttp)?;
-
-                    if status == StatusCode::BAD_REQUEST
-                        && error.error == RemoteErrorCode::Known(VciTokenErrorCode::UseDpopNonce)
-                        && let Some(nonce) = nonce?
-                    {
-                        return Err(WalletIssuanceError::UseDpopNonce(nonce));
-                    }
-                    Err(WalletIssuanceError::VciTokenRequest(Box::new(error)))
+                    AuthorizationServerResponse::from_http_error(
+                        response,
+                        VciTokenErrorCode::UseDpopNonce,
+                        WalletIssuanceError::TokenRequestHttp,
+                        |error| WalletIssuanceError::VciTokenRequest(Box::new(error)),
+                    )
+                    .await
                 } else {
                     let dpop_nonce = nonce_from_headers(response.headers())?;
                     let deserialized = response
@@ -214,7 +211,7 @@ impl VcMessageClient for HttpVcMessageClient {
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
-                    Ok((deserialized, dpop_nonce))
+                    Ok(AuthorizationServerResponse::Success((deserialized, dpop_nonce)))
                 }
             })
             .await
@@ -799,35 +796,26 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
         token_request: VciTokenRequest,
         wia_client: &impl WiaClient,
         auth_server_identifier: &IssuerIdentifier,
-        dpop: DpopState,
+        mut dpop: DpopState,
     ) -> Result<Self, WalletIssuanceError> {
-        let DpopState {
-            signing_key: dpop_signing_key,
-            nonce,
-        } = dpop;
-
-        let challenge = match client_auth_challenge {
-            ClientAttestationChallengeMechanism::None => None,
-            ClientAttestationChallengeMechanism::Header(challenge) => Some(challenge),
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(url) => {
-                Some(message_client.request_challenge(url).await?)
-            }
-        };
-
-        let wia = wia_client
-            .issue_wia(auth_server_identifier.to_string(), challenge)
-            .await
-            .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
-
-        // Authorization-server nonces must not be used at the credential endpoint (RFC 9449, Section 9).
-        let ((token_response, _), _) =
-            request_with_dpop_retry(&dpop_signing_key, &token_endpoint, None, nonce, async |proof| {
+        // The credential endpoint uses the same DPoP key with its own nonce (RFC 9449 §9).
+        let (token_response, _) = AttestedRequest {
+            endpoint: &token_endpoint,
+            audience: auth_server_identifier,
+            challenge: client_auth_challenge,
+        }
+        .send_with_dpop_retry(
+            &mut dpop,
+            wia_client,
+            |url| message_client.request_challenge(url),
+            async |proof, wia| {
                 message_client
                     .request_token(token_endpoint.clone(), &token_request, &proof, &wia)
                     .await
-            })
-            .await
-            .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
+            },
+        )
+        .await
+        .map_err(|error| map_pre_authorized_token_error(error, &token_request))?;
 
         let offered_configurations = GrantedConfigurations::new_from_token_response(
             credential_configurations,
@@ -880,7 +868,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             offered_credentials,
             metadata,
             issuer_registration,
-            dpop_signing_key,
+            dpop_signing_key: dpop.signing_key,
         };
 
         let issuance_client = Self {
@@ -1861,7 +1849,7 @@ mod tests {
                     authorization_details,
                 };
 
-                Ok((token_response, None))
+                Ok(AuthorizationServerResponse::Success((token_response, None)))
             },
         );
         mock_msg_client

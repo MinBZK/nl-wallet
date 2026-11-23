@@ -1,4 +1,5 @@
 use error_category::ErrorCategory;
+use http::HeaderMap;
 use http::header::ACCEPT;
 use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
@@ -77,7 +78,8 @@ pub fn check_client_attestation_metadata(
     Ok(())
 }
 
-/// The Attestation-Based Client Authentication challenge mechanism to be used during the Token Request.
+/// Source of the signed `challenge` claim in a wallet instance attestation proof of possession (WIA PoP).
+/// The wallet can use this source for a PAR or token request and persists it across the authorization redirect.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientAttestationChallengeMechanism {
@@ -97,43 +99,55 @@ pub enum ClientAttestationChallengeMechanismError {
 }
 
 impl ClientAttestationChallengeMechanism {
-    /// Construct a new `ClientAttestationChallengeMechanism` during the Authorization Code Flow (ACF).
+    /// Select the token request's challenge source from server metadata and the successful PAR response.
     pub fn try_new_acf(
         challenge_endpoint: Option<Url>,
         http_response: &Response,
     ) -> Result<Self, ClientAttestationChallengeMechanismError> {
-        let header_value = http_response
-            .headers()
-            .get(WIA_CLIENT_CHALLENGE_HEADER_NAME)
-            .map(|value| {
-                Ok::<_, ClientAttestationChallengeMechanismError>(Nonce::from(
-                    value
-                        .to_str()
-                        .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)?
-                        .to_string(),
-                ))
-            })
-            .transpose()?;
+        let mechanism = challenge_endpoint.map_or(Self::None, Self::ChallengeEndpoint);
+        mechanism.with_header(attestation_challenge_from_headers(http_response.headers())?)
+    }
 
-        match (challenge_endpoint, header_value) {
-            (Some(_), Some(_)) => Err(ClientAttestationChallengeMechanismError::DoubleChallengeMechanism),
-            (None, None) => Ok(Self::None),
-            (None, Some(challenge)) => Ok(Self::Header(challenge)),
-            (Some(url), None) => Ok(Self::ChallengeEndpoint(url)),
+    /// Use the server's latest `OAuth-Client-Attestation-Challenge` for the next WIA PoP.
+    /// A DPoP challenge alone gives no indication whether the last WIA challenge was consumed.
+    /// In header mode the last value is the only one available for the retry.
+    /// The wallet treats endpoint and header delivery as mutually exclusive.
+    /// See [Attestation-Based Client Authentication §6](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6).
+    pub(crate) fn with_header(
+        self,
+        challenge: Option<Nonce>,
+    ) -> Result<Self, ClientAttestationChallengeMechanismError> {
+        match (self, challenge) {
+            (Self::ChallengeEndpoint(_), Some(_)) => {
+                Err(ClientAttestationChallengeMechanismError::DoubleChallengeMechanism)
+            }
+            (_, Some(challenge)) => Ok(Self::Header(challenge)),
+            (mechanism, None) => Ok(mechanism),
         }
     }
 
-    /// Construct a new `ClientAttestationChallengeMechanism` during the Pre-Authorized Code Flow.
-    ///
-    /// In the Pre-Authorized Code Flow, no PAR request was sent whose response might have included a
-    /// challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
-    /// if the issuer has one, or the issuer does not use WIA PoP challenges so we don't use one.
+    /// A pre-authorized token request has no preceding PAR response. Its first attempt can only obtain
+    /// a WIA challenge from the endpoint in server metadata.
     pub fn new_pre_authorized(challenge_endpoint: Option<Url>) -> Self {
         match challenge_endpoint {
             None => ClientAttestationChallengeMechanism::None,
             Some(url) => ClientAttestationChallengeMechanism::ChallengeEndpoint(url),
         }
     }
+}
+
+pub(crate) fn attestation_challenge_from_headers(
+    headers: &HeaderMap,
+) -> Result<Option<Nonce>, ClientAttestationChallengeMechanismError> {
+    headers
+        .get(WIA_CLIENT_CHALLENGE_HEADER_NAME)
+        .map(|value| {
+            value
+                .to_str()
+                .map(|challenge| Nonce::from(challenge.to_string()))
+                .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)
+        })
+        .transpose()
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
