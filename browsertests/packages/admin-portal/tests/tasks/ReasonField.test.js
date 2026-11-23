@@ -1,11 +1,11 @@
 import { expect } from "@playwright/test"
 import { USERS } from "../../data/users.js"
-import { aTask, loginAndGoToReasonStep, mockTaskLists, test } from "./helpers.js"
+import { aTask, openAndGoToReasonStep, mockTaskLists, test } from "./helpers.js"
 
 test.describe("Admin portal tasks", () => {
   test.describe("The reason field", () => {
     test("A reason of only whitespace is not accepted", async ({ adminPortal }) => {
-      await loginAndGoToReasonStep(adminPortal)
+      await openAndGoToReasonStep(adminPortal)
 
       await adminPortal.reasonInput.fill(" \t\n ")
 
@@ -13,7 +13,7 @@ test.describe("Admin portal tasks", () => {
     })
 
     test("It accepts 500 characters and no more, and counts them", async ({ adminPortal }) => {
-      await loginAndGoToReasonStep(adminPortal)
+      await openAndGoToReasonStep(adminPortal)
       await expect(adminPortal.reasonCounter).toHaveText("0/500")
 
       await adminPortal.reasonInput.fill("a".repeat(499))
@@ -27,7 +27,7 @@ test.describe("Admin portal tasks", () => {
     })
 
     test("A long reason without spaces stays inside the overview", async ({ page, adminPortal }) => {
-      await loginAndGoToReasonStep(adminPortal)
+      await openAndGoToReasonStep(adminPortal)
       await adminPortal.fillReasonAndGoToCheckStep("a".repeat(500))
       const row = adminPortal.detailRow("Reden")
       await expect(row).toBeVisible()
@@ -48,7 +48,7 @@ test.describe("Admin portal tasks", () => {
       test(`A reason with ${name} is shown and sent unchanged`, async ({ page, adminPortal }) => {
         const createUrl = "**/admin-portal/tasks"
         await page.route(createUrl, (route) => route.fulfill({ status: 201, json: aTask() }))
-        await loginAndGoToReasonStep(adminPortal)
+        await openAndGoToReasonStep(adminPortal)
 
         await adminPortal.fillReasonAndGoToCheckStep(reason)
         await expect(adminPortal.detailRow("Reden")).toContainText(reason)
@@ -65,9 +65,9 @@ test.describe("Admin portal tasks", () => {
       const reason = '<img src=x onerror="window.__xss=true"><b>vet</b>'
       const task = aTask({ taskReason: reason })
       await mockTaskLists(page, { reviewable: [task] })
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
 
-      await adminPortal.openTaskDetails(task.taskId)
+      await adminPortal.openReviewableTask(task.taskId)
 
       await expect(adminPortal.detailRow("Reden")).toContainText(reason)
       await expect(adminPortal.detailRow("Reden").locator("img, b")).toHaveCount(0)

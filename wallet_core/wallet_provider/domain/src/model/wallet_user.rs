@@ -181,7 +181,7 @@ impl WalletUserKey {
 )]
 pub struct WalletId(String);
 
-#[derive(Debug, Clone, AsRef, From, Into, Display, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Debug, Clone, AsRef, From, Into, Display, PartialEq, Eq, Hash, PartialOrd, Ord, Deserialize, Serialize)]
 #[cfg_attr(
     feature = "utoipa",
     derive(utoipa::ToSchema),

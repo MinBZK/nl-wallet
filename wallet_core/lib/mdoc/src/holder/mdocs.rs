@@ -45,7 +45,7 @@ impl Mdoc {
 
         // TODO (PVW-4132): the x5chain is already parsed in `IssuerSigned::verify` and
         // `IssuerAuth::verify_against_trust_anchors`, so we shouldn't need to parse it again here.
-        let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
+        let issuer_certificate_chain = issuer_signed.issuer_auth.unprotected_x5chain()?;
 
         let mdoc = Mdoc {
             mso,
@@ -60,7 +60,7 @@ impl Mdoc {
     pub fn dangerous_parse_unverified(issuer_signed: IssuerSigned) -> Result<Self, CoseError> {
         let TaggedBytes(mso) = issuer_signed.issuer_auth.dangerous_parse_unverified()?;
 
-        let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain()?;
+        let issuer_certificate_chain = issuer_signed.issuer_auth.unprotected_x5chain()?;
 
         let mdoc = Self {
             mso,
@@ -121,7 +121,7 @@ mod test {
 
     impl Mdoc {
         pub fn new_unverified(mso: MobileSecurityObject, issuer_signed: IssuerSigned) -> Self {
-            let issuer_certificate_chain = issuer_signed.issuer_auth.x5chain().unwrap();
+            let issuer_certificate_chain = issuer_signed.issuer_auth.unprotected_x5chain().unwrap();
 
             Self {
                 mso,

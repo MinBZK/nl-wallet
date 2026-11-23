@@ -45,19 +45,6 @@
     "university_mdoc": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY}",
       "data": {
-        "900253022": [
-          {
-            "format": "dc+sd-jwt",
-            "attestation_type": "com.example.degree",
-            "attributes": {
-              "university": { "type": "text", "value": "Holland University" },
-              "education": { "type": "text", "value": "MSc Mathematics" },
-              "graduation_date": { "type": "text", "value": "1995-10-10" },
-              "grade": { "type": "number", "value": 9 },
-              "cum_laude": { "type": "bool", "value": true }
-            }
-          }
-        ],
         "999991772": [
           {
             "format": "dc+sd-jwt",
@@ -104,19 +91,6 @@
     "university_sd_jwt": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY}",
       "data": {
-        "900253022": [
-          {
-            "format": "dc+sd-jwt",
-            "attestation_type": "com.example.degree",
-            "attributes": {
-              "university": { "type": "text", "value": "Holland University" },
-              "education": { "type": "text", "value": "MSc Mathematics" },
-              "graduation_date": { "type": "text", "value": "1995-10-10" },
-              "grade": { "type": "number", "value": 9 },
-              "cum_laude": { "type": "bool", "value": true }
-            }
-          }
-        ],
         "999991772": [
           {
             "format": "dc+sd-jwt",

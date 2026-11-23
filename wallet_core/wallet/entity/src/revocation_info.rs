@@ -1,14 +1,12 @@
 use sea_orm::FromQueryResult;
-use sea_orm::entity::prelude::*;
 use uuid::Uuid;
 
-use super::attestation_copy;
+use super::attestation::AttestationFormat;
 
-#[derive(Clone, Debug, Eq, PartialEq, FromQueryResult, DerivePartialModel)]
-#[sea_orm(entity = "attestation_copy::Entity")]
+#[derive(Clone, Debug, Eq, PartialEq, FromQueryResult)]
 pub struct RevocationInfo {
-    #[sea_orm(primary_key, auto_increment = false, from_col = "id")]
     pub attestation_copy_id: Uuid,
+    pub attestation_format: AttestationFormat,
     pub status_list_url: String,
     pub status_list_index: u32,
 }

@@ -36,4 +36,5 @@ rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+mdoc_derive.path = "../mdoc/mdoc_derive"
 utils = { path = "../utils", features = ["mock_time"] }

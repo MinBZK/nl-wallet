@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/usecase/notification/set_push_notifications_setting_usecase.dart';
 import '../../../domain/usecase/permission/request_permission_usecase.dart';

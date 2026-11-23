@@ -94,7 +94,7 @@ pub enum JwtVerifyError {
 
     #[error("unexpected type: expected {0}, found {1:?}")]
     #[category(critical)]
-    UnexpectedTyp(String, Option<String>),
+    UnexpectedTyp(&'static str, Option<String>),
 
     #[error("error converting JWK: {0}")]
     #[category(critical)]

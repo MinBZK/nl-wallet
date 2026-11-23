@@ -35,6 +35,7 @@ use wallet_provider_domain::model::admin_task::AdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
@@ -48,7 +49,9 @@ use wallet_provider_service::admin_portal::task::RetrieveTaskError;
 use wallet_provider_service::admin_portal::task::ReviewTaskError;
 use wallet_provider_service::admin_portal::task::TaskListViewKind;
 use wallet_provider_service::admin_portal::task::WithdrawTaskError;
+use wallet_provider_service::admin_portal::wallet_lookup::GetRecoveryCodeSummaryError;
 use wallet_provider_service::admin_portal::wallet_lookup::GetWalletRevocationStateError;
+use wallet_provider_service::admin_portal::wallet_lookup::RecoveryCodeSummary;
 use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 
 use crate::router_state::ProductionUserState;
@@ -111,7 +114,30 @@ impl IntoResponse for WalletApiError {
             Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             Self::Check(GetWalletRevocationStateError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
             Self::Check(GetWalletRevocationStateError::NotFound(_)) => StatusCode::NOT_FOUND,
-            Self::Check(GetWalletRevocationStateError::Storage(_)) => StatusCode::INTERNAL_SERVER_ERROR,
+            Self::Check(GetWalletRevocationStateError::Storage(_) | GetWalletRevocationStateError::AuditLog(_)) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
+        };
+        status.into_response()
+    }
+}
+
+/// Failure of the `/recovery-codes` endpoint, mapped to the matching HTTP status code.
+#[derive(Debug)]
+enum RecoveryCodeApiError {
+    InvalidRequest(JsonRejection),
+    Summary(GetRecoveryCodeSummaryError),
+}
+
+impl IntoResponse for RecoveryCodeApiError {
+    fn into_response(self) -> Response {
+        warn!("recovery code endpoint failed: {self:?}");
+        let status = match self {
+            Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
+            Self::Summary(GetRecoveryCodeSummaryError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
+            Self::Summary(GetRecoveryCodeSummaryError::Storage(_) | GetRecoveryCodeSummaryError::AuditLog(_)) => {
+                StatusCode::INTERNAL_SERVER_ERROR
+            }
         };
         status.into_response()
     }
@@ -181,6 +207,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
                 .route("/{task_id}/review", post(review_task)),
         )
         .route("/wallets/check", post(check_wallet))
+        .route("/recovery-codes/check", post(check_recovery_code))
         .with_state(state)
 }
 
@@ -423,8 +450,9 @@ async fn withdraw_task(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
-    Json(payload): Json<WithdrawTaskRequest>,
+    request: Result<Json<WithdrawTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
+    let Json(payload) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
         .service
         .withdraw_task(task_id, &payload.withdrawal_comment, &user, &state.audit_log)
@@ -438,8 +466,9 @@ async fn review_task(
     State(state): State<Arc<AdminPortalState>>,
     AuthenticatedAdminUser(user): AuthenticatedAdminUser,
     Path(task_id): Path<Uuid>,
-    Json(payload): Json<ReviewTaskRequest>,
+    request: Result<Json<ReviewTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
+    let Json(payload) = request.map_err(TaskApiError::InvalidRequest)?;
     let task = state
         .service
         .review_task(
@@ -522,11 +551,91 @@ async fn check_wallet(
 
     let status = state
         .service
-        .get_wallet_revocation_state(&request.wallet_id, &user, &state.user_state)
+        .get_wallet_revocation_state(&request.wallet_id, &user, &state.user_state, &state.audit_log)
         .await
         .map_err(WalletApiError::Check)?;
 
     Ok(Json(CheckWalletResponse { status }))
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
+pub enum RecoveryCodeStatus {
+    // wallets exist, and the recovery_code is NOT denied
+    Allowed,
+    // the recovery_code is denied
+    Denied,
+    // no wallets exist for the recovery_code, and it is NOT denied
+    NotKnown,
+}
+
+#[derive(Debug, Clone, Copy, Serialize)]
+#[cfg_attr(feature = "web_test", derive(Deserialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckRecoveryCodeResponse {
+    status: RecoveryCodeStatus,
+    active_wallet_count: usize,
+    inactive_wallet_count: usize,
+}
+
+impl CheckRecoveryCodeResponse {
+    pub fn status(&self) -> RecoveryCodeStatus {
+        self.status
+    }
+
+    pub fn active_wallet_count(&self) -> usize {
+        self.active_wallet_count
+    }
+
+    pub fn inactive_wallet_count(&self) -> usize {
+        self.inactive_wallet_count
+    }
+}
+
+impl From<RecoveryCodeSummary> for CheckRecoveryCodeResponse {
+    fn from(summary: RecoveryCodeSummary) -> Self {
+        let status = if summary.is_denied {
+            RecoveryCodeStatus::Denied
+        } else if summary.wallet_count() > 0 {
+            RecoveryCodeStatus::Allowed
+        } else {
+            RecoveryCodeStatus::NotKnown
+        };
+
+        Self {
+            status,
+            active_wallet_count: summary.active_wallets,
+            inactive_wallet_count: summary.inactive_wallets,
+        }
+    }
+}
+
+#[derive(derive_more::Debug, Deserialize)]
+#[cfg_attr(feature = "web_test", derive(Serialize))]
+#[serde(rename_all = "camelCase")]
+pub struct CheckRecoveryCodeRequest {
+    #[debug("<redacted>")]
+    pub recovery_code: RecoveryCode,
+}
+
+/// Check the status of a `[RecoveryCode]`, and return associated wallet counts.
+/// This is implemented as a POST endpoint because a `[RecoveryCode]` is a free-form string, which is unsafe to encode
+/// in a GET URL query parameters and this is a secret that should not end up in logs. Ideally we would use the recently
+/// proposed HTTP QUERY method, but that is not yet widely available.
+async fn check_recovery_code(
+    State(state): State<Arc<AdminPortalState>>,
+    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    request: Result<Json<CheckRecoveryCodeRequest>, JsonRejection>,
+) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
+    let Json(request) = request.map_err(RecoveryCodeApiError::InvalidRequest)?;
+    let summary = state
+        .service
+        .get_recovery_code_summary(&request.recovery_code, &user, &state.user_state, &state.audit_log)
+        .await
+        .map_err(RecoveryCodeApiError::Summary)?;
+
+    Ok(Json(summary.into()))
 }
 
 #[cfg(test)]
@@ -539,6 +648,7 @@ mod tests {
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
+    use wallet_provider_service::admin_portal::MissingPrivileges;
 
     use super::*;
 
@@ -606,7 +716,7 @@ mod tests {
         StatusCode::BAD_REQUEST
     )]
     #[case::create_missing_privilege(
-        TaskApiError::Create(CreateTaskError::MissingPrivilege(TaskType::RevokeWallet)),
+        TaskApiError::Create(CreateTaskError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::RevokeWallet]))),
         StatusCode::FORBIDDEN
     )]
     #[case::create_wallet_ids_not_found(
@@ -641,7 +751,7 @@ mod tests {
         StatusCode::NOT_FOUND
     )]
     #[case::review_missing_privilege(
-        TaskApiError::Review(ReviewTaskError::MissingPrivilege(TaskType::RevokeWallet)),
+        TaskApiError::Review(ReviewTaskError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::RevokeWallet]))),
         StatusCode::FORBIDDEN
     )]
     #[case::review_invalid_state(TaskApiError::Review(ReviewTaskError::InvalidState), StatusCode::CONFLICT)]
@@ -676,7 +786,7 @@ mod tests {
 
     #[rstest]
     #[case::missing_privilege(
-        WalletApiError::Check(GetWalletRevocationStateError::MissingPrivilege(TaskType::RevokeWallet)),
+        WalletApiError::Check(GetWalletRevocationStateError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::RevokeWallet]))),
         StatusCode::FORBIDDEN
     )]
     #[case::not_found(
@@ -688,6 +798,19 @@ mod tests {
         StatusCode::INTERNAL_SERVER_ERROR
     )]
     fn wallet_api_error_status_codes(#[case] error: WalletApiError, #[case] status: StatusCode) {
+        assert_eq!(error.into_response().status(), status);
+    }
+
+    #[rstest]
+    #[case::missing_privilege(
+        RecoveryCodeApiError::Summary(GetRecoveryCodeSummaryError::MissingPrivilege(MissingPrivileges::new(vec![TaskType::BlockUser]))),
+        StatusCode::FORBIDDEN
+    )]
+    #[case::storage(
+        RecoveryCodeApiError::Summary(GetRecoveryCodeSummaryError::Storage(storage_error())),
+        StatusCode::INTERNAL_SERVER_ERROR
+    )]
+    fn recovery_code_api_error_status_codes(#[case] error: RecoveryCodeApiError, #[case] status: StatusCode) {
         assert_eq!(error.into_response().status(), status);
     }
 }
@@ -709,6 +832,7 @@ mod http_tests {
 
     use super::*;
     use crate::test_support::TestState;
+    use crate::test_support::post_json_request;
     use crate::test_support::setup_state;
 
     async fn setup_state_with_database_errors() -> TestState {
@@ -718,6 +842,10 @@ mod http_tests {
     }
 
     async fn setup_state_with_valid_user() -> (TestState, CookieJar) {
+        setup_state_with_user_roles(vec!["privilege_admin".to_string(), "offline_access".to_string()]).await
+    }
+
+    async fn setup_state_with_user_roles(roles: Vec<String>) -> (TestState, CookieJar) {
         let state = setup_state().await;
         let session_id = random_string(12);
         state
@@ -727,7 +855,7 @@ mod http_tests {
                 AdminPortalUserSession {
                     user_id: "user_id".to_string(),
                     display_name: "Jane Doe".to_string(),
-                    roles: vec!["privilege_admin".to_string(), "offline_access".to_string()],
+                    roles,
                     id_token: "the-id-token".to_string(),
                     expires_at: Utc::now() + TimeDelta::minutes(5),
                 },
@@ -913,6 +1041,7 @@ mod http_tests {
     #[case::withdraw("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
     #[case::review("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
     #[case::check_wallet("POST", "/wallets/check")]
+    #[case::check_recovery_code("POST", "/recovery-codes/check")]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn admin_portal_routes_require_authentication(#[case] method: &str, #[case] uri: &str) {
@@ -925,18 +1054,9 @@ mod http_tests {
     }
 
     async fn create_task_from_body(body: Value) -> Response {
-        let state = setup_state().await;
-        create_task(
-            State(Arc::clone(&state)),
-            AuthenticatedAdminUser(LoggedInUser {
-                user_id: "alice".to_owned(),
-                display_name: "Alice".to_owned(),
-                privileges: vec![TaskType::RevokeWallet.to_string()],
-            }),
-            Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
-        )
-        .await
-        .into_response()
+        let (state, jar) = setup_state_with_user_roles(vec!["privilege_revoke_wallet".to_string()]).await;
+        let request = post_json_request("/tasks", &session_cookie_header(&jar), &body);
+        router(Arc::clone(&state)).oneshot(request).await.unwrap()
     }
 
     #[rstest::rstest]
@@ -978,6 +1098,28 @@ mod http_tests {
         )
         .await
         .into_response()
+    }
+
+    fn session_cookie_header(jar: &CookieJar) -> String {
+        let cookie = jar.get(SESSION_ID_COOKIE).unwrap();
+        format!("{}={}", cookie.name(), cookie.value())
+    }
+
+    #[rstest::rstest]
+    #[case::invalid_body(json!({}), StatusCode::BAD_REQUEST)]
+    #[case::unknown_code_returns_ok(
+        json!({"recoveryCode": "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"}),
+        StatusCode::OK
+    )]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn check_recovery_code_response_status(#[case] body: Value, #[case] status: StatusCode) {
+        let (state, jar) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
+
+        let request = post_json_request("/recovery-codes/check", &session_cookie_header(&jar), &body);
+        let response = router(Arc::clone(&state)).oneshot(request).await.unwrap();
+
+        assert_eq!(response.status(), status);
     }
 
     #[serial_test::serial(hsm)]

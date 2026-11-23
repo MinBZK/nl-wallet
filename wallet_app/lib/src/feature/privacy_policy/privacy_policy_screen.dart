@@ -1,6 +1,6 @@
-import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../theme/base_wallet_theme.dart';
 import '../../util/extension/build_context_extension.dart';
@@ -56,23 +56,33 @@ class PrivacyPolicyScreen extends StatelessWidget {
                             child: CenteredLoadingIndicator(),
                           );
                         }
-                        return MarkdownBody(
-                          data: snapshot.data!,
-                          onTapLink: (string, href, title) => href?.let(launchUrlStringCatching),
-                          builders: {'h2': _HeadingBuilder(), 'h3': _HeadingBuilder()},
-                          styleSheet: MarkdownStyleSheet(
-                            textScaler: context.textScaler,
-                            p: context.textTheme.bodyLarge,
-                            h1: context.textTheme.displayMedium,
-                            h2: context.textTheme.labelLarge,
-                            h3: context.textTheme.bodyLarge?.copyWith(
-                              fontVariations: [BaseWalletTheme.fontVariationBold],
-                            ),
-                            h6: context.textTheme.labelMedium,
-                            a: context.textTheme.bodyLarge?.copyWith(
-                              fontVariations: [BaseWalletTheme.fontVariationRegular],
-                              decoration: TextDecoration.underline,
-                              color: context.colorScheme.primary,
+                        // flutter_markdown_plus reads the legacy flutter/material theme.
+                        // TODO(Rubin): remove bridge and tableBorder with material_ui support:
+                        // https://github.com/foresightmobile/flutter_markdown_plus/issues/144
+                        // https://github.com/foresightmobile/flutter_markdown_plus/pull/145
+                        // https://github.com/foresightmobile/flutter_markdown_plus/pull/150
+                        // ignore: deprecated_member_use
+                        return MaterialUiCompatibilityBridge(
+                          child: MarkdownBody(
+                            data: snapshot.data!,
+                            onTapLink: (string, href, title) => href?.let(launchUrlStringCatching),
+                            builders: {'h2': _HeadingBuilder(), 'h3': _HeadingBuilder()},
+                            styleSheet: MarkdownStyleSheet(
+                              textScaler: context.textScaler,
+                              p: context.textTheme.bodyLarge,
+                              h1: context.textTheme.displayMedium,
+                              h2: context.textTheme.labelLarge,
+                              h3: context.textTheme.bodyLarge?.copyWith(
+                                fontVariations: [BaseWalletTheme.fontVariationBold],
+                              ),
+                              h6: context.textTheme.labelMedium,
+                              a: context.textTheme.bodyLarge?.copyWith(
+                                fontVariations: [BaseWalletTheme.fontVariationRegular],
+                                decoration: TextDecoration.underline,
+                                color: context.colorScheme.primary,
+                              ),
+                              // The legacy theme of the bridge has another dividerColor.
+                              tableBorder: TableBorder.all(color: context.theme.dividerColor),
                             ),
                           ),
                         );

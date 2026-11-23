@@ -168,8 +168,6 @@ anything, but the glibc binary really requires a glibc-based distribution.
 ##### Services we depend on
 
 - PostgreSQL 10+ (first version with `jsonb` support)
-- RDO-MAX v2.13.x+ (see [their repository][26] for details)
-- BrpProxy v2.1.x (see [their repository][27] for details)
 
 Specifically for PostgreSQL you need to consider storage requirements. Our
 database-backed services are `wallet_provider`, `verification_server`,
@@ -189,7 +187,6 @@ for development purposes you can make do with a lot less.
 - pid_issuer
 - demo_relying_party
 - demo_issuer
-- gba_hc_converter
 
 The above Rust-based services require a regular Linux machine or container based
 on one of the aforementioned operating systems. Memory requirements of these
@@ -199,14 +196,10 @@ requirements are effectively non-existent due to usage of PostgreSQL for state.
 
 ##### Additional supporting services (in addition to rust-based backend services)
 
-The Wallet app needs several supporting services to run, and also requires the
-user to log in using DigiD in order to create the Wallet. The services are the
-following:
+The Wallet app needs several supporting services to run in order to create the
+Wallet. The services are the following:
 
-- digid-connector (rdo-max)
 - static_server
-- gba_hc_converter
-- brpproxy
 - postgresql
 
 All these applications will need to be configured correctly. A local development
@@ -249,9 +242,9 @@ Make sure `rustc`, and `cargo` are on your path and run the following commands
 to install a few additional utilities we use:
 
 ```shell
-cargo install --locked cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest
-cargo install --locked --version 2.12.0 flutter_rust_bridge_codegen
-cargo install --locked --version 1.1.19 sea-orm-cli
+cargo install cargo-edit cargo-expand 'cargo-ndk@^4' cargo-nextest
+cargo install --version 2.12.0 flutter_rust_bridge_codegen
+cargo install --version 1.1.19 sea-orm-cli
 cargo install --list
 ```
 
@@ -349,15 +342,12 @@ CI pipelines.
 
 Make sure you can run Docker on your development system. You can follow the
 [getting started guide][24] to do so. Make sure `docker` is on your path.
-
-You also need the Compose plugin and the Buildx plugin. The digid-connector
-build needs Buildx 0.19 or newer. Check the versions with `docker compose
-version` and `docker buildx version`.
+You also need the Compose plugin and the Buildx plugin.
 
 #### PKCS #11 library
 
-The wallet_provider is designed to use a HSM with the [PKCS #11][29] API. For
-local development we use the [SoftHSMv2][28] library.
+The wallet_provider is designed to use a HSM with the [PKCS #11][27] API. For
+local development we use the [SoftHSMv2][26] library.
 
 #### Starting an Android emulator instance
 
@@ -442,13 +432,7 @@ After having done all of the above (i.e., you have Rust and Flutter installed,
 you have Docker up and running, configured a PostgreSQL database and installed
 Android Studio and/or Xcode and you're running an Android Emulator or the iOS
 simulator), you are almost ready to configure the local development environment
-with the help of our `setup-devenv.sh` script. There are two more optional
-environment variables to consider setting:
-
-```shell
-# Where the rdo-max git repository is cloned to.
-export DIGID_CONNECTOR_PATH="$HOME/Desktop/rdo-max"
-```
+with the help of our `setup-devenv.sh` script.
 
 To run the setup script, enter the git repository directory and go:
 
@@ -459,13 +443,9 @@ scripts/setup-devenv.sh
 
 ##### Additional notes about local development
 
-The `setup-devenv.sh` script will configure the digid-connector to listen on
-https://localhost:8006/ . Note the https in the URL, which is provided using
-self-signed certificates.
-
-Besides that, the development setup runs without using TLS. Therefore, the
-feature `allow_insecure_url` enables the possibility to use a return URL with
-the scheme `http` (while normally only `https` is allowed).
+The development setup runs without using TLS. Therefore, the feature
+`allow_insecure_url` enables the possibility to use a return URL with the scheme
+`http` (while normally only `https` is allowed).
 
 The local wallet can be connected to Sentry for crash and error reporting by
 setting the `SENTRY_DSN` environment variable.
@@ -570,7 +550,7 @@ scripts/generate-flutter-rust-bridge.sh
 **A note for Linux users, specifically on non-Debian systems:** You need to set
 `CPATH` to workaround issues when using `flutter_rust_bridge_codegen`. Note that
 these issues have been observed under both `flutter_rust_bridge_codegen` 1.x and
-2.x. For more background on this, see [here][30], and [here][31]. To set `CPATH`
+2.x. For more background on this, see [here][28], and [here][29]. To set `CPATH`
 for `flutter_rust_bridge_codegen`, you can run as follows:
 
 ```shell
@@ -784,10 +764,8 @@ Generate/update localisation files (to compile/run the project successfully):
 [23]: https://apps.apple.com/us/app/xcode/id497799835?mt=12
 [24]: https://docs.docker.com/get-started/get-docker/
 [25]: https://minbzk.github.io/nl-wallet/
-[26]: https://github.com/minvws/nl-rdo-max
-[27]: https://github.com/BRP-API/Haal-Centraal-BRP-bevragen
-[28]: https://github.com/softhsm/SoftHSMv2
-[29]: https://en.wikipedia.org/wiki/PKCS_11
-[30]: https://github.com/fzyzcjy/flutter_rust_bridge/issues/1375
-[31]:
+[26]: https://github.com/softhsm/SoftHSMv2
+[27]: https://en.wikipedia.org/wiki/PKCS_11
+[28]: https://github.com/fzyzcjy/flutter_rust_bridge/issues/1375
+[29]:
     https://cjycode.com/flutter_rust_bridge/v1/integrate/deps.html#non-debian-linux

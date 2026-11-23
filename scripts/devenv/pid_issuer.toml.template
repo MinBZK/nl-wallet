@@ -4,6 +4,8 @@ registration_certificate = "${PID_ISSUER_REGISTRATION_CERTIFICATE}"
 wallet_client_ids = ["${NL_WALLET_CLIENT_ID}"]
 wallet_redirect_uris = ["${WALLET_REDIRECT_URI}"]
 
+person_attributes_path = "persons.json"
+
 issuing_country = "NL"
 issuing_authority = "Rijksdienst voor Identiteitsgegevens"
 
@@ -13,8 +15,6 @@ wrprc_trust_anchors = ["${WRPRC_CA_CRT}"]
 wptl_trust_anchors = ["${WPTL_CA_CRT}"]
 
 credential_request_encryption_key = "${PID_ISSUER_CREDENTIAL_REQUEST_ENCRYPTION_KEY}"
-
-brp_server = 'http://${SERVICES_HOST}:${BRP_SERVER_PORT}'
 
 type_metadata = [
     "${ISSUER_METADATA_PID_PATH}",
@@ -43,24 +43,6 @@ list_size = 100
 [recovery_code]
 secret_key = "${RECOVERY_CODE_SECRET_KEY}"
 secret_key_type = "software"
-
-[digid]
-bsn_privkey = '${BSN_PRIVKEY}'
-client_id = "${DIGID_CLIENT_ID}"
-
-# Serve the pid_issuer-hosted mock DigiD login page (a grid of these identities) instead of redirecting to nl-rdo-max's
-# own mock page. Maps each bsn to a display name; each bsn must resolve in the dev BRP dataset. Comment out for the
-# real-DigiD flow.
-[digid.mock_subjects]
-"999991905" = "Linda Strijps"
-"999991772" = "Frouke Jansen"
-"950273089" = "Jeroen test-90021561"
-"950269049" = "Jolien test-90021182"
-"900265462" = "Lennert uijt de Fruitplukker"
-
-[digid.client_settings]
-oidc_identifier = "https://${SERVICES_HOST}:${RDO_MAX_PORT}"
-trust_anchors = ["${DIGID_CA_CRT}"]
 
 [hsm]
 library_path = "${HSM_LIBRARY_PATH}"

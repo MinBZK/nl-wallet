@@ -16,7 +16,4 @@ nl-wallet-pid-issuer
 nl-wallet-pid-issuer-migrations
 nl-wallet-revocation-portal
 nl-wallet-admin-portal
-nl-wallet-gba-hc-converter
-nl-wallet-gba-fetch
-nl-wallet-gba-fetch-frontend
 nl-wallet-update-policy-server

@@ -14,6 +14,7 @@ use http_utils::reqwest::ReqwestTrustAnchor;
 use serial_test::serial;
 use tempfile::TempDir;
 use tests_integration::common::*;
+use utils::generator::TimeGenerator;
 use utils::vec_at_least::VecNonEmpty;
 use wallet::Pin;
 use wallet::errors::InstructionError;
@@ -101,7 +102,8 @@ async fn test_instruction_result_key_rollover() {
 
     // Start the WP with the initial instruction result signing key (kid = "0")
     let (wp_port, wp_abort) =
-        start_wallet_provider_with_abort_handle(wp_settings.clone(), hsm.clone(), wp_root_ca.clone()).await;
+        start_wallet_provider_with_abort_handle(wp_settings.clone(), hsm.clone(), wp_root_ca.clone(), TimeGenerator)
+            .await;
 
     // Set up the wallet with the initial configuration
     let (config_server_config, mut wallet_config) = build_wallet_environment_with_instruction_result_keys(
@@ -161,7 +163,7 @@ async fn test_instruction_result_key_rollover() {
     // Roll over: stop the old WP and start a new one with kid = "1"
     drop(wp_abort);
     wp_settings.current_instruction_result_kid = Kid::try_new("1".to_owned()).unwrap();
-    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca.clone()).await;
+    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca.clone(), TimeGenerator).await;
 
     // Point the wallet at the new WP by updating the account server URL in the config
     wallet_config.account_server.http_config = TlsPinningConfig::try_new(
@@ -246,7 +248,8 @@ async fn test_certificate_key_rollover() {
 
     // Start the WP with the initial certificate signing key (kid = "0")
     let (wp_port, wp_abort) =
-        start_wallet_provider_with_abort_handle(wp_settings.clone(), hsm.clone(), wp_root_ca.clone()).await;
+        start_wallet_provider_with_abort_handle(wp_settings.clone(), hsm.clone(), wp_root_ca.clone(), TimeGenerator)
+            .await;
 
     // Set up the wallet with the initial configuration and register it, so it holds a wallet certificate signed with
     // kid = "0".
@@ -337,7 +340,7 @@ async fn test_certificate_key_rollover() {
         Kid::try_new("0").unwrap(),
         Utc::now() + Duration::from_secs(3600),
     )]));
-    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca.clone()).await;
+    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca.clone(), TimeGenerator).await;
 
     // Point the wallet at the new WP by updating the account server URL in the config, and mark kid = "1"
     // as in use now that the WP has rolled over to it.

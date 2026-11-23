@@ -13,6 +13,8 @@ use axum::response::Json;
 use axum::response::Response;
 use axum::routing::get;
 use axum::routing::post;
+use chrono::DateTime;
+use chrono::Utc;
 use health_checkers::hsm::HsmChecker;
 use health_checkers::postgres::DatabaseChecker;
 use hsm::service::Pkcs11Hsm;
@@ -29,8 +31,7 @@ use tokio::sync::Semaphore;
 use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing::warn;
-use utils::generator::TimeGenerator;
-use utils::generator::UuidV4AndTimeGenerator;
+use utils::generator::Generator;
 use utoipa::OpenApi;
 use wallet_account::messages::instructions::CancelTransfer;
 use wallet_account::messages::instructions::ChangePinCommit;
@@ -97,14 +98,15 @@ type Result<T> = StdResult<T, WalletProviderError>;
 #[openapi(info(title = "Wallet provider API"))]
 struct ApiDocs;
 
-pub fn router<GRC, PIC>(
-    router_state: RouterState<GRC, PIC>,
+pub fn router<GRC, PIC, T>(
+    router_state: RouterState<GRC, PIC, T>,
     revoke_solution_enabled: bool,
     admin_portal: AdminPortalSettings,
 ) -> StdResult<Router, reqwest::Error>
 where
     GRC: GoogleCrlProvider + Send + Sync + 'static,
     PIC: IntegrityTokenDecoder + Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let state = Arc::new(router_state);
     let admin_portal_state = Arc::new(AdminPortalState::try_new(
@@ -131,23 +133,23 @@ where
                 .route("/instructions/challenge", post(instruction_challenge))
                 .route(
                     &format!("/instructions/hw_signed/{}", PairTransfer::NAME),
-                    post(handle_hw_signed_instruction::<PairTransfer, _, _, _>),
+                    post(handle_hw_signed_instruction::<PairTransfer, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CancelTransfer::NAME),
-                    post(handle_hw_signed_instruction::<CancelTransfer, _, _, _>),
+                    post(handle_hw_signed_instruction::<CancelTransfer, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", ResetTransfer::NAME),
-                    post(handle_hw_signed_instruction::<ResetTransfer, _, _, _>),
+                    post(handle_hw_signed_instruction::<ResetTransfer, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", GetTransferStatus::NAME),
-                    post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _>),
+                    post(handle_hw_signed_instruction::<GetTransferStatus, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", SendWalletPayload::NAME),
-                    post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _>)
+                    post(handle_hw_signed_instruction::<SendWalletPayload, _, _, _, _>)
                         .layer(DefaultBodyLimit::max(state.max_transfer_upload_size_in_bytes))
                         .layer(middleware::from_fn_with_state(
                             Arc::clone(&wallet_transfer_permits),
@@ -156,7 +158,7 @@ where
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", ReceiveWalletPayload::NAME),
-                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _>).layer(
+                    post(handle_hw_signed_instruction::<ReceiveWalletPayload, _, _, _, _>).layer(
                         middleware::from_fn_with_state(
                             Arc::clone(&wallet_transfer_permits),
                             wallet_transfer_concurrency_gate,
@@ -165,11 +167,11 @@ where
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", CompleteTransfer::NAME),
-                    post(handle_hw_signed_instruction::<CompleteTransfer, _, _, _>),
+                    post(handle_hw_signed_instruction::<CompleteTransfer, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/hw_signed/{}", IssueWia::NAME),
-                    post(handle_hw_signed_instruction::<IssueWia, _, _, _>),
+                    post(handle_hw_signed_instruction::<IssueWia, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinStart::NAME),
@@ -189,35 +191,35 @@ where
                 )
                 .route(
                     &format!("/instructions/{}", ChangePinCommit::NAME),
-                    post(handle_instruction::<ChangePinCommit, _, _, _>),
+                    post(handle_instruction::<ChangePinCommit, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", CheckPin::NAME),
-                    post(handle_instruction::<CheckPin, _, _, _>),
+                    post(handle_instruction::<CheckPin, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", Sign::NAME),
-                    post(handle_instruction::<Sign, _, _, _>),
+                    post(handle_instruction::<Sign, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", PerformIssuance::NAME),
-                    post(handle_instruction::<PerformIssuance, _, _, _>),
+                    post(handle_instruction::<PerformIssuance, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCode::NAME),
-                    post(handle_instruction::<DiscloseRecoveryCode, _, _, _>),
+                    post(handle_instruction::<DiscloseRecoveryCode, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DiscloseRecoveryCodePinRecovery::NAME),
-                    post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _>),
+                    post(handle_instruction::<DiscloseRecoveryCodePinRecovery, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", ConfirmTransfer::NAME),
-                    post(handle_instruction::<ConfirmTransfer, _, _, _>),
+                    post(handle_instruction::<ConfirmTransfer, _, _, _, _>),
                 )
                 .route(
                     &format!("/instructions/{}", DeleteKeys::NAME),
-                    post(handle_instruction::<DeleteKeys, _, _, _>),
+                    post(handle_instruction::<DeleteKeys, _, _, _, _>),
                 )
                 .layer(TraceLayer::new_for_http())
                 .layer(middleware::from_fn(log_headers))
@@ -286,14 +288,17 @@ async fn wallet_transfer_concurrency_gate(State(permits): State<Arc<Semaphore>>,
     next.run(req).await
 }
 
-async fn key_storage_tsl<GRC, PIC>(
+async fn key_storage_tsl<GRC, PIC, T>(
     headers: HeaderMap,
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
-) -> StdResult<Response, StatusCode> {
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
+) -> StdResult<Response, StatusCode>
+where
+    T: Generator<DateTime<Utc>>,
+{
     let token = state
         .user_state
         .key_storage_status_list
-        .status_list_token(&TimeGenerator)
+        .status_list_token(&state.generators)
         .await
         .map_err(|error| {
             warn!("generating key storage status list failed: {}", error);
@@ -305,12 +310,17 @@ async fn key_storage_tsl<GRC, PIC>(
     http_response_for_status_list_jwt(&headers, token, Some(ttl))
 }
 
-async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Result<(StatusCode, Json<Challenge>)> {
+async fn enroll<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
+) -> Result<(StatusCode, Json<Challenge>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received enroll request, creating registration challenge");
 
     let challenge = state
         .account_server
-        .registration_challenge(&state.certificate_signing_key, &state.user_state)
+        .registration_challenge(&state.certificate_signing_key, &state.user_state, &state.generators)
         .await
         .inspect_err(|error| warn!("generating wallet registration challenge failed: {}", error))?;
 
@@ -321,13 +331,14 @@ async fn enroll<GRC, PIC>(State(state): State<Arc<RouterState<GRC, PIC>>>) -> Re
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn create_wallet<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn create_wallet<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<ChallengeResponse<Registration>>,
 ) -> Result<(StatusCode, Json<Certificate>)>
 where
     GRC: GoogleCrlProvider,
     PIC: IntegrityTokenDecoder,
+    T: Generator<DateTime<Utc>>,
 {
     info!("Received create wallet request, registering with account server");
 
@@ -337,7 +348,7 @@ where
             &state.certificate_signing_key,
             payload,
             &state.user_state,
-            &TimeGenerator,
+            &state.generators,
         )
         .await
         .inspect_err(|error| warn!("wallet registration failed: {}", error))?;
@@ -352,15 +363,18 @@ where
     Ok((StatusCode::CREATED, body.into()))
 }
 
-async fn instruction_challenge<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn instruction_challenge<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<InstructionChallengeRequest>,
-) -> Result<(StatusCode, Json<Challenge>)> {
+) -> Result<(StatusCode, Json<Challenge>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received challenge request, creating challenge");
 
     let challenge = state
         .account_server
-        .instruction_challenge(payload, &UuidV4AndTimeGenerator, &state.user_state)
+        .instruction_challenge(payload, &state.generators, &state.user_state)
         .await
         .inspect_err(|error| warn!("generating instruction challenge failed: {}", error))?;
 
@@ -371,13 +385,14 @@ async fn instruction_challenge<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn handle_instruction<I, R, GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn handle_instruction<I, R, GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<Instruction<I>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<R>>)>
 where
     I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction + PinChecks,
     R: Serialize + DeserializeOwned,
+    T: Generator<DateTime<Utc>>,
 {
     info!("received {} instruction", I::NAME);
     let body = state
@@ -388,13 +403,14 @@ where
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn handle_hw_signed_instruction<I, R, GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn handle_hw_signed_instruction<I, R, GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<HwSignedInstruction<I>>,
 ) -> Result<(StatusCode, Json<InstructionResultMessage<R>>)>
 where
     I: InstructionAndResult<Result = R> + HandleInstruction<Result = R> + ValidateInstruction,
     R: Serialize + DeserializeOwned,
+    T: Generator<DateTime<Utc>>,
 {
     info!("received {} instruction", I::NAME);
     let body = state
@@ -405,10 +421,13 @@ where
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_start<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn change_pin_start<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<Instruction<ChangePinStart>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
+) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received change pin start request, handling the ChangePinStart instruction");
 
     let result = state
@@ -416,7 +435,7 @@ async fn change_pin_start<GRC, PIC>(
         .handle_change_pin_start_instruction(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
-            &UuidV4AndTimeGenerator,
+            &state.generators,
             &state.pin_policy,
             &state.user_state,
         )
@@ -428,10 +447,13 @@ async fn change_pin_start<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn refresh_wallet_certificate<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn refresh_wallet_certificate<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<Instruction<RefreshWalletCertificate>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)> {
+) -> Result<(StatusCode, Json<InstructionResultMessage<WalletCertificate>>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received RefreshWalletCertificate instruction");
 
     let result = state
@@ -439,7 +461,7 @@ async fn refresh_wallet_certificate<GRC, PIC>(
         .handle_refresh_wallet_certificate_instruction(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
-            &UuidV4AndTimeGenerator,
+            &state.generators,
             &state.pin_policy,
             &state.user_state,
         )
@@ -451,10 +473,13 @@ async fn refresh_wallet_certificate<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn change_pin_rollback<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn change_pin_rollback<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<Instruction<ChangePinRollback>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)> {
+) -> Result<(StatusCode, Json<InstructionResultMessage<()>>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received change pin rollback request, handling the ChangePinRollback instruction");
 
     let result = state
@@ -462,7 +487,7 @@ async fn change_pin_rollback<GRC, PIC>(
         .handle_change_pin_rollback_instruction(
             payload,
             &state.instruction_result_signing_key,
-            &UuidV4AndTimeGenerator,
+            &state.generators,
             &state.pin_policy,
             &state.user_state,
         )
@@ -476,10 +501,13 @@ async fn change_pin_rollback<GRC, PIC>(
     Ok((StatusCode::OK, body.into()))
 }
 
-async fn start_pin_recovery<GRC, PIC>(
-    State(state): State<Arc<RouterState<GRC, PIC>>>,
+async fn start_pin_recovery<GRC, PIC, T>(
+    State(state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(payload): Json<Instruction<StartPinRecovery>>,
-) -> Result<(StatusCode, Json<InstructionResultMessage<StartPinRecoveryResult>>)> {
+) -> Result<(StatusCode, Json<InstructionResultMessage<StartPinRecoveryResult>>)>
+where
+    T: Generator<DateTime<Utc>>,
+{
     info!("Received StartPinRecovery instruction");
 
     let result = state
@@ -487,7 +515,7 @@ async fn start_pin_recovery<GRC, PIC>(
         .handle_start_pin_recovery_instruction(
             payload,
             (&state.instruction_result_signing_key, &state.certificate_signing_key),
-            &UuidV4AndTimeGenerator,
+            &state.generators,
             &state.user_state,
         )
         .await

@@ -17,7 +17,7 @@ use db_test::DbSetup;
 use futures::future::join_all;
 use futures::future::try_join_all;
 use hsm::model::Hsm;
-use hsm::model::mock::MockPkcs11Client;
+use hsm::model::mock::MockHsm;
 use hsm::service::HsmError;
 use itertools::Either;
 use itertools::Itertools;
@@ -35,6 +35,8 @@ use token_status_list::status_list_service::StatusListService;
 use utils::generator::mock::MockTimeGenerator;
 use utils::num::NonZeroU31;
 use utils::num::U31;
+use utils::vec_at_least::VecNonEmptyUnique;
+use utils::vec_nonempty;
 use uuid::Uuid;
 use wallet_account::RevocationCode;
 use wallet_account::messages::errors::RevocationReason;
@@ -65,6 +67,7 @@ use wallet_provider_service::revocation::revoke_solution;
 use wallet_provider_service::revocation::revoke_wallet_by_revocation_code;
 use wallet_provider_service::revocation::revoke_wallets_by_recovery_code;
 use wallet_provider_service::revocation::revoke_wallets_by_wallet_id;
+use wallet_provider_service::revocation::system_revoke_wallets_by_recovery_code_list;
 use wallet_provider_service::wallet_certificate::mock::REVOCATION_CODE_KEY_IDENTIFIER;
 use wallet_provider_service::wallet_certificate::mock::setup_hsm;
 
@@ -75,7 +78,7 @@ async fn setup_state(
     UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -125,7 +128,7 @@ async fn register_wallets_with_wias(
     user_state: &UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -198,7 +201,7 @@ async fn verify_revocation(
     user_state: &UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -259,7 +262,7 @@ async fn register_wallets_to_revoke_with_revocation_codes(
     user_state: &UserState<
         Repositories,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         PostgresStatusListService<SigningKey, StubWalletFlags>,
     >,
@@ -841,6 +844,70 @@ async fn test_revoke_wallet_by_recovery_code() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_revoke_wallets_by_recovery_code_list() {
+    let db_setup = DbSetup::create().await;
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let (user_state, revocation_helper) = setup_state(&db_setup, publish_dir.clone()).await;
+
+    let (wallet_ids, wias) = register_wallets_with_wias(vec![1, 1, 1, 1], &user_state).await;
+
+    // Wallets 0 and 1 share the first code, wallet 2 has the second code, wallet 3 has no recovery code.
+    let code_a: RecoveryCode = random_string(32).into();
+    let code_b: RecoveryCode = random_string(32).into();
+    for (wallet_id, code) in [
+        (&wallet_ids[0], &code_a),
+        (&wallet_ids[1], &code_a),
+        (&wallet_ids[2], &code_b),
+    ] {
+        let tx = user_state.repositories.begin_transaction().await.unwrap();
+        user_state
+            .repositories
+            .store_recovery_code(&tx, wallet_id, code.clone())
+            .await
+            .unwrap();
+        tx.commit().await.unwrap();
+    }
+
+    // A third code that no wallet has, which should still be counted, as 0.
+    let unused_code: RecoveryCode = random_string(32).into();
+    let recovery_codes: VecNonEmptyUnique<RecoveryCode> =
+        vec_nonempty![code_a.clone(), code_b.clone(), unused_code.clone()].into();
+    let revoked_wallets =
+        system_revoke_wallets_by_recovery_code_list(&recovery_codes, &user_state, &MockTimeGenerator::default())
+            .await
+            .unwrap();
+
+    assert_eq!(revoked_wallets, 3);
+
+    let (revoked_wallet_ids, non_revoked_wallet_ids) = partition_by_indices(wallet_ids, &[0, 1, 2]);
+    let (revoked_wia_ids, non_revoked_wia_ids) = partition_by_indices(wias, &[0, 1, 2]);
+    let revoked_wia_ids = revoked_wia_ids.into_iter().flatten().collect_vec();
+    let non_revoked_wia_ids = non_revoked_wia_ids.into_iter().flatten().collect_vec();
+
+    verify_revocation(
+        &revoked_wallet_ids,
+        Some(RevocationReason::AdminRequest),
+        &revoked_wia_ids,
+        Some(&publish_dir),
+        &user_state,
+        &revocation_helper,
+        StatusType::Invalid,
+    )
+    .await;
+    verify_revocation(
+        &non_revoked_wallet_ids,
+        None,
+        &non_revoked_wia_ids,
+        Some(&publish_dir),
+        &user_state,
+        &revocation_helper,
+        StatusType::Valid,
+    )
+    .await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_and_remove_denied_recovery_codes_service() {
     let db_setup = DbSetup::create().await;
     let temp_dir = tempfile::tempdir().unwrap();
@@ -853,7 +920,7 @@ async fn test_list_and_remove_denied_recovery_codes_service() {
     let tx = user_state.repositories.begin_transaction().await.unwrap();
     user_state
         .repositories
-        .deny_recovery_code(&tx, recovery_code.clone())
+        .deny_recovery_codes(&tx, &vec_nonempty![recovery_code.clone()].into())
         .await
         .unwrap();
     tx.commit().await.unwrap();

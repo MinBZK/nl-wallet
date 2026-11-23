@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:clock/clock.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/help/help_content_repository.dart';
 import 'package:wallet/src/domain/model/app_image_data.dart';

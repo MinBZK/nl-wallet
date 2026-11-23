@@ -373,6 +373,14 @@ These are mostly enforced by the linter as well.
 
 ### Testing
 
+#### Native wallet integration tests
+
+The `Wallet Integration Tests` scheme in `ios/Runner.xcodeproj` and the
+`android/wallet-integration-tests` module run the same Rust wallet disclosure
+scenarios over real BLE in native test hosts.
+See [the device test instructions](../wallet_core/wallet/device_integration_tests/README.md)
+for setup, test selection, and CI reporting.
+
 #### Unit tests
 
 - Test file name follows the convention: `{class_name}_test.dart`

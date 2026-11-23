@@ -1,6 +1,6 @@
 import 'package:country_codes_plus/country_codes_plus.dart';
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../store/active_locale_provider.dart';
 

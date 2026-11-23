@@ -43,7 +43,7 @@ skip_android_root_key_check = ["android_attest/skip_root_key_check"]
 # This is DANGEROUS and should not be used in any production environment.
 android_emulator = ["allow_android_emulator_keys", "mock_android_integrity_verdict", "skip_android_root_key_check"]
 # Include and run test that depend on a configured HSM
-hsm_test = ["dep:rand_core", "dep:serial_test", "hsm/test"]
+hsm_test = ["dep:rand_core", "hsm/test"]
 # Include and run tests that depend on an external PostgreSQL database
 db_test = ["dep:db_test", "tokio/macros", "wallet_provider_persistence/db_test"]
 # Include web related features, like request serialization and response deserialization
@@ -94,7 +94,6 @@ utoipa = { workspace = true, features = ["chrono"] }
 utoipa-axum.workspace = true
 
 rand_core = { workspace = true, optional = true }
-serial_test = { workspace = true, optional = true }
 tempfile = { workspace = true, optional = true }
 utoipa-swagger-ui = { workspace = true, optional = true }
 
@@ -120,6 +119,7 @@ token_status_list.path = "../lib/token_status_list"
 [dev-dependencies]
 crypto = { path = "../lib/crypto", features = ["generate", "mock"] }
 rstest.workspace = true
+serial_test.workspace = true
 tempfile.workspace = true
 tower = { workspace = true, features = ["util"] }
 

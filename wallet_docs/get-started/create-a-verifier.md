@@ -15,7 +15,7 @@ their own frontend and backend.
 
 <div class="admonition note"><p class="title">Open-source software</p>
 Did you know that the NL Wallet platform is fully open-source? You can find
-[the project on GitHub][6].
+[the project on GitHub][5].
 </div>
 
 ```{contents}
@@ -65,17 +65,17 @@ session. The main components described in the diagram are:
 - Relying Party Application: An app running on-premises or in-cloud of the
   verifier that needs to do something with the result of a verification of
   attributes;
-- [Wallet App][17]: The NL Wallet app running on a mobile device;
+- [Wallet App][14]: The NL Wallet app running on a mobile device;
 
 Missing from the above diagram, but worth mentioning:
 
-- [Wallet Web][14] The frontend helper JavaScript/TypeScript library which helps
+- [Wallet Web][11] The frontend helper JavaScript/TypeScript library which helps
   verifiers integrate their application with the NL Wallet platform.
 
 <div class="admonition seealso"><p class="title">Architecture documentation</p>
 This document is about setting up a verifier. To have a broader view of the
 NL Wallet platform as a whole, you can have a look at the [Architecture
-Documents][5].
+Documents][4].
 </div>
 
 ### Platform components overview
@@ -114,7 +114,7 @@ format.
 <div class="admonition caution">
 <p class="title">Do you have a working toolchain?</p>
 Make sure you have a working toolchain as documented in our GitHub project root
-`README.md` [here][18]. Specifically, you need to have `rust` and `openssl`
+`README.md` [here][15]. Specifically, you need to have `rust` and `openssl`
 installed and working.
 </div>
 
@@ -123,7 +123,7 @@ installed and working.
 You need a CA certificate and key. By default, when you're running locally, the
 `setup-devenv.sh` script will have created these for you. You can also opt to
 create your own custom self-signed CA certificate and key, which is documented
-in the [Create a CA][26] document, and which is required if you need to
+in the [Create a CA][23] document, and which is required if you need to
 participate in the NL Wallet Community.
 </div>
 
@@ -134,7 +134,7 @@ You can test your verifier locally (more or less exactly like we do with our
 our git repository. But if you want to test your verifier with the NL Wallet
 platform (i.e., the NL Wallet apps on our Test Flight and Play Store Beta
 environments plus backends), you will need to have succesfully completed the
-[onboarding][11] process.
+[onboarding][8] process.
 </div>
 
 ```shell
@@ -196,13 +196,13 @@ generated CA certificate is automatically added to the trust anchors within the
 configuration files of `pid_issuer`, `demo_issuer`, `verification_server`,
 `issuance_server`, `demo_relying_party` and the NL Wallet app config.
 
-When you [create your own CA][26], you need to make sure the certificate of your
+When you [create your own CA][23], you need to make sure the certificate of your
 CA is in the relevant trust anchor configuration settings. When you are a
-member of the [NL Wallet Community][11], and so using NL Wallet managed backend
+member of the [NL Wallet Community][8], and so using NL Wallet managed backend
 services and mobile apps, this is done for you (i.e., you just need to sign
 your WRPAC certificate with your CA, which the `wallet_ca` utility invocation
-above did for you, and during the NL Wallet Community [onboarding][11] process
-you [shared your CA certificate][32], after which it was added to the various
+above did for you, and during the NL Wallet Community [onboarding][8] process
+you [shared your CA certificate][27], after which it was added to the various
 trust anchor lists).
 
 When you run locally, but with a manually created CA, you need to add the CA
@@ -219,9 +219,9 @@ steps, you are ready to setup and configure your `verification_server`.
 ### Obtaining the software
 
 The `verification_server` binary can be obtained by downloading a pre-compiled
-binary from our [releases][19] page, or by compiling from source. To compile
+binary from our [releases][16] page, or by compiling from source. To compile
 from source, make sure you have our git repository checked out and make sure
-you've [configured your local development environment][18]. Then:
+you've [configured your local development environment][15]. Then:
 
 ```shell
 cd nl-wallet
@@ -229,7 +229,7 @@ cargo build \
   --manifest-path wallet_core/Cargo.toml \
   --package verification_server \
   --bin verification_server \
-  --locked --release
+  --release
 ```
 
 The above command creates `wallet_core/target/release/verification_server`,
@@ -253,7 +253,7 @@ allow you to talk to a `verification_server` using an (insecure) `http://` URL.
 <div class="admonition danger">
 <p class="title">Don't allow insecure URLs on production-like environments</p>
 Don't enable `allow_insecure_url` on anything remotely production-like. To have
-an idea about why, have a look at the [disclosure flow diagram][20]. Where you
+an idea about why, have a look at the [disclosure flow diagram][17]. Where you
 see `request_uri` mentioned, is where you would potentially communicate without
 encryption, should you inadvertently have enabled this feature flag.
 </div>
@@ -283,8 +283,8 @@ and the hostname of the system running the PostgreSQL database (can be localhost
 or any fully-qualified domain name).
 
 When you don't have a PostgreSQL database service running, you can create one
-following the [installation instructions][21] or you can use something like
-[docker][22] to run a containerized PostgreSQL service, which we'll document
+following the [installation instructions][18] or you can use something like
+[docker][19] to run a containerized PostgreSQL service, which we'll document
 here.
 
 <div class="admonition note">
@@ -375,7 +375,7 @@ configuration file.
 
 <div class="admonition note">
 <p class="title">Example configuration file</p>
-For reference, we have an annotated [example configuration file][23] which you
+For reference, we have an annotated [example configuration file][20] which you
 can check for the various settings you can configure. We cover most (all?) of
 them here.
 </div>
@@ -404,7 +404,7 @@ EOF
 
 <div class="admonition note">
 <p class="title">Optional runtime logging using env_logger</p>
-In addition to the above, the NL Wallet uses [env_logger][16], which means you
+In addition to the above, the NL Wallet uses [env_logger][13], which means you
 can use the `RUST_LOG` environment variable when running `verification_server`
 later on. For example, to run with debug log output, you can prefix the command
 with the `RUST_LOG` environment variable: `RUST_LOG=debug ./verification_server`
@@ -427,8 +427,8 @@ EOF
 
 When you [created a WRPAC certificate](#creating-a-wrpac-certificate), you
 signed that certificate using a CA, either generated by the development setup
-script or specifically [created by you][26] as part of the (optional)
-[community onboarding process][11].
+script or specifically [created by you][23] as part of the (optional)
+[community onboarding process][8].
 
 The `verification_server` distinguishes two kinds of trust anchors:
 
@@ -447,14 +447,14 @@ We need to trust our own CA, whether it is created by the development setup
 scripts or explicitly by you. The development scripts create a separate CA for
 issuers and WRPACs (usually at `scripts/devenv/target/ca.issuer.crt.der` and
 `scripts/devenv/target/ca.wrpac.crt.der`). When you create and use your own
-CA for community development purposes as [documented here][26], you can use that
+CA for community development purposes as [documented here][23], you can use that
 CA generally for signing both issuance and WRPAC certificates, and hence, add
 it to both the issuer and WRPAC trust anchors.
 
 The below code block will initialize the issuer and WRPAC trust anchor
 environment variables with the CA certificates it can find, both generated by
 development scripts and any you created yourself, provided you [followed the CA
-creation instructions to the letter][26] and used the naming convention
+creation instructions to the letter][23] and used the naming convention
 documented there which means you would have a `target/ca-cert` directory with
 your CA certificates in DER format there. The code block assumes you have the
 `nl-wallet` git repository checked out.
@@ -515,7 +515,7 @@ on the link or scans the QR code.
 A universal link base URL is usually associated with a specific backend
 environment like pre-production or testing. When you're integrating with the
 NL Wallet platform, you would use a universal link base URL that was provided
-to you as part of our community [onboarding][11] process.
+to you as part of our community [onboarding][8] process.
 
 ```shell
 cd nl-wallet
@@ -529,8 +529,8 @@ EOF
 <p class="title">Make sure your domain is configured correctly</p>
 You as the owner of the domain (`example.com` in the above example setting)
 need to make sure the domain is configured correctly for universal links to
-work correctly. On Apple iOS devices this is done with [associated domains][24].
-On Google Android this is configured using [app links][25].
+work correctly. On Apple iOS devices this is done with [associated domains][21].
+On Google Android this is configured using [app links][22].
 </div>
 
 #### Access restriction settings (optional)
@@ -695,7 +695,7 @@ EOF
 <p class="title">Make sure you specify a correct library path</p>
 The HSM functionality depends on a PKCS#11 compatible shared library which will
 have been provided by your HSM vendor. Technically you can also use any PKCS#11
-implementation here. For development purposes we test with the [softhsm2][27]
+implementation here. For development purposes we test with the [softhsm2][24]
 library, which is usually called something like `libsofthsm2.so` (the path
 location and filename extension differs per operating system and/or packaging
 environment).
@@ -795,11 +795,11 @@ an error and abort. For more insights into this process,
 
 ## Verifier API specifications
 
-The API specifications for the [internal][15] (also known as the `requester`)
+The API specifications for the [internal][12] (also known as the `requester`)
 endpoint is available in the `wallet_docs/openapi` part of of the git
 repository.
 
-Have a look at the [OpenAPI Specifications][29] section to learn how to open and
+Have a look at the [OpenAPI Specifications][26] section to learn how to open and
 use these.
 
 ## Integrating your app with your verification server
@@ -952,15 +952,15 @@ Below you'll find a list of things to know about the NL Wallet platform and more
 specifically, what you need to keep in mind when you integrate the usage of the
 app for identification or verification of attributes with your application:
 
-- The NL Wallet app presents attestations using the [OpenID4VP][10] protocol
-  standard using either the [SD-JWT][28] or the [ISO/IEC 18013-5:2021 MDOC][8]
+- The NL Wallet app presents attestations using the [OpenID4VP][7] protocol
+  standard using either the [SD-JWT][25] or the [ISO/IEC 18013-5:2021 MDOC][6]
   credential format;
 - Any disclosure session initiation request must include the reason why the
   verifier is requesting the attributes;
 - A verifier **MUST NOT** track, in the broadest sense of the word;
 - A verifier needs to adhere to the EU-GDPR (Nederlands: EU-AVG)
-  [GDPR][12];
-- It is required to follow accessibility guidelines set forth in the [WCAG][13];
+  [GDPR][9];
+- It is required to follow accessibility guidelines set forth in the [WCAG][10];
 - It is expected that you use the `wallet_web` frontend helper library;
 - The standard buttons for login and sharing should be used, but one can use
   custom button text (within reason);
@@ -973,32 +973,27 @@ app for identification or verification of attributes with your application:
 [1]: https://www.logius.nl/onze-dienstverlening/toegang/digid
 [2]: https://www.logius.nl/onze-dienstverlening/toegang/voorzieningen/bsnk-pp
 [3]: https://www.rvig.nl/basisregistratie-personen
-[4]: link-to-vvov-sad-tbd
-[5]: https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet
-[6]: https://github.com/MinBZK/nl-wallet
-[7]: https://github.com/minvws/nl-rdo-max
-[8]: https://www.iso.org/standard/69084.html
-[9]: https://www.iso.org/standard/86785.html
-[10]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
-[11]: ../community/onboarding
-[12]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
-[13]: https://www.w3.org/WAI/WCAG21/Understanding/intro
-[14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
-[15]: ../openapi/verification-server-internal.openapi.yaml
-[16]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging
-[17]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_app
-[18]: https://github.com/MinBZK/nl-wallet#user-content-development-requirements
-[19]: https://github.com/MinBZK/nl-wallet/releases
-[20]: ../architecture/use-cases/disclosure-with-openid4vp
-[21]: https://www.postgresql.org/download/
-[22]: https://www.docker.com/
-[23]: https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/verification_server/verification_server.example.toml
-[24]: https://developer.apple.com/documentation/xcode/supporting-associated-domains
-[25]: https://developer.android.com/training/app-links
-[26]: ../community/create-a-ca
-[27]: https://github.com/softhsm/SoftHSMv2
-[28]: https://datatracker.ietf.org/doc/rfc9901/
-[29]: ../development/openapi-specifications
-[30]: create-an-issuer
-[31]: ../development/authorized-attributes
-[32]: ../community/create-a-ca.md#sharing-your-ca-certificate
+[4]: https://edi.pleio.nl/news/view/93f40956-3671-49c9-9c82-2dab636b59bf/psasad-documenten-nl-wallet
+[5]: https://github.com/MinBZK/nl-wallet
+[6]: https://www.iso.org/standard/69084.html
+[7]: https://openid.net/specs/openid-4-verifiable-presentations-1_0.html
+[8]: ../community/onboarding
+[9]: https://europa.eu/youreurope/business/dealing-with-customers/data-protection/data-protection-gdpr/index_en.htm
+[10]: https://www.w3.org/WAI/WCAG21/Understanding/intro
+[11]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_web
+[12]: ../openapi/verification-server-internal.openapi.yaml
+[13]: https://docs.rs/env_logger/latest/env_logger/#enabling-logging
+[14]: https://github.com/MinBZK/nl-wallet/tree/main/wallet_app
+[15]: https://github.com/MinBZK/nl-wallet#user-content-development-requirements
+[16]: https://github.com/MinBZK/nl-wallet/releases
+[17]: ../architecture/use-cases/disclosure-with-openid4vp
+[18]: https://www.postgresql.org/download/
+[19]: https://www.docker.com/
+[20]: https://github.com/MinBZK/nl-wallet/blob/main/wallet_core/wallet_server/verification_server/verification_server.example.toml
+[21]: https://developer.apple.com/documentation/xcode/supporting-associated-domains
+[22]: https://developer.android.com/training/app-links
+[23]: ../community/create-a-ca
+[24]: https://github.com/softhsm/SoftHSMv2
+[25]: https://datatracker.ietf.org/doc/rfc9901/
+[26]: ../development/openapi-specifications
+[27]: ../community/create-a-ca.md#sharing-your-ca-certificate

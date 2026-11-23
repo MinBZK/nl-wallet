@@ -1,15 +1,15 @@
 use std::collections::HashSet;
 
 use attestation_data::attributes::Attributes;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use indexmap::IndexMap;
+use itertools::Itertools;
 use mdoc::iso::mdocs::Entry;
 use mdoc::iso::mdocs::NameSpace;
-use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
-use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use sd_jwt::claims::ObjectClaims;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
@@ -72,45 +72,34 @@ impl AttestationPresentation {
         )
     }
 
-    /// Creates an [`AttestationPresentation`] from the first copy of an issued credential.
-    pub(crate) fn create_from_issued(
-        credential: &CredentialWithMetadata,
+    /// Creates an [`AttestationPresentation`] from the contents of a credential, taking its validity from those
+    /// contents. These are available both for a credential preview and for an issued credential.
+    pub(crate) fn create_from_contents(
+        identity: AttestationIdentity,
+        format: Format,
+        contents: &CredentialContents,
+        metadata: impl AttestationDisplay,
         issuer_organization: Box<Organization>,
         config: &impl AttestationPresentationConfig,
     ) -> Result<Self, AttestationError> {
         let validity = AttestationValidity {
             revocation_status: None,
             validity_window: ValidityWindow {
-                valid_from: credential.not_before.map(Into::into),
-                valid_until: credential.expiration.map(Into::into),
+                valid_from: contents.not_before.map(Into::into),
+                valid_until: contents.expires.map(Into::into),
             },
         };
 
-        // TODO (PVW-6251): determine attestation identity to support renewal
-        match &credential.copies {
-            IssuedCredentialCopies::Mdoc(copies) => Self::create_from_mdoc(
-                AttestationIdentity::Ephemeral,
-                credential.attestation_type.clone(),
-                credential.metadata.clone(),
-                issuer_organization,
-                validity,
-                copies.first().mdoc.issuer_signed().clone().into_entries_by_namespace(),
-                config,
-            ),
-            IssuedCredentialCopies::SdJwt(copies) => {
-                let claims = copies.first().sd_jwt.decoded_claims().clone();
-
-                Self::create_from_sd_jwt_claims(
-                    AttestationIdentity::Ephemeral,
-                    credential.attestation_type.clone(),
-                    credential.metadata.clone(),
-                    issuer_organization,
-                    validity,
-                    claims,
-                    config,
-                )
-            }
-        }
+        Self::create_from_attributes(
+            identity,
+            format,
+            contents.attestation_type.clone(),
+            metadata,
+            issuer_organization,
+            validity,
+            &contents.attributes,
+            config,
+        )
     }
 
     // Construct a new `AttestationPresentation` from a combination of metadata and nested attributes.
@@ -176,10 +165,14 @@ impl AttestationPresentation {
         }
 
         let attributes = match config.filtered_attribute(format, &attestation_type) {
-            Some(filtered_key) => attributes
-                .into_iter()
-                .filter(|attr| attr.key.iter().map(String::as_str).ne(filtered_key.clone()))
-                .collect(),
+            Some(filtered_key) => {
+                let filtered_key = filtered_key.collect_vec();
+
+                attributes
+                    .into_iter()
+                    .filter(|attr| attr.key.as_slice() != filtered_key.as_slice())
+                    .collect()
+            }
             None => attributes,
         };
 

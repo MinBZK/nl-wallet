@@ -11,11 +11,6 @@ workspace = true
 doctest = false
 
 [[example]]
-name = "device_integration_tests"
-crate-type = ["staticlib"]
-required-features = ["hardware_integration_test"]
-
-[[example]]
 name = "verify_close_proximity_response"
 required-features = ["hardware_integration_test"]
 
@@ -69,7 +64,7 @@ async-trait.workspace = true
 base64.workspace = true
 chrono = { workspace = true, features = ["now"] }
 ciborium.workspace = true
-derive_more = { workspace = true, features = ["constructor", "debug", "display", "is_variant"] }
+derive_more = { workspace = true, features = ["constructor", "debug", "display", "into", "is_variant"] }
 futures = { workspace = true, features = ["async-await"] }
 hex = { workspace = true, optional = true }
 http.workspace = true
@@ -88,7 +83,6 @@ reqwest.workspace = true
 ring.workspace = true
 rusqlite.workspace = true
 rustls-pki-types.workspace = true
-sanitize-filename.workspace = true
 sea-orm = { workspace = true, features = ["sqlx-sqlite", "runtime-tokio-rustls"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

@@ -284,7 +284,7 @@ pub(super) mod tests {
                     Some(&access_token),
                 )
                 .unwrap();
-            assert_eq!(nonce.as_ref().map(DpopNonce::as_ref), expected);
+            assert_eq!(nonce.into_inner().as_ref().map(DpopNonce::as_ref), expected);
         }
     }
 

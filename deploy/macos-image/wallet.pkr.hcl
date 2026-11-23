@@ -9,13 +9,13 @@ packer {
 
 variable "vm_base_name" {
   type = string
-  # macos-tahoe-xcode:26.5
-  default = "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:61f6e857a3d65dd2f8daf9c51c7b837fa458bcc9181ae8556e645b534dab6bf6"
+  # macos-tahoe-xcode:27.2
+  default = "ghcr.io/cirruslabs/macos-tahoe-xcode@sha256:f8315a2f627daf64ab2c4e11d29a4d267953902a16151ee28fcdd7185927c317"
 }
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.3.16"
+  default = "tahoe-wallet:0.4.2"
 }
 
 source "tart-cli" "tart" {
@@ -43,8 +43,10 @@ build {
     inline = [
       "source ~/.zprofile",
       "rbenv version | grep -v system | xargs -n1 rbenv uninstall -f",
-      "rbenv install 3.3.8",
-      "rbenv global 3.3.8",
+      "brew update",
+      "brew upgrade ruby-build",
+      "rbenv install 3.3.14",
+      "rbenv global 3.3.14",
     ]
   }
 
@@ -54,7 +56,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.47.8",
+      "git -C $FLUTTER_HOME switch --detach 3.50.1",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",
@@ -78,10 +80,10 @@ build {
     inline = [
       "source ~/.zprofile",
       "set -eux",
-      "rustup toolchain install 1.98.1 --profile minimal --component clippy",
-      "rustup default 1.98.1",
-      "cargo install cargo-expand --locked --version 1.0.127",
-      "cargo install lcov2xml --locked --version 1.0.10",
+      "rustup toolchain install 1.100.0 --profile minimal --component clippy",
+      "rustup default 1.100.0",
+      "cargo install cargo-expand --version 1.0.127",
+      "cargo install lcov2xml --version 1.0.10",
       "rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios",
     ]
   }

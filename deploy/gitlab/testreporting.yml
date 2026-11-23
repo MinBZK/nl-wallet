@@ -24,9 +24,6 @@ publish-test-report:
     - job: test-rust
       artifacts: false
       optional: true
-    - job: test-rust-gba-pid
-      artifacts: false
-      optional: true
     - job: run-automation-tests-publish-results-android
       artifacts: false
       optional: true

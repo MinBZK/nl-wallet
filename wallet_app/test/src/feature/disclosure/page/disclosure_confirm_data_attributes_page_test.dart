@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/disclosure/disclose_card_request.dart';
 import 'package:wallet/src/domain/model/organization.dart';
@@ -68,6 +68,22 @@ void main() {
     // Check if the purpose is shown
     final titleFinder = find.text('data purpose');
     expect(titleFinder, findsOneWidget);
+  });
+
+  testWidgets('purpose section is hidden when the purpose is empty', (tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      DisclosureConfirmDataAttributesPage(
+        onAcceptPressed: () {},
+        onDeclinePressed: () {},
+        onAlternativeCardSelected: (update) {},
+        relyingParty: WalletMockData.organization,
+        cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+        requestPurpose: const {},
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.disclosureConfirmDataAttributesSubtitlePurpose), findsNothing);
   });
 
   testWidgets('ltc15 verify decline button callback', (tester) async {

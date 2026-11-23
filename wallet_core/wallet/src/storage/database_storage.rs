@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::path::PathBuf;
 
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::disclosure_type::DisclosureType;
 use attestation_data::organization::Organization;
 use attestation_data::validity::ValidityWindow;
@@ -148,52 +149,51 @@ enum AttestationTypeMatch {
 
 /// Returns the condition that matches the stored attestations of a single [`CredentialKind`], i.e. the combination of
 /// an attestation type and a format.
-fn condition_for_credential_kind(credential_kind: &CredentialKind, type_match: AttestationTypeMatch) -> Condition {
+fn condition_for_credential_kind(credential_kind: CredentialKind, type_match: AttestationTypeMatch) -> Condition {
     let CredentialKind {
         attestation_type,
         format,
     } = credential_kind;
 
-    // The `attestation_type` column should match the requested attestation type...
-    let attestation_type_condition =
-        Condition::any().add(attestation::Column::AttestationType.eq(attestation_type.as_str()));
-
-    // ...or, if extended types are included, one of the extended attestation types should match. Note that this results
+    // If extended types are included, one of the extended attestation types may match as well. Note that this results
     // in the following query:
     //
     // EXISTS(SELECT * FROM json_each(attestation.extended_types)
     //                 AS extended_attestation_type
     //                 WHERE extended_attestation_type.value = {attestation_type})
-    let attestation_type_condition = match (type_match, format) {
-        (AttestationTypeMatch::IncludingExtendedTypes, Format::SdJwt) => attestation_type_condition.add(Expr::exists(
+    let extended_type_condition = match (type_match, format) {
+        (AttestationTypeMatch::IncludingExtendedTypes, Format::SdJwt) => Some(Expr::exists(
             Query::select()
                 .column(Asterisk)
                 .from_function(
                     Func::cust("json_each").arg(attestation::Column::ExtendedTypes.into_expr()),
                     "extended_attestation_type",
                 )
-                .and_where(Expr::col(("extended_attestation_type", "value")).eq(attestation_type.as_str()))
+                .and_where(Expr::col(("extended_attestation_type", "value")).eq(attestation_type.clone()))
                 .take(),
         )),
-        (AttestationTypeMatch::IncludingExtendedTypes, Format::MsoMdoc) | (AttestationTypeMatch::Exact, _) => {
-            attestation_type_condition
-        }
+        (AttestationTypeMatch::IncludingExtendedTypes, Format::MsoMdoc) | (AttestationTypeMatch::Exact, _) => None,
     };
+
+    // Either the `attestation_type` column or, if included, one of the extended types should match.
+    let attestation_type_condition = Condition::any()
+        .add(attestation::Column::AttestationType.eq(attestation_type))
+        .add_option(extended_type_condition);
 
     Condition::all()
         .add(attestation_type_condition)
-        .add(attestation::Column::AttestationFormat.eq(AttestationFormat::from(*format)))
+        .add(attestation::Column::AttestationFormat.eq(AttestationFormat::from(format)))
 }
 
 /// Returns the condition that matches the stored attestations of any of the requested [`CredentialKind`]s. An empty set
 /// of credential kinds results in an empty `Condition::any()`, which sea-query renders as a constant `FALSE` and which
 /// therefore matches no attestation at all.
 fn condition_for_credential_kinds(
-    credential_kinds: &HashSet<CredentialKind>,
+    credential_kinds: HashSet<CredentialKind>,
     type_match: AttestationTypeMatch,
 ) -> Condition {
     credential_kinds
-        .iter()
+        .into_iter()
         .fold(Condition::any(), |condition, credential_kind| {
             condition.add(condition_for_credential_kind(credential_kind, type_match))
         })
@@ -380,7 +380,7 @@ impl<K> DatabaseStorage<K> {
     /// applied to all matches using AND.
     async fn query_unique_attestations_by_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
         type_match: AttestationTypeMatch,
         condition: Option<Condition>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
@@ -763,9 +763,13 @@ where
                 |(
                     CredentialWithMetadata {
                         copies,
-                        attestation_type,
-                        expiration,
-                        not_before,
+                        contents:
+                            CredentialContents {
+                                attestation_type,
+                                expires,
+                                not_before,
+                                ..
+                            },
                         extended_attestation_types,
                         metadata,
                         issuer_registration,
@@ -779,7 +783,7 @@ where
                         issuer_registration: Set(serde_json::to_value(issuer_registration)?),
                         attestation_type: Set(attestation_type),
                         attestation_format: Set(copies.format().into()),
-                        expiration: Set(expiration.map(Into::into)),
+                        expiration: Set(expires.map(Into::into)),
                         not_before: Set(not_before.map(Into::into)),
                         extended_types: Set(ExtendedTypesModel::new(extended_attestation_types)),
                         metadata: Set(metadata.into()),
@@ -857,8 +861,8 @@ where
             attestation::Entity::update_many()
                 .set(attestation::ActiveModel {
                     issuer_registration: Set(serde_json::to_value(credential.issuer_registration)?),
-                    expiration: Set(credential.expiration.map(Into::into)),
-                    not_before: Set(credential.not_before.map(Into::into)),
+                    expiration: Set(credential.contents.expires.map(Into::into)),
+                    not_before: Set(credential.contents.not_before.map(Into::into)),
                     extended_types: Set(ExtendedTypesModel::new(credential.extended_attestation_types)),
                     metadata: Set(credential.metadata.into()),
                     ..Default::default()
@@ -904,7 +908,7 @@ where
 
     async fn has_any_attestations_with_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
     ) -> StorageResult<bool> {
         // Requesting no credential kinds can never match an attestation, so skip querying the database entirely.
         if credential_kinds.is_empty() {
@@ -947,7 +951,7 @@ where
 
     async fn fetch_unique_attestations_by_credential_kinds(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
     ) -> StorageResult<Vec<StoredAttestationCopy>> {
         self.query_unique_attestations_by_credential_kinds(credential_kinds, AttestationTypeMatch::Exact, None)
             .await
@@ -955,7 +959,7 @@ where
 
     async fn fetch_valid_unique_attestations_by_credential_kinds<T>(
         &self,
-        credential_kinds: &HashSet<CredentialKind>,
+        credential_kinds: HashSet<CredentialKind>,
         time_generator: T,
     ) -> StorageResult<Vec<StoredAttestationCopy>>
     where
@@ -1185,8 +1189,8 @@ where
         let query = attestation_copy::Entity::find()
             .inner_join(attestation::Entity)
             .select_only()
-            .column(attestation_copy::Column::Id)
-            .column_as(attestation::Column::Id, "attestation_id")
+            .column_as(attestation_copy::Column::Id, "attestation_copy_id")
+            .column(attestation::Column::AttestationFormat)
             .column(attestation_copy::Column::StatusListUrl)
             .column(attestation_copy::Column::StatusListIndex)
             .filter(
@@ -1209,7 +1213,7 @@ where
                             .or(attestation::Column::Expiration.gt(now)),
                     ),
             )
-            .into_partial_model::<revocation_info::RevocationInfo>();
+            .into_model::<revocation_info::RevocationInfo>();
 
         let result = query.all(connection).await?;
 
@@ -1851,15 +1855,15 @@ pub(crate) mod tests {
     fn credential_kinds(attestation_types: &HashSet<String>, format: Format) -> HashSet<CredentialKind> {
         attestation_types
             .iter()
-            .map(|attestation_type| CredentialKind::new(format, attestation_type.clone()))
+            .map(|attestation_type| CredentialKind::new(format, attestation_type.to_owned()))
             .collect()
     }
 
     async fn has_any_pid_attestations(storage: &MockHardwareDatabaseStorage, format: Format) -> bool {
         storage
-            .has_any_attestations_with_credential_kinds(&HashSet::from([CredentialKind::new(
+            .has_any_attestations_with_credential_kinds(HashSet::from([CredentialKind::new(
                 format,
-                pid_attestation_type(format).to_string(),
+                pid_attestation_type(format).to_owned(),
             )]))
             .await
             .unwrap()
@@ -1897,17 +1901,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_mdoc_copies,
-                        mdoc.doc_type().to_string(),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_until)
-                                .try_into()
-                                .unwrap(),
-                        ),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_from)
-                                .try_into()
-                                .unwrap(),
-                        ),
+                        CredentialContents::from_mdoc(mdoc.clone()).unwrap(),
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata.clone()),
                         issuer_registration.clone(),
@@ -1955,13 +1949,13 @@ pub(crate) mod tests {
             HashSet::from([CredentialKind::new(Format::MsoMdoc, mdoc.doc_type().to_owned())]);
 
         let fetched_unique_any = storage
-            .fetch_unique_attestations_by_credential_kinds(&attestation_types_and_formats)
+            .fetch_unique_attestations_by_credential_kinds(attestation_types_and_formats)
             .await
             .expect("Could not fetch unique attestations by types");
 
         let fetched_unique_mdoc = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::MsoMdoc),
+                credential_kinds(&attestation_types, Format::MsoMdoc),
                 MockTimeGenerator::default(),
             )
             .await
@@ -1969,7 +1963,7 @@ pub(crate) mod tests {
 
         let fetched_unique_sd_jwt = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::SdJwt),
+                credential_kinds(&attestation_types, Format::SdJwt),
                 MockTimeGenerator::default(),
             )
             .await
@@ -1977,7 +1971,7 @@ pub(crate) mod tests {
 
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&HashSet::from(["other".to_owned()]), Format::MsoMdoc),
+                credential_kinds(&HashSet::from(["other".to_owned()]), Format::MsoMdoc),
                 MockTimeGenerator::default(),
             )
             .await
@@ -2005,7 +1999,7 @@ pub(crate) mod tests {
         // Should not return not yet valid attestations.
         let fetched = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::MsoMdoc),
+                credential_kinds(&attestation_types, Format::MsoMdoc),
                 MockTimeGenerator::new(Utc.timestamp_nanos(0)),
             )
             .await
@@ -2015,7 +2009,7 @@ pub(crate) mod tests {
         // Should not return expired attestations.
         let fetched = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::MsoMdoc),
+                credential_kinds(&attestation_types, Format::MsoMdoc),
                 MockTimeGenerator::new(Utc::now() + Days::new(366)),
             )
             .await
@@ -2086,7 +2080,7 @@ pub(crate) mod tests {
 
         let fetched_unique = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&extended_vcts, Format::MsoMdoc),
+                credential_kinds(&extended_vcts, Format::MsoMdoc),
                 MockTimeGenerator::default(),
             )
             .await
@@ -2097,12 +2091,7 @@ pub(crate) mod tests {
         // Fetching extended VCTs by credential kind should not return anything either, as that matches the attestation
         // type exactly.
         let fetched_unique = storage
-            .fetch_unique_attestations_by_credential_kinds(
-                &extended_vcts
-                    .into_iter()
-                    .map(|attestation_type| CredentialKind::new(Format::MsoMdoc, attestation_type))
-                    .collect(),
-            )
+            .fetch_unique_attestations_by_credential_kinds(credential_kinds(&extended_vcts, Format::MsoMdoc))
             .await
             .expect("Could not fetch unique attestations by types");
 
@@ -2117,7 +2106,7 @@ pub(crate) mod tests {
         let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
 
         let (credential_payload, holder_key) = CredentialPayload::nl_pid_mdoc_example(&MockTimeGenerator::default());
-        let mdoc = mdoc_from_credential_payload(credential_payload.previewable_payload, &ISSUER_KEY, &holder_key);
+        let mdoc = mdoc_from_credential_payload(credential_payload.contents, &ISSUER_KEY, &holder_key);
         let mdoc = round_trip_mdoc(&mdoc);
 
         let mut credential_metadata = nl_pid_mdoc_credential_metadata_example();
@@ -2138,9 +2127,11 @@ pub(crate) mod tests {
                             key_identifier: "mdoc_key_id".to_owned(),
                             mdoc: mdoc.clone(),
                         }]),
-                        mdoc.doc_type().to_owned(),
-                        None,
-                        None,
+                        CredentialContents {
+                            expires: None,
+                            not_before: None,
+                            ..CredentialContents::from_mdoc(mdoc).unwrap()
+                        },
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(credential_metadata),
                         IssuerRegistration::new_mock(),
@@ -2197,17 +2188,7 @@ pub(crate) mod tests {
                             key_identifier: "mdoc_key_id".to_owned(),
                             mdoc: mdoc.clone(),
                         }]),
-                        mdoc.doc_type().to_owned(),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_until)
-                                .try_into()
-                                .unwrap(),
-                        ),
-                        Some(
-                            (&mdoc.clone().into_components().0.validity_info.valid_from)
-                                .try_into()
-                                .unwrap(),
-                        ),
+                        CredentialContents::from_mdoc(mdoc).unwrap(),
                         std::iter::empty::<String>(),
                         IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                         IssuerRegistration::new_mock(),
@@ -2241,6 +2222,11 @@ pub(crate) mod tests {
         let mdoc = round_trip_mdoc(&mdoc);
 
         let attestation_type = mdoc.doc_type().to_string();
+        let contents = CredentialContents {
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_mdoc(mdoc.clone()).unwrap()
+        };
 
         storage
             .insert_credentials(
@@ -2251,9 +2237,7 @@ pub(crate) mod tests {
                             key_identifier: "mdoc_key_id".to_string(),
                             mdoc
                         }]),
-                        attestation_type.clone(),
-                        None,
-                        None,
+                        contents,
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                         IssuerRegistration::new_mock(),
@@ -2265,9 +2249,9 @@ pub(crate) mod tests {
             .expect("Could not insert mdoc credential");
 
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([CredentialKind::new(
+            .fetch_unique_attestations_by_credential_kinds(HashSet::from([CredentialKind::new(
                 Format::SdJwt,
-                attestation_type,
+                attestation_type.clone(),
             )]))
             .await
             .expect("Could not fetch unique attestations by types and formats");
@@ -2291,6 +2275,17 @@ pub(crate) mod tests {
         let mdoc_doc_type = mdoc.doc_type().to_string();
         let sd_jwt_vct = sd_jwt.sd_jwt().claims().vct.clone();
 
+        let mdoc_contents = CredentialContents {
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_mdoc(mdoc.clone()).unwrap()
+        };
+        let sd_jwt_contents = CredentialContents {
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap()
+        };
+
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
 
         storage
@@ -2303,9 +2298,7 @@ pub(crate) mod tests {
                                 key_identifier: "mdoc_key_id".to_string(),
                                 mdoc
                             }]),
-                            mdoc_doc_type.clone(),
-                            None,
-                            None,
+                            mdoc_contents,
                             Vec::<String>::new(),
                             IssuedCredentialMetadata::CredentialMetadata(nl_pid_mdoc_credential_metadata_example()),
                             IssuerRegistration::new_mock(),
@@ -2318,9 +2311,7 @@ pub(crate) mod tests {
                                 key_identifier: "sd_jwt_key_id".to_string(),
                                 sd_jwt,
                             }]),
-                            sd_jwt_vct.clone(),
-                            None,
-                            None,
+                            sd_jwt_contents,
                             normalized_metadata.extended_vcts(),
                             IssuedCredentialMetadata::nl_pid_example(),
                             IssuerRegistration::new_mock(),
@@ -2362,9 +2353,9 @@ pub(crate) mod tests {
 
         let fetched = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &HashSet::from([
-                    CredentialKind::new(Format::MsoMdoc, mdoc_doc_type),
-                    CredentialKind::new(Format::SdJwt, sd_jwt_vct),
+                HashSet::from([
+                    CredentialKind::new(Format::MsoMdoc, mdoc_doc_type.clone()),
+                    CredentialKind::new(Format::SdJwt, sd_jwt_vct.clone()),
                 ]),
                 MockTimeGenerator::default(),
             )
@@ -2386,28 +2377,28 @@ pub(crate) mod tests {
         assert!(storage.has_any_attestations().await.unwrap());
 
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::new())
+            .fetch_unique_attestations_by_credential_kinds(HashSet::new())
             .await
             .expect("Could not fetch unique attestations by credential kinds");
 
         assert!(fetched.is_empty());
 
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::new())
+            .fetch_unique_attestations_by_credential_kinds(HashSet::new())
             .await
             .expect("Could not fetch unique attestations by types and single format");
 
         assert!(fetched.is_empty());
 
         let fetched = storage
-            .fetch_valid_unique_attestations_by_credential_kinds(&HashSet::new(), MockTimeGenerator::default())
+            .fetch_valid_unique_attestations_by_credential_kinds(HashSet::new(), MockTimeGenerator::default())
             .await
             .expect("Could not fetch valid unique attestations by types and format");
 
         assert!(fetched.is_empty());
 
         let has_any = storage
-            .has_any_attestations_with_credential_kinds(&HashSet::new())
+            .has_any_attestations_with_credential_kinds(HashSet::new())
             .await
             .expect("Could not determine if any attestations with credential kinds exist");
 
@@ -2426,7 +2417,7 @@ pub(crate) mod tests {
 
         // Requesting both kinds should return both attestations, one for each format.
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([mdoc_kind.clone(), sd_jwt_kind.clone()]))
+            .fetch_unique_attestations_by_credential_kinds(HashSet::from([mdoc_kind.clone(), sd_jwt_kind.clone()]))
             .await
             .expect("Could not fetch unique attestations by credential kinds");
 
@@ -2444,7 +2435,7 @@ pub(crate) mod tests {
 
         // Requesting a single kind should only return the attestation stored in that format.
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([sd_jwt_kind.clone()]))
+            .fetch_unique_attestations_by_credential_kinds(HashSet::from([sd_jwt_kind.clone()]))
             .await
             .expect("Could not fetch unique attestations by credential kinds");
 
@@ -2453,7 +2444,7 @@ pub(crate) mod tests {
 
         // A kind that does not match should not widen the result.
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([
+            .fetch_unique_attestations_by_credential_kinds(HashSet::from([
                 mdoc_kind.clone(),
                 unknown_mdoc_kind.clone(),
             ]))
@@ -2468,14 +2459,14 @@ pub(crate) mod tests {
 
         // The same holds for the existence check, which should only be true if at least one of the kinds matches.
         let has_any = storage
-            .has_any_attestations_with_credential_kinds(&HashSet::from([unknown_mdoc_kind.clone(), sd_jwt_kind]))
+            .has_any_attestations_with_credential_kinds(HashSet::from([unknown_mdoc_kind.clone(), sd_jwt_kind.clone()]))
             .await
             .expect("Could not determine if any attestations with credential kinds exist");
 
         assert!(has_any);
 
         let has_any = storage
-            .has_any_attestations_with_credential_kinds(&HashSet::from([unknown_mdoc_kind]))
+            .has_any_attestations_with_credential_kinds(HashSet::from([unknown_mdoc_kind.clone()]))
             .await
             .expect("Could not determine if any attestations with credential kinds exist");
 
@@ -2497,6 +2488,12 @@ pub(crate) mod tests {
             SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(holder_key.verifying_key())).into_verified(),
         )
         .unwrap();
+        let contents = CredentialContents {
+            attestation_type: attestation_type.to_string(),
+            expires: None,
+            not_before: None,
+            ..CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap()
+        };
 
         storage
             .insert_credentials(
@@ -2507,9 +2504,7 @@ pub(crate) mod tests {
                             key_identifier: key_identifier.to_string(),
                             sd_jwt,
                         }]),
-                        attestation_type.to_string(),
-                        None,
-                        None,
+                        contents,
                         extended_attestation_types.iter().copied(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -2547,7 +2542,7 @@ pub(crate) mod tests {
         ) -> Vec<String> {
             storage
                 .fetch_valid_unique_attestations_by_credential_kinds(
-                    &credential_kinds(&attestation_types.iter().map(ToString::to_string).collect(), format),
+                    credential_kinds(&attestation_types.iter().map(ToString::to_string).collect(), format),
                     MockTimeGenerator::default(),
                 )
                 .await
@@ -2640,7 +2635,7 @@ pub(crate) mod tests {
 
         // Matching the attestation type exactly should never take the extended attestation types into account.
         let fetched = storage
-            .fetch_unique_attestations_by_credential_kinds(&HashSet::from([
+            .fetch_unique_attestations_by_credential_kinds(HashSet::from([
                 CredentialKind::new(Format::SdJwt, "urn:example:parent_a:1".to_string()),
                 CredentialKind::new(Format::SdJwt, "urn:example:parent_c:1".to_string()),
             ]))
@@ -2698,9 +2693,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        attestation_type.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap(),
                         normalized_metadata.extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -2740,15 +2733,16 @@ pub(crate) mod tests {
         // Only one unique `AttestationCopy` should be returned when querying
         // the attestation type, but not when the queried format is mdoc.
         let attestation_types = HashSet::from([attestation_type.clone()]);
-        let attestation_types_and_formats = HashSet::from([CredentialKind::new(Format::SdJwt, attestation_type)]);
+        let attestation_types_and_formats =
+            HashSet::from([CredentialKind::new(Format::SdJwt, attestation_type.clone())]);
         let fetched_unique_any = storage
-            .fetch_unique_attestations_by_credential_kinds(&attestation_types_and_formats)
+            .fetch_unique_attestations_by_credential_kinds(attestation_types_and_formats)
             .await
             .expect("Could not fetch unique attestations by types and formats");
 
         let fetched_unique_mdoc = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::MsoMdoc),
+                credential_kinds(&attestation_types, Format::MsoMdoc),
                 MockTimeGenerator::default(),
             )
             .await
@@ -2756,7 +2750,7 @@ pub(crate) mod tests {
 
         let fetched_unique_sd_jwt = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::SdJwt),
+                credential_kinds(&attestation_types, Format::SdJwt),
                 MockTimeGenerator::default(),
             )
             .await
@@ -2764,7 +2758,7 @@ pub(crate) mod tests {
 
         let fetched_unique_other = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&HashSet::from(["other".to_owned()]), Format::SdJwt),
+                credential_kinds(&HashSet::from(["other".to_owned()]), Format::SdJwt),
                 MockTimeGenerator::default(),
             )
             .await
@@ -2799,7 +2793,7 @@ pub(crate) mod tests {
 
         let fetched_unique = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&extended_vcts, Format::SdJwt),
+                credential_kinds(&extended_vcts, Format::SdJwt),
                 MockTimeGenerator::default(),
             )
             .await
@@ -2817,19 +2811,14 @@ pub(crate) mod tests {
         // The queries that match the attestation type exactly should not return anything for the extended VCTs, even
         // though the attestation is stored in the SD-JWT format.
         let fetched_unique = storage
-            .fetch_unique_attestations_by_credential_kinds(&credential_kinds(&extended_vcts, Format::SdJwt))
+            .fetch_unique_attestations_by_credential_kinds(credential_kinds(&extended_vcts, Format::SdJwt))
             .await
             .expect("Could not fetch unique attestations by types and single format");
 
         assert!(fetched_unique.is_empty());
 
         let fetched_unique = storage
-            .fetch_unique_attestations_by_credential_kinds(
-                &extended_vcts
-                    .into_iter()
-                    .map(|attestation_type| CredentialKind::new(Format::SdJwt, attestation_type))
-                    .collect(),
-            )
+            .fetch_unique_attestations_by_credential_kinds(credential_kinds(&extended_vcts, Format::SdJwt))
             .await
             .expect("Could not fetch unique attestations by types and formats");
 
@@ -2838,7 +2827,7 @@ pub(crate) mod tests {
         // Should not return not yet valid attestations.
         let fetched = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::SdJwt),
+                credential_kinds(&attestation_types, Format::SdJwt),
                 MockTimeGenerator::new(Utc.timestamp_nanos(0)),
             )
             .await
@@ -2848,7 +2837,7 @@ pub(crate) mod tests {
         // Should not return expired attestations.
         let fetched = storage
             .fetch_valid_unique_attestations_by_credential_kinds(
-                &credential_kinds(&attestation_types, Format::SdJwt),
+                credential_kinds(&attestation_types, Format::SdJwt),
                 MockTimeGenerator::new(Utc::now() + Days::new(366)),
             )
             .await
@@ -2911,9 +2900,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies.clone(),
-                        attestation_type.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap(),
                         initial_metadata.extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         initial_issuer_registration.clone(),
@@ -2975,9 +2962,8 @@ pub(crate) mod tests {
         // Renew just before the original expiry, with a later expiry or no validity bounds.
         let renewal_time = initial_expiration - Days::new(1);
         let (mut payload, _) = CredentialPayload::nl_pid_example(&MockTimeGenerator::new(renewal_time));
-        payload.previewable_payload.not_before = with_optional_fields.then_some(renewal_time.into());
-        payload.previewable_payload.expires =
-            with_optional_fields.then_some((initial_expiration + Days::new(365)).into());
+        payload.contents.not_before = with_optional_fields.then_some(renewal_time.into());
+        payload.contents.expires = with_optional_fields.then_some((initial_expiration + Days::new(365)).into());
         let sd_jwt = decoded_sd_jwt_from_credential_payload(
             payload,
             match &renewed_metadata {
@@ -3019,9 +3005,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        attestation_type.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt).unwrap(),
                         renewed_extended_types,
                         renewed_metadata,
                         renewed_issuer_registration.clone(),
@@ -3066,10 +3050,11 @@ pub(crate) mod tests {
         assert_ne!(inserted_attestation, updated_attestation);
 
         // The renewed card must still be available for disclosure after its original expiry.
-        let kinds = credential_kinds(&HashSet::from([attestation_type]), Format::SdJwt);
+        let attestation_types = HashSet::from([attestation_type]);
+        let kinds = credential_kinds(&attestation_types, Format::SdJwt);
         let after_original_expiry = MockTimeGenerator::new(initial_expiration + Days::new(1));
         let fetched = storage
-            .fetch_valid_unique_attestations_by_credential_kinds(&kinds, after_original_expiry.clone())
+            .fetch_valid_unique_attestations_by_credential_kinds(kinds, after_original_expiry.clone())
             .await
             .unwrap();
         assert_eq!(fetched.len(), 1);
@@ -3084,7 +3069,7 @@ pub(crate) mod tests {
         ] {
             let fetched = storage
                 .fetch_valid_unique_attestations_by_credential_kinds(
-                    &credential_kinds(&extended_types, Format::SdJwt),
+                    credential_kinds(&extended_types, Format::SdJwt),
                     after_original_expiry.clone(),
                 )
                 .await
@@ -3312,7 +3297,7 @@ pub(crate) mod tests {
             sd_jwt: sd_jwt.clone()
         }]);
 
-        let attestation_type = sd_jwt.sd_jwt().claims().vct.clone();
+        let contents = CredentialContents::from_sd_jwt(sd_jwt).unwrap();
 
         // Insert sd_jwts
         let normalized_metadata = NormalizedTypeMetadata::nl_pid_example();
@@ -3325,9 +3310,7 @@ pub(crate) mod tests {
                     (
                         CredentialWithMetadata::new(
                             issued_copies.clone(),
-                            attestation_type.clone(),
-                            sd_jwt.sd_jwt().claims().exp,
-                            sd_jwt.sd_jwt().claims().nbf,
+                            contents.clone(),
                             normalized_metadata.extended_vcts(),
                             metadata.clone(),
                             IssuerRegistration::new_mock(),
@@ -3337,9 +3320,7 @@ pub(crate) mod tests {
                     (
                         CredentialWithMetadata::new(
                             issued_copies,
-                            attestation_type,
-                            sd_jwt.sd_jwt().claims().exp,
-                            sd_jwt.sd_jwt().claims().nbf,
+                            contents,
                             normalized_metadata.extended_vcts(),
                             metadata,
                             IssuerRegistration::new_mock(),
@@ -3383,7 +3364,7 @@ pub(crate) mod tests {
                         revocation_status: None,
                         validity_window: ValidityWindow::new_valid_mock(),
                     },
-                    &payload.previewable_payload.attributes,
+                    &payload.contents.attributes,
                     &EmptyPresentationConfig,
                 )
                 .unwrap()
@@ -3468,6 +3449,7 @@ pub(crate) mod tests {
 
         let revocation_info = revocation_info.first().unwrap();
         assert_eq!(StatusClaim::new_mock(), revocation_info.status_claim);
+        assert_eq!(Format::SdJwt, revocation_info.format);
 
         assert_eq!(
             None,
@@ -3540,9 +3522,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        sd_jwt.sd_jwt().claims().vct.clone(),
-                        sd_jwt.sd_jwt().claims().exp,
-                        sd_jwt.sd_jwt().claims().nbf,
+                        CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap(),
                         NormalizedTypeMetadata::nl_pid_example().extended_vcts(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),
@@ -3689,13 +3669,15 @@ pub(crate) mod tests {
         renewed_presentation.identity = AttestationIdentity::Fixed { id: attestation_id };
         renewed_presentation.attestation_type = "mock_renewed".to_string();
 
+        let sd_jwt = DecodedSdJwt::try_from(
+            SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(SigningKey::generate().verifying_key()))
+                .into_verified(),
+        )
+        .unwrap();
+        let contents = CredentialContents::from_sd_jwt(sd_jwt.clone()).unwrap();
         let issued_copies = IssuedCredentialCopies::SdJwt(vec_nonempty![SdJwtCopy {
             key_identifier: "renewed_key_id".to_string(),
-            sd_jwt: DecodedSdJwt::try_from(
-                SignedSdJwt::pid_example(&ISSUER_KEY, &PublicKeyRef::from(SigningKey::generate().verifying_key()))
-                    .into_verified()
-            )
-            .unwrap()
+            sd_jwt,
         }]);
 
         storage
@@ -3704,9 +3686,7 @@ pub(crate) mod tests {
                 vec![(
                     CredentialWithMetadata::new(
                         issued_copies,
-                        "urn:eudi:pid:nl:1".to_string(),
-                        None,
-                        None,
+                        contents,
                         Vec::<String>::new(),
                         IssuedCredentialMetadata::nl_pid_example(),
                         IssuerRegistration::new_mock(),

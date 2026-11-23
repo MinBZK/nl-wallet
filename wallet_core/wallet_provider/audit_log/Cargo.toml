@@ -17,7 +17,7 @@ required-features = ["mock"]
 
 [features]
 mock = []
-db_test = ["mock", "dep:db_test", "tokio/rt-multi-thread"]
+db_test = ["mock", "tokio/rt-multi-thread"]
 
 [[test]]
 name = "db_test"
@@ -42,7 +42,6 @@ uuid.workspace = true
 audit_log_macros.path = "audit_log_macros"
 utils.path = "../../lib/utils"
 
-db_test = { path = "../../lib/db_test", optional = true }
 
 [dev-dependencies]
 config = { workspace = true, features = ["toml"] }
@@ -53,4 +52,5 @@ tokio = { workspace = true, features = ["macros"] }
 tracing-test.workspace = true
 uuid = { workspace = true, features = ["v4"] }
 
+db_test.path = "../../lib/db_test"
 utils = { path = "../../lib/utils", features = ["mock_time"] }

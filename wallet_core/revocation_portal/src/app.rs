@@ -31,7 +31,6 @@ use axum_extra::extract::CookieJar;
 use axum_extra::extract::cookie::Cookie;
 use base64::Engine;
 use base64::prelude::BASE64_STANDARD;
-use crypto::keys::SymmetricKey;
 use crypto::utils::sha256;
 use derive_more::AsRef;
 use derive_more::Display;
@@ -130,7 +129,7 @@ async fn csp_middleware(mut req: Request<Body>, next: Next) -> Response {
 }
 
 pub fn create_router<C>(
-    cookie_encryption_key: &SymmetricKey,
+    cookie_encryption_key: &[u8],
     csrf_salt: impl Into<Cow<'static, str>>,
     log_requests: bool,
     revocation_client: C,
@@ -143,7 +142,7 @@ where
     // Since localhost is considered a "Potentially trustworthy origin", we can always set the secure flag
     let csrf_config = CsrfConfig::default()
         .with_http_only(true)
-        .with_key(Some(Key::from(cookie_encryption_key.as_ref())))
+        .with_key(Some(Key::from(cookie_encryption_key)))
         .with_salt(csrf_salt)
         .with_secure(true)
         .with_cookie_same_site(SameSite::Strict);
@@ -510,7 +509,7 @@ mod tests {
         let client_b = MockRevocationClient::default();
 
         // Same cookie encryption key on both routers; only the CSRF runtime state can differ.
-        let cookie_key = random_bytes(64).into();
+        let cookie_key = random_bytes(64);
 
         let mut router_a = create_router(&cookie_key, csrf_token_router_a, false, client_a);
         let mut router_b = create_router(
@@ -546,7 +545,7 @@ mod tests {
     #[tokio::test]
     async fn test_index_with_language_param(#[case] language: Language, #[case] lang_param: &str) {
         let client = MockRevocationClient::default();
-        let app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let response = app
             .oneshot(
@@ -574,7 +573,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_wallet_fails_for_missing_csrf_token() {
         let client = MockRevocationClient::default();
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let (_token, cookie) = get_csrf_and_cookie(&mut app).await;
 
@@ -591,7 +590,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_wallet_fails_for_missing_csrf_cookie() {
         let client = MockRevocationClient::default();
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let (token, _cookie) = get_csrf_and_cookie(&mut app).await;
 
@@ -625,7 +624,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_wallet_fails_for_wrong_csrf_values() {
         let client = MockRevocationClient::default();
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let (_token, cookie) = get_csrf_and_cookie(&mut app).await;
 
@@ -660,7 +659,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_wallet_invalid_code_shows_error_on_index() {
         let client = MockRevocationClient::default();
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let response = post_delete_with_lang(&mut app, "invalid", "nl").await;
         assert_eq!(response.status(), StatusCode::OK);
@@ -680,7 +679,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_wallet_revocation_failure_shows_error_template() {
         let client = MockRevocationClient::new_failing();
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", "nl").await;
         let response = follow_redirect(&mut app, response, false).await;
@@ -709,7 +708,7 @@ mod tests {
     #[tokio::test]
     async fn test_delete_wallet_success_shows_success_template() {
         let client = MockRevocationClient::default();
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", "nl").await;
         let response = follow_redirect(&mut app, response, true).await;
@@ -747,7 +746,7 @@ mod tests {
         let revoked_at = Utc.with_ymd_and_hms(2026, 1, 2, 3, 4, 5).single().unwrap();
 
         let client = MockRevocationClient::new_with_fixed_revoked_at(revoked_at);
-        let mut app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let mut app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let response = post_delete_with_lang(&mut app, "C20C-KF0R-D32B-A5E3-2X", lang_param).await;
         let response = follow_redirect(&mut app, response, true).await;
@@ -785,7 +784,7 @@ mod tests {
     #[tokio::test]
     async fn test_success_page_redirects_to_index_when_cookie_missing() {
         let client = MockRevocationClient::default();
-        let app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let app = create_router(&random_bytes(64), random_string(32), false, client);
 
         // 1. Request the success page directly without any cookies
         let response = app
@@ -814,7 +813,7 @@ mod tests {
     #[tokio::test]
     async fn test_not_found_returns_404_and_error_template() {
         let client = MockRevocationClient::default();
-        let app = create_router(&random_bytes(64).into(), random_string(32), false, client);
+        let app = create_router(&random_bytes(64), random_string(32), false, client);
 
         let response = app
             .oneshot(Request::builder().uri("/non-existent").body(Body::empty()).unwrap())

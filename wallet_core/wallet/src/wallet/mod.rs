@@ -24,7 +24,11 @@ mod state;
 mod transfer;
 mod uri;
 
-#[cfg(test)]
+#[cfg(any(test, feature = "hardware_integration_test"))]
+#[cfg_attr(
+    not(test),
+    expect(dead_code, reason = "The hardware scenarios use a subset of the shared test helpers")
+)]
 pub(crate) mod test;
 
 use std::marker::PhantomData;

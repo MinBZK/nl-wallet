@@ -1,8 +1,8 @@
 package feature.disclosure
 
-import helper.GbaDataHelper
-import helper.GbaDataHelper.Field.FIRST_NAME
-import helper.GbaDataHelper.Field.NAME
+import helper.PidDataHelper
+import helper.PidDataHelper.Field.FIRST_NAME
+import helper.PidDataHelper.Field.NAME
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
 import helper.OrganizationMetadataHelper
@@ -50,7 +50,7 @@ class DisclosureTests : TestBase() {
     private lateinit var l10n: LocalizationHelper
     private lateinit var tasData: TasDataHelper
     private lateinit var organizationAuthMetadata: OrganizationMetadataHelper
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
     private lateinit var organizationDetailScreen: OrganizationDetailScreen
     private lateinit var issuerWebPage: IssuerWebPage
     private lateinit var disclosureForIssuanceScreen: DisclosureIssuanceScreen
@@ -83,7 +83,7 @@ class DisclosureTests : TestBase() {
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
         organizationAuthMetadata = OrganizationMetadataHelper()
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
         issuanceData = IssuanceDataHelper()
         xyzBankRegistrationCertificate = RegistrationCertificateHelper()
     }
@@ -255,14 +255,14 @@ class DisclosureTests : TestBase() {
             { assertTrue(disclosureScreen.organizationInPresentationRequestHeaderVisible(organizationAuthMetadata.getDisplayNameOfOrganization(ONLINE_MARKETPLACE)), "Header is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("family_name")), "Label is not visible") },
             { assertTrue(disclosureScreen.labelVisible(tasData.getPidClaimLabel("given_name")), "Label is not visible") },
-            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data is visible") },
-            { assertTrue(disclosureScreen.dataNotVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(pidData.getValueByField(NAME, DEFAULT_BSN)), "data is visible") },
+            { assertTrue(disclosureScreen.dataNotVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data is visible") },
             { assertTrue(disclosureScreen.privacyHeaderVisible(), "Description is not visible") },
             { assertTrue(disclosureScreen.privacyButtonVisible(), "Try again button is not visible") }
         )
         disclosureScreen.captureA11ySnapshot("DisclosureShareRequest")
         disclosureScreen.viewSharedData("6", tasData.getPidDisplayName())
-        assertTrue(disclosureScreen.dataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
+        assertTrue(disclosureScreen.dataVisible(pidData.getValueByField(NAME, DEFAULT_BSN)), "Name not visible")
         disclosureScreen.goBack()
         disclosureScreen.cancel()
         disclosureScreen.reportProblem()
@@ -337,7 +337,7 @@ class DisclosureTests : TestBase() {
         disclosureScreen.share()
         pinScreen.enterPin(DEFAULT_PIN)
         disclosureScreen.goToWebsite()
-        assertTrue(xyzBankWebPage.sharedAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "User not identified correctly")
+        assertTrue(xyzBankWebPage.sharedAttributeVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "User not identified correctly")
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")

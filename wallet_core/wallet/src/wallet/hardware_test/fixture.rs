@@ -1,24 +1,16 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use anyhow::Result;
-use apple_app_attest::AppIdentifier;
-use apple_app_attest::AttestationEnvironment;
 use attestation_data::attributes::Attribute;
+use attestation_data::credential_payload::CredentialContents;
 use attestation_data::credential_payload::CredentialPayload;
-use attestation_data::credential_payload::PreviewableCredentialPayload;
 use attestation_data::registration_certificate::ParsedRegistrationCertificate;
 use attestation_data::registration_certificate::mock::MockRegistrationCertificateAuthority;
 use attestation_data::registration_certificate::mock::STATUS_LIST_URI;
 use attestation_data::registration_certificate::mock::verifier_registration_certificate_payload;
 use attestation_data::validity::ValidityWindow;
-use attestation_types::pid_constants::PID_AGE_OVER_18;
-use attestation_types::pid_constants::PID_BIRTH_DATE;
-use attestation_types::pid_constants::PID_BSN;
-use attestation_types::pid_constants::PID_FAMILY_NAME;
 use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
-use attestation_types::pid_constants::PID_RECOVERY_CODE;
 use attestation_types::status_claim::StatusListClaim;
 use chrono::TimeDelta;
 use chrono::Utc;
@@ -29,39 +21,26 @@ use crypto::server_keys::KeyPair;
 use crypto::server_keys::generate::Ca;
 use crypto::x509::crl::mock::MockCertificateCrlVerifier;
 use dcql::Query;
-use futures::FutureExt;
-use jwt::KeyWithKid;
-use jwt::SignedJwt;
 use mdoc::holder::Mdoc;
+use mockall::predicate::always;
 use mockall::predicate::eq;
-use openid4vc::disclosure_session::mock::MockDisclosureClient;
-use openid4vc::metadata::issuer_metadata::CredentialMetadata;
 use openid4vc::wallet_issuance::credential::CredentialWithMetadata;
 use openid4vc::wallet_issuance::credential::IssuedCredentialCopies;
 use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
 use openid4vc::wallet_issuance::credential::MdocCopy;
 use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
-use openid4vc::wallet_issuance::mock::MockIssuanceDiscovery;
 use p256::ecdsa::Signature;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::signature::hazmat::PrehashSigner;
 use p256::elliptic_curve::Generate;
-use platform_support::attested_key::AttestedKey;
-use platform_support::attested_key::mock::MockHardwareAttestedKeyHolder;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list_jwt::StatusListJwt;
 use token_status_list::status_list_token::StatusListToken;
-use token_status_list::verification::client::mock::MockStatusListClient;
 use utils::generator::TimeGenerator;
 use utils::vec_nonempty;
-use wallet_account::RevocationCode;
 use wallet_account::messages::instructions::Instruction;
-use wallet_account::messages::instructions::InstructionResultClaims;
 use wallet_account::messages::instructions::Sign;
 use wallet_account::messages::instructions::SignResult;
-use wallet_account::messages::registration::WalletCertificateClaims;
-use wallet_configuration::wallet_config::CertificatePublicKey;
-use wallet_configuration::wallet_config::WalletConfiguration;
 
 use super::CREDENTIAL_STATUS_LIST_URI;
 use super::EXPECTED_GIVEN_NAME;
@@ -70,35 +49,21 @@ use super::Scenario;
 use super::Verification;
 use crate::AttestationIdentity;
 use crate::AttestationPresentation;
-use crate::account_provider::MockAccountProviderClient;
 use crate::attestation::AttestationValidity;
 use crate::config::LocalConfigurationRepository;
 use crate::config::UpdatingConfigurationRepository;
-use crate::config::default_config_server_config;
-use crate::pin::key::new_pin_salt;
-use crate::storage::MockHardwareDatabaseStorage;
-use crate::storage::RegistrationData;
 use crate::storage::Storage;
-use crate::update_policy::MockUpdatePolicyRepository;
-use crate::wallet::Wallet;
-use crate::wallet::WalletRegistration;
-use crate::wallet::init::RegistrationStatus;
-use crate::wallet::init::WalletClients;
-use crate::wallet::init::WalletRepositories;
+use crate::wallet::test::AccountServerKeys;
+use crate::wallet::test::TestWalletInMemoryStorage;
+use crate::wallet::test::WalletDeviceVendor;
+use crate::wallet::test::create_wallet_configuration_with_keys;
+use crate::wallet::test::create_wp_result_with_key;
+use crate::wallet::test::nl_pid_mdoc_credential_metadata_example;
 
 const HOLDER_KEY_ID: &str = "close-proximity-test-credential";
 
-pub(super) type TestWallet<C> = Wallet<
-    UpdatingConfigurationRepository<LocalConfigurationRepository>,
-    MockUpdatePolicyRepository,
-    MockHardwareDatabaseStorage,
-    MockHardwareAttestedKeyHolder,
-    MockAccountProviderClient,
-    MockIssuanceDiscovery,
-    MockDisclosureClient,
-    C,
-    MockStatusListClient,
->;
+pub(super) type TestWallet<C> =
+    TestWalletInMemoryStorage<UpdatingConfigurationRepository<LocalConfigurationRepository>, C>;
 
 pub(super) struct Fixture<C> {
     pub wallet: TestWallet<C>,
@@ -145,29 +110,20 @@ impl<C> Fixture<C> {
                 Ok(registration_ca.status_list_client.0.clone()),
             ),
         };
-        let account_key = SigningKey::generate();
+        let account_keys = AccountServerKeys::generate();
         let holder_key = SigningKey::generate();
-        let mut config: WalletConfiguration = serde_json::from_str(include_str!("../../../test-wallet-config.json"))?;
+        let mut config = create_wallet_configuration_with_keys(&account_keys);
         config.expires = (Utc::now() + TimeDelta::days(1)).into();
         config.wrpac_trust_anchors = reader_ca.to_trust_anchors();
         config.wrprc_trust_anchors = registration_ca.trust_anchors;
         config.issuer_trust_anchors = issuer_ca.to_trust_anchors();
-        config.account_server.certificate_public_keys = HashMap::from([(
-            account_key.kid().try_into()?,
-            CertificatePublicKey {
-                key: (*account_key.verifying_key()).into(),
-                used_from: Utc::now().into(),
-            },
-        )]);
-        config.account_server.instruction_result_public_keys =
-            HashMap::from([(account_key.kid().try_into()?, (*account_key.verifying_key()).into())]);
 
-        let mut preview = PreviewableCredentialPayload::nl_pid_mdoc_example(&TimeGenerator);
+        let mut preview = CredentialContents::nl_pid_mdoc_example(&TimeGenerator);
         preview.attributes.overwrite(
             [PID_MDOC_DOCTYPE, PID_GIVEN_NAME],
             Attribute::Text(EXPECTED_GIVEN_NAME.to_owned()),
         );
-        let (issuer_signed, mso) = CredentialPayload::from_previewable_credential_payload_unvalidated(
+        let (issuer_signed, mso) = CredentialPayload::from_contents_unvalidated(
             preview,
             Utc::now(),
             &PublicKeyRef::from(holder_key.verifying_key()),
@@ -179,20 +135,9 @@ impl<C> Fixture<C> {
         )?
         .into_signed_mdoc(&issuer)
         .await?;
-        let expiration = Some((&mso.validity_info.valid_until).try_into()?);
-        let not_before = Some((&mso.validity_info.valid_from).try_into()?);
         let mdoc = Mdoc::new_unverified(mso, issuer_signed);
-        let metadata = CredentialMetadata::new_mdoc_example(
-            PID_MDOC_DOCTYPE,
-            &[
-                PID_GIVEN_NAME,
-                PID_FAMILY_NAME,
-                PID_BIRTH_DATE,
-                PID_AGE_OVER_18,
-                PID_BSN,
-                PID_RECOVERY_CODE,
-            ],
-        );
+        let contents = CredentialContents::from_mdoc(mdoc.clone())?;
+        let metadata = nl_pid_mdoc_credential_metadata_example();
         let issuer_registration = IssuerRegistration::new_mock();
         let presentation = AttestationPresentation::create_from_mdoc(
             AttestationIdentity::Ephemeral,
@@ -202,8 +147,8 @@ impl<C> Fixture<C> {
             AttestationValidity {
                 revocation_status: None,
                 validity_window: ValidityWindow {
-                    valid_from: not_before.map(Into::into),
-                    valid_until: expiration.map(Into::into),
+                    valid_from: contents.not_before.map(Into::into),
+                    valid_until: contents.expires.map(Into::into),
                 },
             },
             mdoc.issuer_signed().clone().into_entries_by_namespace(),
@@ -214,80 +159,34 @@ impl<C> Fixture<C> {
                 key_identifier: HOLDER_KEY_ID.to_owned(),
                 mdoc,
             }]),
-            PID_MDOC_DOCTYPE.to_owned(),
-            expiration,
-            not_before,
+            contents,
             Vec::<String>::new(),
             IssuedCredentialMetadata::CredentialMetadata(metadata),
             issuer_registration,
         );
-        let mut storage = MockHardwareDatabaseStorage::open_in_memory().await;
-        storage
+        let mut wallet = TestWallet::new_registered_and_unlocked_with_deps(
+            WalletDeviceVendor::Apple,
+            config,
+            &account_keys.certificate_signing_key,
+            MockCertificateCrlVerifier::new_for_ca(&reader_ca),
+        )
+        .await;
+        wallet
+            .mut_storage()
             .insert_credentials(Utc::now(), vec![(credential, presentation)])
             .await?;
-        let key_holder = MockHardwareAttestedKeyHolder::generate_apple(
-            AttestationEnvironment::Development,
-            AppIdentifier::new_mock(),
-        );
-        let (attested_key, attested_key_identifier) = key_holder.random_key();
-        let hw_pubkey = match &attested_key {
-            AttestedKey::Apple(key) => *key.verifying_key(),
-            AttestedKey::Google(key) => *key.verifying_key(),
-        };
-        let wallet_id = "close-proximity-device-test".to_owned();
-        let certificate = SignedJwt::sign_with_sub_and_kid(
-            WalletCertificateClaims {
-                wallet_id: wallet_id.clone(),
-                hw_pubkey: hw_pubkey.into(),
-                pin_pubkey_hash: vec![0; 32],
-                version: 0,
-                iss: "device-test".to_owned(),
-                iat: Utc::now(),
-                exp: Utc::now() + TimeDelta::days(30),
-            },
-            &account_key,
-        )
-        .await?;
-        let registration = RegistrationData {
-            attested_key_identifier,
-            pin_salt: new_pin_salt(),
-            wallet_id,
-            wallet_certificate: certificate.into(),
-            revocation_code: RevocationCode::new_random(),
-        };
-        storage.insert_data(&registration).await?;
         let verification = Verification {
             issuer_trust_anchors: issuer_ca.to_trust_anchors(),
             session_transcript_hex: String::new(),
             credential_status_list,
             expected_error_status: rejection.map(RegistrationCertificateCase::response_status),
         };
-        let mut wallet = Wallet::new(
-            storage,
-            key_holder,
-            WalletRepositories {
-                config_repository: UpdatingConfigurationRepository::new(
-                    LocalConfigurationRepository::new(config),
-                    default_config_server_config().into(),
-                )
-                .await,
-                update_policy_repository: MockUpdatePolicyRepository::default(),
-            },
-            WalletClients::new_mock(MockCertificateCrlVerifier::new_for_ca(&reader_ca)),
-            RegistrationStatus::Unregistered,
-            None,
-        );
-        wallet.registration = WalletRegistration::Registered {
-            attested_key: Arc::new(attested_key),
-            data: registration,
-        };
-        wallet.lock.unlock();
         Arc::get_mut(&mut wallet.status_list_client)
             .expect("fixture owns status-list client")
             .expect_fetch()
-            .with(eq(STATUS_LIST_URI.parse::<url::Url>()?))
+            .with(eq(STATUS_LIST_URI.parse::<url::Url>()?), always())
             .times(0..=1)
-            .return_once(move |_| registration_status_list);
+            .return_once(move |_, _| registration_status_list.map(Into::into));
         let account_client = Arc::get_mut(&mut wallet.account_provider_client).expect("fixture owns account client");
         // Rejected requests must never reach the account provider or use the holder signing key.
         let max_signing_calls = usize::from(rejection.is_none());
@@ -315,18 +214,10 @@ impl<C> Fixture<C> {
                         vec![DerSignature::from(signature)]
                     })
                     .collect();
-                Ok(SignedJwt::sign_with_sub_and_kid(
-                    InstructionResultClaims {
-                        result: SignResult { signatures },
-                        iss: "device-test".to_owned(),
-                        iat: Utc::now(),
-                    },
-                    &account_key,
-                )
-                .now_or_never()
-                .unwrap()
-                .unwrap()
-                .into())
+                Ok(create_wp_result_with_key(
+                    SignResult { signatures },
+                    &account_keys.instruction_result_signing_key,
+                ))
             });
 
         Ok(Self {

@@ -110,7 +110,7 @@ impl<T> NonceStore for MemoryNonceStore<T>
 where
     T: Generator<DateTime<Utc>> + Send + Sync,
 {
-    type Error = std::convert::Infallible;
+    type Error = !;
 
     async fn store_nonce(&self, nonce: Nonce) -> Result<(), NonceStoreError<Self::Error>> {
         match self.store(nonce.clone()) {

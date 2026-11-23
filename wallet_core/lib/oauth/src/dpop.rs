@@ -128,6 +128,17 @@ impl DpopNonce {
     }
 }
 
+/// The optional nonce from a verified DPoP proof, pending validation against the nonce store.
+#[must_use = "the DPoP nonce must be checked against and consumed from the nonce store"]
+#[derive(Debug)]
+pub struct DpopProofNonce(Option<DpopNonce>);
+
+impl DpopProofNonce {
+    pub fn into_inner(self) -> Option<DpopNonce> {
+        self.0
+    }
+}
+
 #[serde_as]
 #[skip_serializing_none]
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -202,17 +213,14 @@ impl Dpop {
     }
 
     /// Verify the DPoP JWT against the public key inside its header, returning that public key.
-    /// This should only be called in the first HTTP request of a protocol. In later requests,
-    /// [`Dpop::verify_expecting_key()`] should be used with the public key that this method returns.
+    /// This should only be called in the first HTTP request of a protocol, where an unsolicited nonce is ignored.
+    /// In later requests, use [`Dpop::verify_expecting_key()`] with the public key that this method returns.
     pub fn verify(self, url: &Url, method: &Method, access_token: Option<&AccessToken>) -> Result<PublicKey> {
         let Self(jwt) = self;
         let (_header, payload, public_key) = jwt
             .parse_and_verify_with_jwk(DPOP_VALIDATION.to_owned())
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token)?;
-        if payload.nonce.is_some() {
-            return Err(DpopError::IncorrectNonce);
-        }
 
         Ok(public_key)
     }
@@ -226,7 +234,7 @@ impl Dpop {
         url: &Url,
         method: &Method,
         access_token: Option<&AccessToken>,
-    ) -> Result<Option<DpopNonce>> {
+    ) -> Result<DpopProofNonce> {
         let validation = DPOP_VALIDATION.to_owned().into_validation(&expected_public_key);
 
         let (_, payload) = self
@@ -235,7 +243,7 @@ impl Dpop {
             .map_err(DpopError::InvalidJwt)?;
         Self::verify_data(&payload, url, method, access_token)?;
 
-        Ok(payload.nonce)
+        Ok(DpopProofNonce(payload.nonce))
     }
 }
 
@@ -265,12 +273,16 @@ mod tests {
     #[case(Some("123".to_string().into()), None)]
     #[case(Some("123".to_string().into()), Some("456".to_string().into()))]
     #[tokio::test]
-    async fn dpop(#[case] access_token: Option<AccessToken>, #[case] wrong_access_token: Option<AccessToken>) {
+    async fn dpop(
+        #[case] access_token: Option<AccessToken>,
+        #[case] wrong_access_token: Option<AccessToken>,
+        #[values(None, Some(DpopNonce::new_random()))] nonce: Option<DpopNonce>,
+    ) {
         let signing_key = SigningKey::generate();
         let url: Url = "https://example.com/path".parse().unwrap();
         let method = Method::POST;
 
-        let dpop = Dpop::new(&signing_key, url.clone(), &method, access_token.as_ref(), None).unwrap();
+        let dpop = Dpop::new(&signing_key, url.clone(), &method, access_token.as_ref(), nonce.clone()).unwrap();
 
         // Check the `typ` of the Header
         let header: Header = part(0, dpop.0.serialization());
@@ -302,8 +314,9 @@ mod tests {
         assert_matches!(pubkey, PublicKey::ESP256(verifying_key) if verifying_key == *signing_key.verifying_key());
         assert_eq!(
             dpop.verify_expecting_key(pubkey, &url, &method, access_token.as_ref())
-                .unwrap(),
-            None
+                .unwrap()
+                .into_inner(),
+            nonce
         );
     }
 
@@ -350,14 +363,10 @@ mod tests {
             Err(DpopError::IncorrectAccessTokenHash)
         );
 
-        // The first request still rejects an unsolicited nonce.
-        assert_matches!(
-            dpop.clone().verify(&url, &Method::POST, Some(&access_token)),
-            Err(DpopError::IncorrectNonce)
-        );
         assert_eq!(
             dpop.verify_expecting_key(public_key, &url, &Method::POST, Some(&access_token))
-                .unwrap(),
+                .unwrap()
+                .into_inner(),
             Some(nonce)
         );
     }

@@ -23,6 +23,8 @@ class DisclosureIssuanceScreen : MobileActions() {
 
     fun share() = clickElementWithText(shareButton)
 
+    fun shareButtonVisible() = elementWithTextVisible(shareButton)
+
     fun stop() = clickElementWithText(stopButton)
 
     fun bottomSheetConfirmStop() = clickElementWithText(bottomSheetConfirmStopButton)

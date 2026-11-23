@@ -1303,7 +1303,7 @@ mod tests {
                     wia_challenge_matches(request, Some("token_challenge"))
                         && proof
                             .verify_expecting_key(expected_key.clone(), &expected_url, &Method::POST, None)
-                            .is_ok_and(|nonce| nonce.as_ref().is_some_and(|nonce| nonce.as_ref() == expected_nonce))
+                            .is_ok_and(|nonce| nonce.into_inner().is_some_and(|nonce| nonce.as_ref() == expected_nonce))
                 });
                 let then = if rotate_wia_on_token_retry {
                     then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "token_retry_challenge")
@@ -1336,7 +1336,7 @@ mod tests {
                             .verify_expecting_key(key.clone(), &token_url, &Method::POST, None)
                             .is_ok_and(|nonce| {
                                 nonce
-                                    .as_ref()
+                                    .into_inner()
                                     .is_some_and(|nonce| nonce.as_ref() == "token_retry_nonce")
                             })
                 });

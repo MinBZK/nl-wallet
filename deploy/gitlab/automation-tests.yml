@@ -105,65 +105,6 @@ run-admin-portal-browsertest-test-ont:
     reports:
       junit: browsertests/packages/admin-portal/test-results/*.xml
 
-run-digid-bridge-test-ont:
-  extends:
-    - .test-rust
-    - .env-k8s
-  stage: qa
-  rules: !reference [.default-or-merge-request-manual, rules]
-  needs:
-    - job: build-env-ont
-      artifacts: true
-  variables:
-    SKIP_DIGID_CONNECTOR: "true"
-    SKIP_WALLET_WEB: "true"
-    SKIP_KEYCLOAK: "true"
-    DB_HOST: "postgres"
-  services:
-    - name: "${HARBOR_REGISTRY}/${HARBOR_PROJECT}/nl-wallet-app-builder-postgres:${BUILD_TAG}"
-      alias: postgres
-      command: [
-          "postgres",
-          # Allow for more connections with larger shared buffers
-          "-N",
-          "768",
-          "-c",
-          "shared_buffers=128MB",
-          # Use non-durable settings: https://www.postgresql.org/docs/current/non-durability.html
-          "-c",
-          "fsync=off",
-          "-c",
-          "synchronous_commit=off",
-          "-c",
-          "full_page_writes=off",
-          # Minimal WAL
-          "-c",
-          "wal_level=minimal",
-          "-c",
-          "max_wal_senders=0",
-        ]
-      variables:
-        POSTGRES_USER: "postgres"
-        POSTGRES_PASSWORD: "postgres"
-  before_script:
-    - set -euo pipefail
-    - PID_ISSUER__DIGID__BSN_PRIVKEY="$(kubectl get secret nl-wallet-pid-issuer-digid-bsn-privkey --output=jsonpath='{.data.bsn_privkey}' | base64 --decode)"
-    - export PID_ISSUER__DIGID__BSN_PRIVKEY
-    - PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS="$(kubectl get configmap nl-wallet-pid-issuer-digid-http-trust-anchors --output=jsonpath='{.data.trust_anchors}')"
-    - export PID_ISSUER__DIGID__CLIENT_SETTINGS__TRUST_ANCHORS
-    - PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER="$DIGID_BASE_URL"
-    - export PID_ISSUER__DIGID__CLIENT_SETTINGS__OIDC_IDENTIFIER
-    - PID_ISSUER__DIGID__CLIENT_ID="$DIGID_CLIENT_ID"
-    - export PID_ISSUER__DIGID__CLIENT_ID
-    # Port-forward brpproxy (internal-only in the cluster) to localhost for the in-process pid_issuer.
-    - kubectl port-forward service/brpproxy 5001:80 &
-    - export PID_ISSUER__BRP_SERVER="http://localhost:5001/"
-  script:
-    - ./scripts/setup-devenv.sh
-    - cd wallet_core
-    - RUST_BACKTRACE=1 CONFIG_ENV=dev cargo nextest run --package tests_integration --test digid_issuance --features
-      digid_test --locked
-
 .run-performance-test-ont-base:
   extends: .env-k8s
   stage: qa

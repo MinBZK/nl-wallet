@@ -1,282 +1,56 @@
-use std::fs;
-use std::path::PathBuf;
+use std::sync::LazyLock;
 
-use attestation_data::attributes::Attribute;
 use attestation_data::attributes::Attributes;
 use chrono::NaiveDate;
-use crypto::utils::random_string;
-use oauth::pkce::S256PkcePair;
-use oauth::token::AuthorizationCode;
-use serde::Serialize;
-use url::Url;
-use utils::path::prefix_local_path;
+use utils::vec_nonempty;
 
-use crate::pid::brp::client::BrpClient;
-use crate::pid::brp::client::BrpError;
-use crate::pid::brp::data::BrpPersons;
-use crate::pid::digid::DigidClient;
-use crate::pid::digid::Error as DigidError;
-use crate::pid::rulebook::constants::PID_BASE_MDOC_NAMESPACE;
-use crate::pid::rulebook::constants::PID_BSN;
-use crate::pid::rulebook::constants::PID_FAMILY_NAME;
-use crate::pid::rulebook::constants::PID_GIVEN_NAME;
-use crate::pid::rulebook::constants::PID_ISSUING_AUTHORITY;
-use crate::pid::rulebook::constants::PID_ISSUING_COUNTRY;
-use crate::pid::rulebook::constants::PID_MDOC_BIRTH_DATE;
-use crate::pid::rulebook::constants::PID_MDOC_FAMILY_NAME_BIRTH;
-use crate::pid::rulebook::constants::PID_MDOC_NATIONALITY;
-use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_CITY;
-use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_COUNTRY;
-use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_POSTAL_CODE;
-use crate::pid::rulebook::constants::PID_MDOC_RESIDENT_STREET;
-use crate::pid::rulebook::constants::PID_NL_MDOC_NAMESPACE;
-use crate::pid::rulebook::constants::PID_RECOVERY_CODE;
-use crate::pid::rulebook::constants::PID_SD_JWT_ADDRESS_GROUP;
-use crate::pid::rulebook::constants::PID_SD_JWT_BIRTH_DATE;
-use crate::pid::rulebook::constants::PID_SD_JWT_COUNTRY;
-use crate::pid::rulebook::constants::PID_SD_JWT_FAMILY_NAME_BIRTH;
-use crate::pid::rulebook::constants::PID_SD_JWT_HOUSE_NUMBER;
-use crate::pid::rulebook::constants::PID_SD_JWT_LOCALITY;
-use crate::pid::rulebook::constants::PID_SD_JWT_NATIONALITIES;
-use crate::pid::rulebook::constants::PID_SD_JWT_POSTAL_CODE;
-use crate::pid::rulebook::constants::PID_SD_JWT_STREET_ADDRESS;
-use crate::pid::rulebook::constants::PID_SEX;
+use crate::pid::attributes::Address;
+use crate::pid::attributes::Person;
+use crate::pid::attributes::UncheckedBirthPlace;
+use crate::pid::rulebook::country_code::IsoCountryCode;
+use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
+use crate::pid::rulebook::sex::IsoSex;
 
-/// The BSN of the standard mock test subject, present in the haal-centraal-examples BRP test data.
-pub const MOCK_BSN: &str = "999991772";
-
-/// Mock [`DigidClient`] that uses a fixed BSN.
-///
-/// [`UpstreamOidcAuthorizationCodeFlow`]: crate::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow
-pub struct MockDigidClient {
-    bsn: String,
-}
-
-impl MockDigidClient {
-    pub fn new(bsn: impl Into<String>) -> Self {
-        Self { bsn: bsn.into() }
+pub static MOCK_PERSON: LazyLock<Person> = LazyLock::new(|| Person {
+    bsn: "999991772".into(),
+    family_name: "Jansen".into(),
+    family_name_birth: Some("Jansen".into()),
+    given_name: "Frouke".into(),
+    birth_date: NaiveDate::from_ymd_opt(2000, 3, 24).unwrap(),
+    birth_place: UncheckedBirthPlace {
+        country: Some(IsoCountryCode::Netherlands.into()),
+        region: None,
+        locality: None,
     }
-}
+    .try_into()
+    .unwrap(),
+    nationalities: vec_nonempty![IsoCountryCode::Netherlands.into(), IsoCountryCode::Belgium.into()].into(),
+    address: Some(Address {
+        street: Some("Van Wijngaerdenstraat".into()),
+        house_number: Some("1".into()),
+        postal_code: Some("2596TW".into()),
+        city: Some("Toetsoog".into()),
+        state: None,
+        country: Some(IsoCountryCode::Netherlands.into()),
+    }),
+    sex: Some(IsoSex::Female.into()),
+});
 
-impl Default for MockDigidClient {
-    fn default() -> Self {
-        Self::new(MOCK_BSN)
-    }
-}
+const MOCK_RECOVERY_CODE: &str = "1234567";
 
-impl DigidClient for MockDigidClient {
-    async fn authorization_request(
-        &self,
-        _client_id: String,
-        mut redirect_uri: Url,
-        state: String,
-        _pkce_pair: &S256PkcePair,
-    ) -> Result<Url, DigidError> {
-        // "Authenticate" instantly: bounce the user-agent back to the issuer's callback with a
-        // fake upstream code (ignored by `bsn` below) and the issuer's state.
+static MOCK_ISSUER_METADATA: LazyLock<PidIssuerMetadata> = LazyLock::new(|| PidIssuerMetadata {
+    issuing_country: IsoCountryCode::Netherlands,
+    issuing_authority: "Issuing Authority".into(),
+});
 
-        #[derive(Serialize)]
-        struct RedirectQuery<'a> {
-            code: &'a str,
-            state: &'a str,
-        }
-
-        let query = serde_qs::to_string(&RedirectQuery {
-            code: random_string(32).as_str(),
-            state: state.as_str(),
-        })
-        .expect("encoding (code, state) query string should never fail");
-        redirect_uri.set_query(Some(&query));
-        Ok(redirect_uri)
-    }
-
-    async fn bsn(
-        &self,
-        _code: AuthorizationCode,
-        _code_verifier: String,
-        _redirect_uri: Url,
-    ) -> Result<String, DigidError> {
-        Ok(self.bsn.clone())
-    }
-}
-
-/// Mock [`BrpClient`] that serves a fixed haal-centraal persons JSON document. Defaults to the fixture for
-/// [`MOCK_BSN`]: Frouke Jansen, whose BRP-derived attributes match [`mock_pid_example`].
-pub struct MockBrpClient {
-    persons_json: String,
-}
-
-impl MockBrpClient {
-    pub fn new(persons_json: impl Into<String>) -> Self {
-        Self {
-            persons_json: persons_json.into(),
-        }
-    }
-
-    pub fn from_fixture(name: &str) -> MockBrpClient {
-        let persons_json = fs::read_to_string(prefix_local_path(PathBuf::from(format!(
-            "resources/test/haal-centraal-examples/{name}.json"
-        ))))
-        .unwrap();
-
-        MockBrpClient::new(persons_json)
-    }
-}
-
-impl Default for MockBrpClient {
-    fn default() -> Self {
-        Self::new(include_str!("../../resources/test/haal-centraal-examples/frouke.json"))
-    }
-}
-
-impl BrpClient for MockBrpClient {
-    async fn get_person_by_bsn(&self, _bsn: &str) -> Result<BrpPersons, BrpError> {
-        Ok(serde_json::from_str(&self.persons_json)?)
-    }
-}
-
-/// The PID attribute set the mocked flow issues for [`MOCK_BSN`]: the BRP-derived attributes of
-/// the `frouke.json` fixture, plus a fixed recovery code (the real flow inserts an HMAC over the BSN instead).
 pub fn mock_pid_example() -> Attributes {
-    Attributes::example([
-        (vec![PID_FAMILY_NAME], Attribute::Text("Jansen".to_string())),
-        (vec![PID_GIVEN_NAME], Attribute::Text("Frouke".to_string())),
-        (vec![PID_SD_JWT_BIRTH_DATE], Attribute::Text("2000-03-24".to_string())),
-        (vec![PID_BSN], Attribute::Text("999991772".to_string())),
-        (
-            vec![PID_SD_JWT_NATIONALITIES],
-            Attribute::Array(vec![
-                Attribute::Text("NL".to_string()),
-                Attribute::Text("BE".to_string()),
-            ]),
-        ),
-        (vec![PID_SEX], Attribute::Number(2)),
-        (
-            vec![PID_SD_JWT_FAMILY_NAME_BIRTH],
-            Attribute::Text("Jansen".to_string()),
-        ),
-        (vec![PID_ISSUING_COUNTRY], Attribute::Text("NL".to_owned())),
-        (
-            vec![PID_ISSUING_AUTHORITY],
-            Attribute::Text("Issuing Authority".to_owned()),
-        ),
-        (vec![PID_RECOVERY_CODE], Attribute::Text("1234567".to_string())),
-        (
-            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_STREET_ADDRESS],
-            Attribute::Text("Van Wijngaerdenstraat".to_string()),
-        ),
-        (
-            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_HOUSE_NUMBER],
-            Attribute::Text("1".to_string()),
-        ),
-        (
-            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_POSTAL_CODE],
-            Attribute::Text("2596TW".to_string()),
-        ),
-        (
-            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_LOCALITY],
-            Attribute::Text("Toetsoog".to_string()),
-        ),
-        (
-            vec![PID_SD_JWT_ADDRESS_GROUP, PID_SD_JWT_COUNTRY],
-            Attribute::Text("NL".to_owned()),
-        ),
-    ])
+    MOCK_PERSON
+        .clone()
+        .into_sd_jwt_attributes(MOCK_RECOVERY_CODE.into(), MOCK_ISSUER_METADATA.clone())
 }
 
-/// The same PID as [`mock_pid_example()`], laid out for an mdoc.
 pub fn mock_pid_mdoc_example() -> Attributes {
-    Attributes::example([
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_FAMILY_NAME],
-            Attribute::Text("Jansen".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_GIVEN_NAME],
-            Attribute::Text("Frouke".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_BIRTH_DATE],
-            Attribute::Date(NaiveDate::from_ymd_opt(2000, 3, 24).unwrap()),
-        ),
-        (
-            vec![PID_NL_MDOC_NAMESPACE, PID_BSN],
-            Attribute::Text("999991772".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_NATIONALITY],
-            Attribute::Array(vec![
-                Attribute::Text("NL".to_string()),
-                Attribute::Text("BE".to_string()),
-            ]),
-        ),
-        (vec![PID_BASE_MDOC_NAMESPACE, PID_SEX], Attribute::Number(2)),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_FAMILY_NAME_BIRTH],
-            Attribute::Text("Jansen".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_ISSUING_COUNTRY],
-            Attribute::Text("NL".to_owned()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_ISSUING_AUTHORITY],
-            Attribute::Text("Issuing Authority".to_owned()),
-        ),
-        (
-            vec![PID_NL_MDOC_NAMESPACE, PID_RECOVERY_CODE],
-            Attribute::Text("1234567".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_STREET],
-            Attribute::Text("Van Wijngaerdenstraat 1".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_POSTAL_CODE],
-            Attribute::Text("2596TW".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_CITY],
-            Attribute::Text("Toetsoog".to_string()),
-        ),
-        (
-            vec![PID_BASE_MDOC_NAMESPACE, PID_MDOC_RESIDENT_COUNTRY],
-            Attribute::Text("NL".to_owned()),
-        ),
-    ])
-}
-
-#[cfg(test)]
-mod tests {
-    use attestation_data::attributes::Attribute;
-
-    use super::*;
-    use crate::pid::rulebook::country_code::IsoCountryCode;
-    use crate::pid::rulebook::issuer_metadata::PidIssuerMetadata;
-
-    /// Ensures that data returned by [`MockBrpClient`] and [`mock_pid_example`] are identical, because some tests rely
-    /// on this.
-    #[tokio::test]
-    async fn mock_brp_person_attributes_match_mock_pid_example() {
-        let mut persons = MockBrpClient::default().get_person_by_bsn(MOCK_BSN).await.unwrap();
-        let issuer_metadata = PidIssuerMetadata {
-            issuing_country: IsoCountryCode::Netherlands,
-            issuing_authority: "Issuing Authority".to_owned(),
-        };
-        let attributes = persons
-            .persons
-            .remove(0)
-            .into_sd_jwt_attributes(Attribute::Text(String::from("1234567")), issuer_metadata);
-
-        // The BRP person yields the example attribute set minus the recovery code,
-        // which is not BRP data but inserted later by the flow.
-        let serde_json::Value::Object(expected) = serde_json::to_value(mock_pid_example()).unwrap() else {
-            panic!("example attributes should serialize to a JSON object");
-        };
-
-        assert_eq!(
-            serde_json::to_value(attributes).unwrap(),
-            serde_json::Value::Object(expected)
-        );
-    }
+    MOCK_PERSON
+        .clone()
+        .into_mdoc_attributes(MOCK_RECOVERY_CODE.into(), MOCK_ISSUER_METADATA.clone())
 }

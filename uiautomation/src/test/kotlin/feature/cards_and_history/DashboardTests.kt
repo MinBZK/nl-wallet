@@ -1,6 +1,6 @@
 package feature.cards_and_history
 
-import helper.GbaDataHelper
+import helper.PidDataHelper
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.OnboardingNavigator
@@ -23,7 +23,7 @@ class DashboardTests : TestBase() {
 
     private lateinit var dashboardScreen: DashboardScreen
     private lateinit var cardDetailScreen: CardDetailScreen
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
     private lateinit var tasData: TasDataHelper
 
     fun setUp(testInfo: TestInfo) {
@@ -32,7 +32,7 @@ class DashboardTests : TestBase() {
 
         dashboardScreen = DashboardScreen()
         cardDetailScreen = CardDetailScreen()
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
         tasData = TasDataHelper()
     }
 
@@ -44,7 +44,7 @@ class DashboardTests : TestBase() {
         assertAll(
             { assertTrue(dashboardScreen.cardTitleVisible(), "card title is not visible") },
             { assertTrue(dashboardScreen.cardButtonsVisible(), "card buttons are not visible") },
-            { assertTrue(dashboardScreen.cardSubtitleVisible(gbaData.getValueByField(GbaDataHelper.Field.FIRST_NAME, DEFAULT_BSN)), "pid card subtitle is not visible") },
+            { assertTrue(dashboardScreen.cardSubtitleVisible(pidData.getValueByField(PidDataHelper.Field.FIRST_NAME, DEFAULT_BSN)), "pid card subtitle is not visible") },
         )
         dashboardScreen.captureA11ySnapshot("DashboardCards")
 

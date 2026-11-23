@@ -11,8 +11,8 @@ workspace = true
 doctest = false
 
 [features]
-axum = ["axum/json", "utoipa/uuid", "uuid/serde"]
-verification = ["dep:http", "dep:reqwest", "dep:rustls-pki-types"]
+axum = ["axum/json", "uuid/serde"]
+verification = ["dep:http", "dep:http_utils", "dep:reqwest", "dep:rustls-pki-types"]
 mock = ["dep:mockall"]
 
 [dependencies]
@@ -44,19 +44,21 @@ utils.path = "../utils"
 
 axum = { workspace = true, optional = true }
 http = { workspace = true, optional = true }
+http_utils = { path = "../http_utils", features = ["client"], optional = true }
 mockall = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 rustls-pki-types = { workspace = true, optional = true }
-utoipa = { workspace = true, optional = true }
 
 [dev-dependencies]
 dashmap.workspace = true
 futures.workspace = true
 hex.workspace = true
+httpmock.workspace = true
 mockall.workspace = true
 regex.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+http_utils = { path = "../http_utils", features = ["httpmock"] }
 utils = { path = "../utils", features = ["mock_time"] }

@@ -1,0 +1,61 @@
+test-ios-wallet-device:
+  extends: [.automation-tests-macos-devices, .install-ios-signing]
+  stage: test
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-load-device-config
+      artifacts: true
+  rules: !reference [.ios-wallet-device-rules, rules]
+  before_script:
+    - !reference [.install-ios-signing, before_script]
+  script:
+    - bundle exec fastlane ios test_wallet_device
+  after_script:
+    - deploy/bin/store-artifact.sh fastlane/test_output/wallet-device.junit
+      qt/quality-time/junit-results/wallet-ios-device.xml
+  artifacts:
+    name: wallet-ios-device
+    when: always
+    paths:
+      - fastlane/test_output/wallet-device.junit
+      - fastlane/test_output/wallet-device.log
+      - fastlane/test_output/WalletDevice.xcresult
+    reports:
+      junit: fastlane/test_output/wallet-device.junit
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    IOS_DEVICE_UDID: "${IOS_2_UDID}"
+
+test-android-wallet-device:
+  extends: .automation-tests-macos-android-devices
+  stage: test
+  resource_group: real-device-automation-tests
+  needs:
+    - job: automation-tests-load-device-config
+      artifacts: true
+  rules: !reference [.android-wallet-device-rules, rules]
+  before_script:
+    - export PATH="$ANDROID_HOME/platform-tools:$HOME/.cargo/bin:$HOME/.rbenv/shims:$HOME/.rbenv/bin:$PATH"
+    - bundle install
+  script:
+    - test -n "${ANDROID_SERIAL}" ||
+      { echo "ANDROID_SERIAL is empty, check android_1_udid in the nl-wallet-macmini secret"; exit 1; }
+    - adb -s "${ANDROID_SERIAL}" shell svc bluetooth enable
+    - bundle exec fastlane android test_wallet_device
+  after_script:
+    - >
+      deploy/bin/store-artifact-zip.sh qt/quality-time/junit-results/wallet-android-device.zip
+      wallet_app/android/wallet-integration-tests/build/outputs/androidTest-results/connected/debug/TEST*.xml
+  artifacts:
+    name: wallet-android-device
+    when: always
+    paths:
+      - wallet_app/android/wallet-integration-tests/build/outputs/androidTest-results
+      - wallet_app/android/wallet-integration-tests/build/reports
+    reports:
+      junit: wallet_app/android/wallet-integration-tests/build/outputs/androidTest-results/**/TEST*.xml
+  variables:
+    LC_ALL: "C.UTF-8"
+    LANG: "C.UTF-8"
+    ANDROID_SERIAL: "${ANDROID_1_UDID}"

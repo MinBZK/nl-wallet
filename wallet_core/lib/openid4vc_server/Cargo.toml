@@ -18,34 +18,59 @@ required-features = ["issuance"]
 
 [features]
 # Enable issuance
-issuance = ["axum-extra/typed-header", "dep:sd_jwt_vc_metadata", "jwt/axum", "dep:wscd"]
+issuance = [
+    "axum-extra/typed-header",
+    "dep:axum",
+    "dep:crypto",
+    "dep:http",
+    "dep:http_utils",
+    "dep:mediatype",
+    "dep:oauth",
+    "dep:openid4vc",
+    "dep:sd_jwt_vc_metadata",
+    "dep:token_status_list",
+    "dep:tracing",
+    "dep:utils",
+    "dep:wscd",
+    "jwt/axum",
+]
 # Enable disclosure
-disclosure = ["dep:ring"]
+disclosure = [
+    "dep:attestation_data",
+    "dep:axum",
+    "dep:crypto",
+    "dep:dcql",
+    "dep:http",
+    "dep:http_utils",
+    "dep:jwt",
+    "dep:oauth",
+    "dep:openid4vc",
+    "dep:serde",
+    "dep:token_status_list",
+    "dep:tower-http",
+    "dep:tracing",
+    "dep:utils",
+]
 
 [dependencies]
-axum = { workspace = true, features = ["form", "json"] }
-derive_more = { workspace = true, features = ["from"] }
-http.workspace = true
-mediatype.workspace = true
-rustls-pki-types.workspace = true
-serde = { workspace = true, features = ["derive"] }
-tower-http = { workspace = true, features = ["cors"] }
-tracing.workspace = true
-
+axum = { workspace = true, optional = true, features = ["form", "json"] }
 axum-extra = { workspace = true, optional = true }
-ring = { workspace = true, optional = true }
+http = { workspace = true, optional = true }
+mediatype = { workspace = true, optional = true }
+serde = { workspace = true, optional = true, features = ["derive"] }
+tower-http = { workspace = true, optional = true, features = ["cors"] }
+tracing = { workspace = true, optional = true }
 
-attestation_data.path = "../attestation_data"
-crypto.path = "../crypto"
-dcql.path = "../dcql"
-http_utils = { path = "../http_utils", features = ["server"] }
-jwt.path = "../jwt"
-oauth.path = "../oauth"
-openid4vc = { path = "../openid4vc", features = ["axum"] }
-token_status_list = { path = "../token_status_list" }
-utils.path = "../utils"
-
+attestation_data = { path = "../attestation_data", optional = true }
+crypto = { path = "../crypto", optional = true }
+dcql = { path = "../dcql", optional = true }
+http_utils = { path = "../http_utils", optional = true, features = ["server"] }
+jwt = { path = "../jwt", optional = true }
+oauth = { path = "../oauth", optional = true }
+openid4vc = { path = "../openid4vc", optional = true, features = ["axum"] }
 sd_jwt_vc_metadata = { path = "../sd_jwt_vc_metadata", optional = true }
+token_status_list = { path = "../token_status_list", optional = true }
+utils = { path = "../utils", optional = true }
 wscd = { path = "../wscd", optional = true }
 
 [dev-dependencies]
@@ -63,9 +88,11 @@ tower = { workspace = true, features = ["util"] }
 tracing-subscriber.workspace = true
 url = { workspace = true, features = ["serde"] }
 
+attestation_data.path = "../attestation_data"
 attestation_types.path = "../attestation_types"
 http_utils = { path = "../http_utils", features = ["client"] }
 jwe.path = "../jwe"
+jwt.path = "../jwt"
 openid4vc = { path = "../openid4vc", features = ["mock", "test"] }
 sd_jwt_vc_metadata.path = "../sd_jwt_vc_metadata"
 wscd = { path = "../wscd", features = ["mock"] }

@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::time::Duration;
 
 use android_attest::attestation_extension::key_attestation::OsVersion;
@@ -13,7 +12,7 @@ use crypto::utils::random_bytes;
 use db_test::DbSetup;
 use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Encrypter;
-use hsm::model::mock::MockPkcs11Client;
+use hsm::model::mock::MockHsm;
 use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::elliptic_curve::Generate;
@@ -59,7 +58,7 @@ async fn db_from_url(url: Url) -> Db {
 
 pub async fn encrypted_pin_key(identifier: &str) -> Encrypted<VerifyingKey> {
     Encrypter::<VerifyingKey>::encrypt(
-        &MockPkcs11Client::<Infallible>::default(),
+        &MockHsm::<!>::default(),
         identifier,
         *SigningKey::generate().verifying_key(),
     )

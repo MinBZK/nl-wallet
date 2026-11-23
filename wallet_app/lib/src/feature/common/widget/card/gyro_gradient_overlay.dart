@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:fimber/fimber.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 
 const _kGyroMultiplier = 10.0;

@@ -19,6 +19,7 @@ use serde_json::json;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_jwt::StatusListJwt;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::status_list_token::StatusListToken;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::client::StatusListClientError;
@@ -44,8 +45,8 @@ impl jwt::JwtTyp for RegistrationCertificateFixture {
 pub struct StaticStatusListClient(pub StatusListJwt);
 
 impl StatusListClient for StaticStatusListClient {
-    async fn fetch(&self, _url: Url) -> Result<StatusListJwt, StatusListClientError> {
-        Ok(self.0.clone())
+    async fn fetch(&self, _url: Url, _format: StatusListFormat) -> Result<StatusListToken, StatusListClientError> {
+        Ok(self.0.clone().into())
     }
 }
 

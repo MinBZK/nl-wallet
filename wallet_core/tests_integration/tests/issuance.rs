@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::collections::HashSet;
 
 use attestation_types::credential_format::Format;
@@ -8,22 +9,41 @@ use pid_issuer::pid::rulebook::constants::PID_MDOC_DOCTYPE;
 use pid_issuer::pid::rulebook::constants::PID_NL_MDOC_NAMESPACE;
 use pid_issuer::pid::rulebook::constants::PID_NL_SD_JWT_VCT;
 use pid_issuer::pid::rulebook::constants::PID_RECOVERY_CODE;
+use rstest::rstest;
 use serial_test::serial;
 use tests_integration::common::*;
+use wallet::AttestationIdentity;
 use wallet::AttestationPresentation;
 use wallet::AttributeValue;
 use wallet::Pin;
 
+/// PID issuance and renewal, against a PID issuer with or without the Credential Preview Endpoint.
+#[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
-async fn ltc1_test_pid_ok() {
+async fn ltc1_test_pid_ok(#[values(true, false)] credential_preview_endpoint: bool) {
     let db_setup = DbSetup::create_clean().await;
     let hsm_setup = HsmSetup::new();
     let tempdir = tempfile::tempdir().unwrap();
     let pin: Pin = "112233".into();
 
-    let (mut wallet, _, _) =
-        setup_wallet_and_default_env(&db_setup, &hsm_setup, &tempdir, WalletDeviceVendor::Apple).await;
+    let mut pid_issuer_settings = pid_issuer_settings(db_setup.pid_issuer_url(), None);
+    pid_issuer_settings
+        .authorizing_issuer_settings
+        .issuer_settings
+        .credential_preview_endpoint = credential_preview_endpoint;
+
+    let (mut wallet, _, _) = setup_wallet_and_env(
+        &db_setup,
+        &hsm_setup,
+        &tempdir,
+        WalletDeviceVendor::Apple,
+        update_policy_server_settings(),
+        wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url()),
+        pid_issuer_settings,
+        issuance_server_settings(db_setup.issuance_server_url()),
+    )
+    .await;
     wallet = do_wallet_registration(wallet, pin.clone()).await;
     wallet = do_pid_issuance(wallet, pin.clone()).await;
 
@@ -44,6 +64,8 @@ async fn ltc1_test_pid_ok() {
     assert!(formats.contains(&Format::MsoMdoc));
     assert!(formats.contains(&Format::SdJwt));
 
+    let identities = identities_by_format(&attestations);
+
     // After the wallet is enrolled and has a PID, the PID can be renewed.
     wallet = do_pid_renewal(wallet, pin).await;
 
@@ -55,13 +77,15 @@ async fn ltc1_test_pid_ok() {
         test_pid_attestation(pid_attestation)
     }
 
-    // Check that both formats are still present.
-    let renewed_formats = attestations
-        .iter()
-        .map(|attestation| attestation.format)
-        .collect::<HashSet<_>>();
+    // Check that renewal updated the stored PID in both formats, instead of adding a new PID.
+    assert_eq!(identities_by_format(&attestations), identities);
+}
 
-    assert_eq!(formats, renewed_formats);
+fn identities_by_format(attestations: &[AttestationPresentation]) -> HashMap<Format, AttestationIdentity> {
+    attestations
+        .iter()
+        .map(|attestation| (attestation.format, attestation.identity))
+        .collect()
 }
 
 fn test_pid_attestation(pid_attestation: &AttestationPresentation) {

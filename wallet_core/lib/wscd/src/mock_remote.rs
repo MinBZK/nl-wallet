@@ -1,4 +1,3 @@
-use std::convert::Infallible;
 use std::num::NonZeroU8;
 use std::sync::LazyLock;
 
@@ -66,7 +65,7 @@ impl IssuanceMockRemoteWscd {
 }
 
 impl IssuanceWscd for IssuanceMockRemoteWscd {
-    type Error = Infallible;
+    type Error = !;
 
     async fn perform_issuance(
         &self,

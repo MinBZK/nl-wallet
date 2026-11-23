@@ -97,6 +97,15 @@ class SetupSecurityConfigureBiometrics extends SetupSecurityState {
   List<Object?> get props => [biometrics, ...super.props];
 }
 
+/// Enabling biometrics failed in a way only the device settings can resolve, e.g. a denied Face ID permission.
+class SetupSecurityBiometricsSetupRequired extends SetupSecurityConfigureBiometrics {
+  const SetupSecurityBiometricsSetupRequired({required super.biometrics});
+}
+
+class SetupSecurityBiometricsLockedOut extends SetupSecurityConfigureBiometrics {
+  const SetupSecurityBiometricsLockedOut({required super.biometrics});
+}
+
 class SetupSecurityCompleted extends SetupSecurityState {
   final Biometrics enabledBiometrics;
 

@@ -5,8 +5,10 @@ use db_test::DbName;
 use db_test::DbSetup;
 use rstest::fixture;
 use rstest::rstest;
+use utils::vec_nonempty;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_task::AdminTask;
+use wallet_provider_domain::model::admin_task::BlockUserParameters;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ExecuteAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewAdminTask;
@@ -53,9 +55,16 @@ fn minutes(minutes: i64) -> DateTime<Utc> {
 fn task_payload(task_type: TaskType) -> TaskPayload {
     match task_type {
         TaskType::RevokeWallet => TaskPayload::RevokeWallet(RevokeWalletParameters {
-            wallet_ids: vec!["some-wallet".to_string().into()].try_into().unwrap(),
+            wallet_ids: vec_nonempty!["some-wallet".to_string().into()].into(),
         }),
-        TaskType::BlockUser => TaskPayload::BlockUser {},
+        TaskType::BlockUser => TaskPayload::BlockUser(BlockUserParameters {
+            recovery_codes: vec_nonempty![
+                "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"
+                    .to_string()
+                    .into()
+            ]
+            .into(),
+        }),
         TaskType::UnblockUser => TaskPayload::UnblockUser {},
         TaskType::RevokeSolution => TaskPayload::RevokeSolution {},
     }

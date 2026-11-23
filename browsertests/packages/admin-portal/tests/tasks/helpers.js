@@ -1,12 +1,16 @@
 import { expect } from "@playwright/test"
 import { AdminPortalPage } from "../../pages/adminPortalPage.js"
 import { USERS } from "../../data/users.js"
+import { authFile } from "../../data/auth.js"
 import { test as base } from "../fixtures.js"
 
 export const test = base.extend({
-  /** A second browser session, which is not logged in yet. */
-  otherSession: async ({ browser }, use) => {
-    const context = await browser.newContext()
+  // Every task test starts with the operator session of auth.setup.js, instead of logging in through KeyCloak.
+  storageState: authFile("operator"),
+
+  /** A second browser session, with the session of the teamlead. */
+  teamleadSession: async ({ browser }, use) => {
+    const context = await browser.newContext({ storageState: authFile("teamlead") })
     await use(new AdminPortalPage(await context.newPage()))
     await context.close()
   },
@@ -107,8 +111,8 @@ export async function openTaskToReview(page, adminPortal) {
   const reviewUrl = `**/admin-portal/tasks/${task.taskId}/review`
   await mockTaskLists(page, { reviewable: [task] })
   await page.route(reviewUrl, (route) => route.fulfill({ json: { ...task, status: "approved" } }))
-  await adminPortal.loginAs(USERS.operator)
-  await adminPortal.openTaskDetails(task.taskId)
+  await adminPortal.openAs(USERS.operator)
+  await adminPortal.openReviewableTask(task.taskId)
   return reviewUrl
 }
 
@@ -116,12 +120,15 @@ export async function openTaskToReview(page, adminPortal) {
 export function recordWrites(page) {
   const writes = []
   page.on("request", (request) => {
-    if (request.method() !== "GET" && request.url().includes("/admin-portal/")) writes.push(request.url())
+    const url = request.url()
+    // The wallet lookup is a POST, but only reads.
+    const isWalletCheck = url.endsWith("/admin-portal/wallets/check")
+    if (request.method() !== "GET" && url.includes("/admin-portal/") && !isWalletCheck) writes.push(url)
   })
   return writes
 }
 
-export async function loginAndGoToReasonStep(adminPortal) {
-  await adminPortal.loginAs(USERS.operator)
+export async function openAndGoToReasonStep(adminPortal) {
+  await adminPortal.openAs(USERS.operator)
   await adminPortal.startCreateTask("Gebruiker deblokkeren")
 }

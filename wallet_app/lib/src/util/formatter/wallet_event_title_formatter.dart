@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+import 'package:cupertino_ui/cupertino_ui.dart';
 
 import '../../domain/model/attribute/attribute.dart';
 import '../../domain/model/event/wallet_event.dart';

@@ -41,10 +41,10 @@ enum FlutterApiErrorType {
   issuer,
   @JsonValue('Verifier')
   verifier,
-  @JsonValue('WrongDigid')
-  wrongDigid,
-  @JsonValue('DeniedDigid')
-  deniedDigid,
+  @JsonValue('WrongIdentity')
+  wrongIdentity,
+  @JsonValue('DeniedPidIssuance')
+  deniedPidIssuance,
   @JsonValue('Revoked')
   revoked,
   @JsonValue('PreAuthorizedCodeExpired')

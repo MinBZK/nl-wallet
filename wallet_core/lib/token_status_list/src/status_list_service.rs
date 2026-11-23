@@ -64,8 +64,6 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use std::convert::Infallible;
-
     use attestation_types::status_claim::StatusListClaim;
     use mockall::mock;
     use url::Url;
@@ -91,19 +89,19 @@ pub mod mock {
         pub StatusListService {}
 
         impl StatusListService for StatusListService {
-            type Error = Infallible;
+            type Error = !;
 
             async fn obtain_status_claims(
                 &self,
                 batch_id: Uuid,
                 expires: Option<DateTimeSeconds>,
                 copies: NonZeroUsize,
-            ) -> Result<VecNonEmpty<StatusClaim>, ObtainClaimError<Infallible>>;
+            ) -> Result<VecNonEmpty<StatusClaim>, ObtainClaimError<!>>;
 
             fn start_refresh_job(&self) -> AbortHandle;
 
-            async fn republish_all(&self, force: bool) -> Result<(), Infallible>;
-            async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), Infallible>;
+            async fn republish_all(&self, force: bool) -> Result<(), !>;
+            async fn revoke_attestation_batches(&self, batch_ids: Vec<Uuid>) -> Result<(), !>;
         }
     }
 }

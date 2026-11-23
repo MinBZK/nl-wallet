@@ -1,8 +1,8 @@
 package feature.cards_and_history
 
-import helper.GbaDataHelper
-import helper.GbaDataHelper.Field.FIRST_NAME
-import helper.GbaDataHelper.Field.NAME
+import helper.PidDataHelper
+import helper.PidDataHelper.Field.FIRST_NAME
+import helper.PidDataHelper.Field.NAME
 import helper.TasDataHelper
 import helper.TestBase
 import navigator.CardNavigator
@@ -28,7 +28,7 @@ class CardDetailTests : TestBase() {
     private lateinit var cardDetailScreen: CardDetailScreen
     private lateinit var cardDataScreen: CardDataScreen
     private lateinit var cardMetadata: TasDataHelper
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
     private lateinit var cardDataIncorrectScreen: CardDataIncorrectScreen
     private lateinit var dashboardScreen: DashboardScreen
 
@@ -40,7 +40,7 @@ class CardDetailTests : TestBase() {
         cardDataScreen = CardDataScreen()
         cardDataIncorrectScreen = CardDataIncorrectScreen()
         dashboardScreen = DashboardScreen()
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
         cardMetadata = TasDataHelper()
     }
 
@@ -56,9 +56,9 @@ class CardDetailTests : TestBase() {
         cardDetailScreen.captureA11ySnapshot("CardDetail")
         cardDetailScreen.clickCardDataButton()
         assertAll(
-            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
+            { assertTrue(cardDataScreen.dataAttributeVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("given_name")), "data label are not visible") },
-            { assertTrue(cardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
+            { assertTrue(cardDataScreen.dataAttributeVisible(pidData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("family_name")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataLabelVisible(cardMetadata.getPidClaimLabel("birthdate")), "data label are not visible") },
             { assertTrue(cardDataScreen.dataLabelAbsent(cardMetadata.getPidClaimLabel("recovery_code")), "recovery code is visible") },

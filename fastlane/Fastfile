@@ -262,6 +262,21 @@ platform :android do
     end
   end
 
+  desc "Run the Rust wallet integration tests on a physically connected Android device"
+  lane :test_wallet_device do
+    serial = ENV["ANDROID_SERIAL"]
+    UI.user_error!("No ANDROID_SERIAL set") if serial.blank?
+
+    Dir.chdir("..") do
+      # Preinstall with -g; AGP 9.5 drops the install option in the connected-test worker.
+      sh({ "ANDROID_NDK_TARGETS" => "arm64-v8a" },
+         "scripts/close_proximity/run_disclosure_android_test.py",
+         "--serial", serial, "--require-wallet-test", "--",
+         "wallet_app/android/gradlew", "--no-daemon",
+         "-p", "wallet_app/android/wallet-integration-tests", ":installDebug", ":connectedDebugAndroidTest")
+    end
+  end
+
   desc "Upload Android app to BrowserStack"
   lane :browserstack do |options|
     file = options[:file]
@@ -547,6 +562,7 @@ platform :ios do
     # Create an .ipa file from the archive produce by Flutter
     ipa_file = "#{bundle_id}-#{version}.ipa"
     build_app(
+      scheme: "Runner",
       skip_build_archive: true,
       archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
       codesigning_identity: "iPhone Distribution",
@@ -653,6 +669,55 @@ platform :ios do
     ensure
       # Reported from the ensure block so that a failing test run still reports what it did cover
       report_platform_support_device_coverage
+    end
+  end
+
+  desc "Run the Rust wallet integration tests on a physically connected iOS device"
+  lane :test_wallet_device do
+    udid = ENV["IOS_DEVICE_UDID"]
+    UI.user_error!("No IOS_DEVICE_UDID set") if udid.blank?
+
+    # Xcode resolves Runner's generated Flutter package even though this scheme only builds native tests.
+    flutter = flutter_cmd
+    Dir.chdir("../wallet_app") do
+      sh(*flutter, "pub", "get", "--enforce-lockfile")
+      sh(*flutter, "precache", "--ios")
+      Dir.chdir("ios") do
+        sh("bundle", "exec", "pod", "install", "--allow-root", "--deployment")
+      end
+      sh(*flutter, "build", "ios", "--config-only", "--no-codesign", "--debug", "--no-pub")
+    end
+
+    Dir.chdir("..") do
+      output_dir    = "fastlane/test_output"
+      log_file      = "#{output_dir}/wallet-device.log"
+      junit_file    = "#{output_dir}/wallet-device.junit"
+      result_bundle = "#{output_dir}/WalletDevice.xcresult"
+
+      FileUtils.mkdir_p(output_dir)
+      FileUtils.rm_rf(result_bundle)
+      FileUtils.rm_f(log_file)
+
+      begin
+        sh("scripts/close_proximity/run_disclosure_ios_test.py", "--require-wallet-test", "--",
+           "/bin/bash", "-c",
+           "set -o pipefail; xcodebuild test " \
+           "-project wallet_app/ios/Runner.xcodeproj " \
+           "-scheme 'Wallet Integration Tests' " \
+           "-testPlan LocalRealDevice " \
+           "-destination id=#{udid} " \
+           "-resultBundlePath #{result_bundle} " \
+           "-parallel-testing-enabled NO " \
+           "-test-timeouts-enabled YES " \
+           "-default-test-execution-time-allowance 120 " \
+           "-maximum-test-execution-time-allowance 300 " \
+           "2>&1 | tee #{log_file}")
+      ensure
+        if File.exist?(log_file)
+          sh("/bin/bash", "-c",
+             "xcpretty --report junit --output #{junit_file} < #{log_file} || true")
+        end
+      end
     end
   end
 end

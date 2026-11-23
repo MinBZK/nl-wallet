@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
@@ -84,6 +84,8 @@ class RequestDetailCommonBuilders {
     required LocalizedText purpose,
     DividerSide side = DividerSide.none,
   }) {
+    // Purpose is optional in the registration certificate, don't render an empty section.
+    if (!purpose.hasL10nText(context)) return const SizedBox.shrink();
     return ListItem(
       label: Text.rich(context.l10n.historyDetailScreenPurposeTitle.toTextSpan(context)),
       subtitle: Text.rich(purpose.l10nSpan(context)),

@@ -40,6 +40,9 @@ pub struct StatusList {
     len: usize,
 }
 
+/// The maximum size of a decompressed Status List, to protect against decompression bombs.
+const MAX_STATUS_LIST_SIZE: usize = 16 * 1024 * 1024;
+
 #[derive(Debug, Default, Clone)]
 #[cfg_attr(test, derive(Eq))]
 pub struct PackedStatusList {
@@ -89,6 +92,8 @@ mod zlib {
     use flate2::read::ZlibDecoder;
     use flate2::write::ZlibEncoder;
 
+    use super::MAX_STATUS_LIST_SIZE;
+
     pub fn compress<W: Write>(writer: W, bytes: &[u8]) -> std::io::Result<W> {
         // Implementations are RECOMMENDED to use the highest compression level available.
         let mut e = ZlibEncoder::new(writer, Compression::best());
@@ -98,7 +103,18 @@ mod zlib {
 
     pub fn decompress(reader: impl Read, capacity: usize) -> std::io::Result<Vec<u8>> {
         let mut decompressed = Vec::with_capacity(capacity);
-        ZlibDecoder::new(reader).read_to_end(&mut decompressed)?;
+        // Read one byte more than the maximum, to detect a Status List that exceeds it without decompressing all of it.
+        ZlibDecoder::new(reader)
+            .take(MAX_STATUS_LIST_SIZE as u64 + 1)
+            .read_to_end(&mut decompressed)?;
+
+        if decompressed.len() > MAX_STATUS_LIST_SIZE {
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!("decompressed status list exceeds maximum size of {MAX_STATUS_LIST_SIZE} bytes"),
+            ));
+        }
+
         Ok(decompressed)
     }
 }
@@ -394,11 +410,15 @@ impl StatusType {
 pub mod test {
     use std::sync::LazyLock;
 
+    use base64::prelude::*;
     use regex::regex;
     use rstest::rstest;
     use serde_json::json;
 
     use super::*;
+
+    #[derive(Serialize, Deserialize)]
+    struct Cbor(#[serde(with = "CborPackedStatusList")] PackedStatusList);
 
     // Parse the status list examples as they are listed in the spec
     fn parse_status_list(input: &str) -> StatusList {
@@ -469,9 +489,6 @@ pub mod test {
             0x4a, // bytes(10)
             0x78, 0xda, 0xdb, 0xb9, 0x18, 0x00, 0x02, 0x17, 0x01, 0x5d,
         ];
-
-        #[derive(Serialize, Deserialize)]
-        struct Cbor(#[serde(with = "CborPackedStatusList")] PackedStatusList);
 
         let packed = EXAMPLE_STATUS_LIST_ONE.to_owned().pack();
         let mut encoded = Vec::new();
@@ -569,6 +586,20 @@ pub mod test {
         assert_eq!(status_list.sparse, expected.sparse);
         // Since the example input only specifies non-valid entries, there can be more entries in the deserialized list
         assert!(status_list.len >= expected.len);
+    }
+
+    #[test]
+    fn test_status_list_deserialization_rejects_decompression_bomb() {
+        let bomb = zlib::compress(Vec::new(), &vec![0; MAX_STATUS_LIST_SIZE + 1]).unwrap();
+
+        let json = json!({ "bits": 1, "lst": BASE64_URL_SAFE_NO_PAD.encode(&bomb) });
+        assert!(JsonPackedStatusList::deserialize(json).is_err());
+
+        let cbor = ciborium::Value::Map(vec![
+            ("bits".into(), 1.into()),
+            ("lst".into(), ciborium::Value::Bytes(bomb)),
+        ]);
+        assert!(cbor.deserialized::<Cbor>().is_err());
     }
 
     #[rstest]

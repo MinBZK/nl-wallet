@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/model/help/topic_block.dart';
 import '../../../util/extension/build_context_extension.dart';
@@ -23,7 +23,15 @@ class TopicBulletList extends StatelessWidget {
         children: [
           ExcludeSemantics(child: Text('• ', style: context.textTheme.bodyLarge)),
           Expanded(
-            child: MarkdownBody(data: items[index], styleSheet: topicMarkdownStyleSheet(context)),
+            // flutter_markdown_plus reads the legacy flutter/material theme.
+            // TODO(Rubin): remove the bridge once it supports material_ui, see:
+            // https://github.com/foresightmobile/flutter_markdown_plus/issues/144
+            // https://github.com/foresightmobile/flutter_markdown_plus/pull/145
+            // https://github.com/foresightmobile/flutter_markdown_plus/pull/150
+            // ignore: deprecated_member_use
+            child: MaterialUiCompatibilityBridge(
+              child: MarkdownBody(data: items[index], styleSheet: topicMarkdownStyleSheet(context)),
+            ),
           ),
         ],
       ),

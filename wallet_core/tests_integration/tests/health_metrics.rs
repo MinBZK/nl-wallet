@@ -8,13 +8,14 @@ use serde_json::json;
 use serial_test::serial;
 use tests_integration::common::start_wallet_provider;
 use tests_integration::common::wallet_provider_settings;
+use utils::generator::TimeGenerator;
 
 async fn setup_wallet_provider(db_setup: &DbSetup, hsm_setup: &HsmSetup) -> (Client, BaseUrl) {
     let (settings, root_ca) = wallet_provider_settings(db_setup.wallet_provider_url(), db_setup.audit_log_url());
     let hsm = hsm_setup
         .pkcs11_hsm(settings.hsm.clone())
         .expect("Could not initialize HSM");
-    let port = start_wallet_provider(settings, hsm, root_ca.clone()).await;
+    let port = start_wallet_provider(settings, hsm, root_ca.clone(), TimeGenerator).await;
 
     let client = tls_reqwest_client_builder([root_ca.into_certificate()])
         .build()

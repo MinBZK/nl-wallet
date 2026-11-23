@@ -64,7 +64,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
       onSuccess: (previewAttributes) => add(WalletPersonalizeLoginWithDigidSucceeded(previewAttributes)),
       onError: (error) {
         switch (error) {
-          case DeniedDigidError():
+          case DeniedPidIssuanceError():
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)

@@ -1,6 +1,7 @@
 use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
 use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use dcql::ClaimsQuery;
 use dcql::ClaimsSelection;
 use dcql::CredentialQuery;
@@ -26,9 +27,9 @@ pub enum RegistrationCertificateAuthorizationError {
 }
 
 impl StatusValidatedRegistrationCertificate {
-    pub fn validate_issuance_authorization(
+    pub fn validate_issuance_authorization<'a>(
         &self,
-        credential_kinds: impl IntoIterator<Item = CredentialKind>,
+        credential_kinds: impl IntoIterator<Item = CredentialKindRef<'a>>,
     ) -> Result<(), RegistrationCertificateAuthorizationError> {
         let Some(provides_attestations) = &self.payload().provides_attestations else {
             return Err(RegistrationCertificateAuthorizationError::MissingProvidesAttestations);
@@ -37,10 +38,10 @@ impl StatusValidatedRegistrationCertificate {
         for kind in credential_kinds {
             if !provides_attestations
                 .iter()
-                .any(|authorized| credential_kind_is_authorized(&kind, authorized))
+                .any(|authorized| credential_kind_is_authorized(kind, authorized))
             {
                 return Err(RegistrationCertificateAuthorizationError::UnauthorizedCredentialKind(
-                    kind,
+                    kind.into_owned(),
                 ));
             }
         }
@@ -118,11 +119,11 @@ fn items_request_is_authorized(items_request: &ItemsRequest, authorized: &Creden
     })
 }
 
-fn credential_kind_is_authorized(kind: &CredentialKind, authorized: &Credential) -> bool {
+fn credential_kind_is_authorized(kind: CredentialKindRef, authorized: &Credential) -> bool {
     match (kind.format, &authorized.format) {
         (Format::MsoMdoc, CredentialQueryFormat::MsoMdoc { doctype_value }) => kind.attestation_type == *doctype_value,
         (Format::SdJwt, CredentialQueryFormat::SdJwt { vct_values }) => {
-            vct_values.as_slice().contains(&kind.attestation_type)
+            vct_values.iter().any(|vct| vct == kind.attestation_type)
         }
         _ => false,
     }

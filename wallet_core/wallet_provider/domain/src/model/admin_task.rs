@@ -2,14 +2,12 @@ use chrono::DateTime;
 use chrono::Utc;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Map;
-use serde_json::Value as JsonValue;
-use serde_json::json;
 use serde_with::serde_as;
 use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 
 use super::wallet_user::WalletId;
+use crate::model::wallet_user::RecoveryCode;
 
 /// Administrator action that can be proposed and reviewed in the admin_portal, together with its parameters.
 ///
@@ -24,7 +22,7 @@ use super::wallet_user::WalletId;
 )]
 pub enum TaskPayload {
     RevokeWallet(RevokeWalletParameters),
-    BlockUser {},      // TODO PVW-6176
+    BlockUser(BlockUserParameters),
     UnblockUser {},    // TODO PVW-6177
     RevokeSolution {}, // TODO PVW-6178
 }
@@ -32,22 +30,6 @@ pub enum TaskPayload {
 impl TaskPayload {
     pub fn task_type(&self) -> TaskType {
         self.into()
-    }
-
-    pub fn parameters_json(&self) -> Result<JsonValue, serde_json::Error> {
-        match self {
-            Self::RevokeWallet(parameters) => serde_json::to_value(parameters),
-            Self::BlockUser {} | Self::UnblockUser {} | Self::RevokeSolution {} => Ok(JsonValue::Object(Map::new())),
-        }
-    }
-
-    /// Reconstructs a [`TaskPayload`] from a task type and its parameters as JSON, e.g. as stored separately.
-    pub fn from_parts(task_type: TaskType, parameters: JsonValue) -> Result<Self, serde_json::Error> {
-        let tagged = Map::from_iter([
-            ("taskType".to_string(), json!(task_type)),
-            ("taskParameters".to_string(), parameters),
-        ]);
-        serde_json::from_value(JsonValue::Object(tagged))
     }
 }
 
@@ -58,6 +40,15 @@ impl TaskPayload {
 pub struct RevokeWalletParameters {
     #[serde_as(as = "Vec<_>")]
     pub wallet_ids: VecNonEmptyUnique<WalletId>,
+}
+
+/// Parameters of a [`TaskType::BlockUser`] task: the recovery_codes to deny, at least one, without duplicates.
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct BlockUserParameters {
+    #[serde_as(as = "Vec<_>")]
+    pub recovery_codes: VecNonEmptyUnique<RecoveryCode>,
 }
 
 /// The lifecycle status of an [`AdminTask`].
@@ -190,6 +181,8 @@ pub enum TaskListView {
 #[cfg(test)]
 mod tests {
     use rstest::rstest;
+    use serde_json::Value as JsonValue;
+    use serde_json::json;
 
     use super::*;
 
@@ -214,13 +207,8 @@ mod tests {
         assert_eq!(serde_json::from_value::<TaskPayload>(value.clone()).unwrap(), payload);
         assert_eq!(serde_json::to_value(&payload).unwrap(), value);
 
-        // payload <-> (task type, parameters), as stored in the database
-        let task_type = payload.task_type();
-        let parameters = payload.parameters_json().unwrap();
-        assert_eq!(parameters, value["taskParameters"]);
-        assert_eq!(TaskPayload::from_parts(task_type, parameters).unwrap(), payload);
-
         // task type <-> string, as used in privilege names, the database and the API
+        let task_type = payload.task_type();
         let task_type_string = value["taskType"].as_str().unwrap();
         assert_eq!(task_type.to_string(), task_type_string);
         assert_eq!(task_type_string.parse::<TaskType>().unwrap(), task_type);

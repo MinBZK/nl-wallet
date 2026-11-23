@@ -1,7 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
@@ -310,6 +310,21 @@ void main() {
         brightness: Brightness.dark,
       );
       await screenMatchesGolden('confirm_data_attributes.dark');
+    });
+
+    testGoldens('DisclosureConfirmDataAttributes - no purpose', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const DisclosureScreen().withState<DisclosureBloc, DisclosureState>(
+          MockDisclosureBloc(),
+          DisclosureConfirmDataAttributes(
+            relyingParty: WalletMockData.organization,
+            cardRequests: [DiscloseCardRequest.fromCard(WalletMockData.card)],
+            requestPurpose: const {},
+            sessionType: DisclosureSessionType.crossDevice,
+          ),
+        ),
+      );
+      await screenMatchesGolden('confirm_data_attributes.no_purpose.light');
     });
 
     testGoldens('ltc15 DisclosureConfirmDataAttributes - full page', (tester) async {

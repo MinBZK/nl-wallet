@@ -4,6 +4,7 @@ use chrono::DateTime;
 use chrono::Utc;
 use crypto::trust_anchor::TrustAnchors;
 use serde::Deserialize;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -80,6 +81,7 @@ impl BoundRegistrationCertificate {
             .verify(
                 registration_certificate_trust_anchors,
                 StatusClaim::StatusList(self.payload().status.clone()),
+                StatusListFormat::Jwt,
                 time,
             )
             .await;
@@ -137,7 +139,9 @@ mod tests {
     use token_status_list::status_list::StatusList;
     use token_status_list::status_list::StatusType;
     use token_status_list::status_list_jwt::StatusListJwt;
+    use token_status_list::status_list_token::StatusListFormat;
     use token_status_list::status_list_token::StatusListToken;
+    use token_status_list::status_list_token::StatusListTokenParseError;
     use token_status_list::verification::client::StatusListClient;
     use token_status_list::verification::client::StatusListClientError;
     use token_status_list::verification::verifier::RevocationVerifier;
@@ -158,8 +162,10 @@ mod tests {
     struct FailingStatusListClient;
 
     impl StatusListClient for FailingStatusListClient {
-        async fn fetch(&self, _url: Url) -> Result<StatusListJwt, StatusListClientError> {
-            Err(StatusListClientError::JwtParsing(JwtParseError::MissingKid))
+        async fn fetch(&self, _url: Url, _format: StatusListFormat) -> Result<StatusListToken, StatusListClientError> {
+            Err(StatusListClientError::Parse(StatusListTokenParseError::Jwt(
+                JwtParseError::MissingKid,
+            )))
         }
     }
 

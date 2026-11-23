@@ -1,7 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/wallet/wallet_repository.dart';
 import 'package:wallet/src/domain/model/pin/pin_validation_error.dart';
@@ -10,6 +10,8 @@ import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.d
 import 'package:wallet/src/domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
+import 'package:wallet/src/feature/common/dialog/biometrics_setup_required_dialog.dart';
+import 'package:wallet/src/feature/common/dialog/locked_out_dialog.dart';
 import 'package:wallet/src/feature/setup_security/bloc/setup_security_bloc.dart';
 import 'package:wallet/src/feature/setup_security/setup_security_screen.dart';
 import 'package:wallet/src/util/extension/build_context_extension.dart';
@@ -406,5 +408,23 @@ void main() {
         expect(find.text(l10n.generalRetry, findRichText: true), findsNothing);
       },
     );
+
+    for (final (state, dialog) in [
+      (const SetupSecurityBiometricsSetupRequired(biometrics: Biometrics.face), BiometricsSetupRequiredDialog),
+      (const SetupSecurityBiometricsLockedOut(biometrics: Biometrics.face), LockedOutDialog),
+    ]) {
+      testWidgets('ltc51 SetupSecurityScreen shows $dialog for ${state.runtimeType}', (tester) async {
+        await tester.pumpWidgetWithAppWrapper(
+          const SetupSecurityScreen().withState<SetupSecurityBloc, SetupSecurityState>(
+            MockSetupSecurityBloc(),
+            const SetupSecurityConfigureBiometrics(biometrics: Biometrics.face),
+            streamStates: [state],
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(dialog), findsOneWidget);
+      });
+    }
   });
 }

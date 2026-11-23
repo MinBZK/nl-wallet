@@ -7,7 +7,7 @@ test.describe("Admin portal tasks", () => {
     adminPortal,
     accessibilityCheck,
   }) => {
-    await adminPortal.loginAs(USERS.operator)
+    await adminPortal.openAs(USERS.operator)
 
     await adminPortal.openCreateTaskDialog()
     await adminPortal.selectTaskAction("Gebruiker deblokkeren")
@@ -30,7 +30,7 @@ test.describe("Admin portal tasks", () => {
   }) => {
     const attachBackend = mockTaskBackend()
     await attachBackend(page, USERS.operator)
-    await adminPortal.loginAs(USERS.operator)
+    await adminPortal.openAs(USERS.operator)
 
     let taskId
 
@@ -87,7 +87,7 @@ test.describe("Admin portal tasks", () => {
     const task = ownTask()
     const createUrl = "**/admin-portal/tasks"
     await page.route(createUrl, (route) => route.fulfill({ status: 201, json: task }))
-    await adminPortal.loginAs(USERS.operator)
+    await adminPortal.openAs(USERS.operator)
 
     await adminPortal.startCreateTask("Gebruiker deblokkeren")
     await adminPortal.fillReasonAndGoToCheckStep("Browsertest")
@@ -116,7 +116,7 @@ test.describe("Admin portal tasks", () => {
         aTask({ taskId: "01a19bb9-0000-7000-8000-000000000003", status, createdAt: "2026-01-17T10:00:00Z" }),
       ]
       await mockTaskLists(page, { [view]: tasks })
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
 
       await navLink(adminPortal).click()
 
@@ -128,20 +128,20 @@ test.describe("Admin portal tasks", () => {
   test('A task that is not in any list shows "not found"', async ({
     page,
     adminPortal,
-    otherSession,
+    teamleadSession,
     accessibilityCheck,
   }) => {
     const attachBackend = mockTaskBackend()
     await attachBackend(page, USERS.operator)
-    await attachBackend(otherSession.page, USERS.teamlead)
-    await adminPortal.loginAs(USERS.operator)
+    await attachBackend(teamleadSession.page, USERS.teamlead)
+    await adminPortal.openAs(USERS.operator)
     const taskId = await adminPortal.createTask("Gebruiker deblokkeren", "Browsertest")
 
-    await otherSession.loginAs(USERS.teamlead)
-    await otherSession.page.goto(`/tasks/${taskId}`)
+    await teamleadSession.openAs(USERS.teamlead)
+    await teamleadSession.page.goto(`/tasks/${taskId}`)
 
-    await expect(otherSession.taskNotFoundMessage).toBeVisible()
-    await expectReviewActions(otherSession, { visible: false })
-    await accessibilityCheck(otherSession.page)
+    await expect(teamleadSession.taskNotFoundMessage).toBeVisible()
+    await expectReviewActions(teamleadSession, { visible: false })
+    await accessibilityCheck(teamleadSession.page)
   })
 })

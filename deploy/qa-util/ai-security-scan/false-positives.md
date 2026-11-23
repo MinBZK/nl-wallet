@@ -24,22 +24,3 @@ be in the rule.
 ---
 
 ## Rules
-
-### 1. pid_issuer BRP client — plain HTTP to brpproxy (missing-encryption)
-
-The pid_issuer's BRP client
-(`wallet_core/wallet_server/pid_issuer/src/pid/brp/client.rs`) intentionally
-permits a plain `http://` base URL for the connection to the brpproxy, and
-production deploys it as `http://brpproxy/`. This is a documented, accepted
-design decision: the service is meant to be run on an internal network, as
-noted in the code ("Note that this specifically allows HTTP, as this service
-is meant to be run on an internal network."), and the residual risk is
-accepted and tracked as PVW-5612.
-
-Findings that flag this connection for missing TLS/encryption are
-FALSE_POSITIVE, including: cleartext transmission of the BSN or other data to
-the BRP proxy, the absence of `.https_only(true)` on the BRP reqwest client,
-or the BRP/brpproxy base URL being allowed to use `http://`. This rule is
-scoped to the pid_issuer → brpproxy BRP connection only; it does not apply to
-any other outbound connection, nor to any wallet-facing or internet-facing
-endpoint.

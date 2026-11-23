@@ -1,11 +1,11 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::ops::Range;
 use std::time::Duration;
 
 use attestation_data::disclosure_type::DisclosureTypeConfig;
+use attestation_types::claim_path::ClaimPath;
 use attestation_types::credential_format::Format;
-use attestation_types::credential_kind::CredentialKind;
+use attestation_types::credential_kind::CredentialKindRef;
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::keys::AsPublicKeyRef;
@@ -14,7 +14,6 @@ use crypto::kid::Kid;
 use crypto::p256_der::DerVerifyingKey;
 use crypto::trust_anchor::TrustAnchors;
 use derive_more::Debug;
-use error_category::ErrorCategory;
 use http_utils::client::TlsPinningConfig;
 use http_utils::urls::BaseUrl;
 use itertools::Either;
@@ -27,6 +26,8 @@ use serde_with::serde_as;
 use url::Url;
 use utils::date_time_seconds::DateTimeSeconds;
 use utils::duration::DurationDays;
+use utils::vec_at_least::NonEmptyIterator;
+use utils::vec_at_least::VecNonEmpty;
 
 use crate::EnvironmentSpecific;
 
@@ -181,56 +182,43 @@ impl MdocPath {
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[cfg_attr(any(test, feature = "test"), derive(serde::Serialize))]
 pub struct SdJwtPidClaims {
-    pub login: ClaimName,
-    pub recovery_code: ClaimName,
+    pub login_path: VecNonEmpty<ClaimName>,
+    pub recovery_code_path: VecNonEmpty<ClaimName>,
 }
 
-#[derive(Debug, thiserror::Error, ErrorCategory)]
-pub enum PidAttributesConfigurationError {
-    #[category(critical)]
-    #[error("attestation type {0} has no PID configuration")]
-    NoPidConfiguration(String),
+impl SdJwtPidClaims {
+    /// The path to the recovery code as a claim path, which can be used to look up or disclose the recovery code.
+    pub fn recovery_code_claim_path(&self) -> VecNonEmpty<ClaimPath> {
+        self.recovery_code_path
+            .nonempty_iter()
+            .map(|name| ClaimPath::SelectByKey(name.as_str().to_owned()))
+            .collect()
+    }
 }
 
 impl PidAttributesConfiguration {
-    /// The [`CredentialKind`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
-    pub fn credential_kinds(&self) -> HashSet<CredentialKind> {
+    /// The [`CredentialKindRef`]s of all configured PID attestations, in both the mdoc and the SD-JWT format.
+    pub fn credential_kinds(&self) -> impl Iterator<Item = CredentialKindRef<'_>> {
         self.mso_mdoc
             .keys()
-            .map(|doc_type| CredentialKind::new(Format::MsoMdoc, doc_type.clone()))
+            .map(|doc_type| CredentialKindRef::new(Format::MsoMdoc, doc_type))
             .chain(self.sd_jwt_credential_kinds())
-            .collect()
     }
 
-    /// The [`CredentialKind`]s of the configured PID attestations in the SD-JWT format.
-    pub fn sd_jwt_credential_kinds(&self) -> HashSet<CredentialKind> {
-        self.sd_jwt
-            .keys()
-            .map(|vct| CredentialKind::new(Format::SdJwt, vct.clone()))
-            .collect()
+    /// The [`CredentialKindRef`]s of the configured PID attestations in the SD-JWT format.
+    pub fn sd_jwt_credential_kinds(&self) -> impl Iterator<Item = CredentialKindRef<'_>> {
+        self.sd_jwt.keys().map(|vct| CredentialKindRef::new(Format::SdJwt, vct))
     }
 
-    pub fn contains_credential_kind(&self, format: Format, attestation_type: &str) -> bool {
-        match format {
-            Format::MsoMdoc => self.mso_mdoc.contains_key(attestation_type),
-            Format::SdJwt => self.sd_jwt.contains_key(attestation_type),
+    pub fn contains_credential_kind(&self, credential_kind: CredentialKindRef<'_>) -> bool {
+        match credential_kind.format {
+            Format::MsoMdoc => self.mso_mdoc.contains_key(credential_kind.attestation_type),
+            Format::SdJwt => self.sd_jwt.contains_key(credential_kind.attestation_type),
         }
     }
 
-    /// The name of the claim containing the recovery code in the SD-JWT PID of the specified attestation type.
-    pub fn recovery_code_claim(&self, attestation_type: &str) -> Result<&ClaimName, PidAttributesConfigurationError> {
-        self.sd_jwt
-            .get(attestation_type)
-            .map(|paths| &paths.recovery_code)
-            .ok_or_else(|| PidAttributesConfigurationError::NoPidConfiguration(attestation_type.to_string()))
-    }
-
     /// The key path of the recovery code in the PID of the specified format and attestation type, if configured.
-    pub fn recovery_code_key_path(
-        &self,
-        format: Format,
-        attestation_type: &str,
-    ) -> Option<impl Iterator<Item = &str> + Clone> {
+    pub fn recovery_code_key_path(&self, format: Format, attestation_type: &str) -> Option<impl Iterator<Item = &str>> {
         match format {
             Format::MsoMdoc => self
                 .mso_mdoc
@@ -239,7 +227,7 @@ impl PidAttributesConfiguration {
             Format::SdJwt => self
                 .sd_jwt
                 .get(attestation_type)
-                .map(|paths| Either::Right(std::iter::once(paths.recovery_code.as_str()))),
+                .map(|paths| Either::Right(paths.recovery_code_path.iter().map(ClaimName::as_str))),
         }
     }
 }
@@ -252,7 +240,9 @@ impl DisclosureTypeConfig for PidAttributesConfiguration {
     }
 
     fn sd_jwt_login_path(&self, vct: &str) -> Option<impl Iterator<Item = &str>> {
-        self.sd_jwt.get(vct).map(|paths| std::iter::once(paths.login.as_str()))
+        self.sd_jwt
+            .get(vct)
+            .map(|paths| paths.login_path.iter().map(ClaimName::as_str))
     }
 }
 
@@ -275,7 +265,7 @@ mod tests {
                 }
             },
             "sd_jwt": {
-                "pid_vct": { "login": "bsn", "recovery_code": "recovery_code" }
+                "pid_vct": { "login_path": ["bsn"], "recovery_code_path": ["nested", "recovery_code"] }
             }
         }))
         .unwrap();
@@ -287,15 +277,23 @@ mod tests {
                 .collect_vec(),
             ["pid_namespace", "recovery_code"]
         );
-        assert_eq!(config.recovery_code_claim("pid_vct").unwrap().as_str(), "recovery_code");
+        assert_eq!(
+            config
+                .recovery_code_key_path(Format::SdJwt, "pid_vct")
+                .unwrap()
+                .collect_vec(),
+            ["nested", "recovery_code"]
+        );
     }
 
     #[rstest]
-    #[case::login_sd(json!({ "login": "_sd", "recovery_code": "recovery_code" }))]
-    #[case::login_array_element(json!({ "login": "...", "recovery_code": "recovery_code" }))]
-    #[case::recovery_code_sd(json!({ "login": "bsn", "recovery_code": "_sd" }))]
-    #[case::recovery_code_array_element(json!({ "login": "bsn", "recovery_code": "..." }))]
-    fn test_pid_attributes_configuration_deserialize_reserved_claim_name(#[case] sd_jwt_claims: serde_json::Value) {
+    #[case::login_empty(json!({ "login_path": [], "recovery_code_path": ["recovery_code"] }))]
+    #[case::login_sd(json!({ "login_path": ["_sd"], "recovery_code_path": ["recovery_code"] }))]
+    #[case::login_array_element(json!({ "login_path": ["..."], "recovery_code_path": ["recovery_code"] }))]
+    #[case::recovery_code_empty(json!({ "login_path": ["bsn"], "recovery_code_path": [] }))]
+    #[case::recovery_code_sd(json!({ "login_path": ["bsn"], "recovery_code_path": ["nested", "_sd"] }))]
+    #[case::recovery_code_array_element(json!({ "login_path": ["bsn"], "recovery_code_path": ["...", "recovery_code"] }))]
+    fn test_pid_attributes_configuration_deserialize_invalid_sd_jwt_path(#[case] sd_jwt_claims: serde_json::Value) {
         let result = serde_json::from_value::<PidAttributesConfiguration>(json!({
             "mso_mdoc": {},
             "sd_jwt": { "pid_vct": sd_jwt_claims }

@@ -1,10 +1,10 @@
 //! The authorization-code-flow implementation for a demo issuer.
 //!
-//! Unlike the `pid_issuer`, which bounces the user to an upstream OIDC provider (DigiD), the demo
-//! issuer authenticates the holder with a local consent page. The [`AuthorizationCodeFlow::authorize`]
-//! implementation redirects the user-agent to that consent page (carrying a random flow-state token),
-//! and the `POST /consent` callback loads the stashed wallet request, builds the configured
-//! [`IssuableDocument`]s and hands them to [`AuthorizingIssuer::complete_authorization`].
+//! Like the `pid_issuer`, the demo issuer authenticates the holder with a local consent page. The
+//! [`AuthorizationCodeFlow::authorize`] implementation redirects the user-agent to that consent
+//! page (carrying a random flow-state token), and the `POST /consent` callback loads the stashed
+//! wallet request, builds the configured [`IssuableDocument`]s and hands them to
+//! [`AuthorizingIssuer::complete_authorization`].
 //!
 //! The requested usecase is identified by the OpenID4VCI `issuer_state` value, which the credential
 //! offer carries and the wallet echoes back in its authorization request.

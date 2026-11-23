@@ -221,7 +221,7 @@ mod tests {
 
         let claims = single_token
             .token
-            .parse_and_verify(trust_anchors, uri, &time)
+            .parse_and_verify(trust_anchors, &uri, &time)
             .expect("verifying single entry token status list should succeed");
 
         // Only the first index in the status list should be set. Anything beyond the first index should result in a
@@ -276,7 +276,7 @@ mod tests {
     fn key_storage_status(
         token: &StatusListJwt,
         trust_anchors: &TrustAnchors,
-        public_uri: Url,
+        public_uri: &Url,
         time: &MockTimeGenerator,
     ) -> StatusType {
         token
@@ -314,7 +314,7 @@ mod tests {
             .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
-            key_storage_status(&first_token, trust_anchors, public_uri.clone(), &time),
+            key_storage_status(&first_token, trust_anchors, &public_uri, &time),
             StatusType::Valid
         );
 
@@ -350,7 +350,7 @@ mod tests {
         );
 
         assert_eq!(
-            key_storage_status(&third_token, trust_anchors, public_uri.clone(), &time),
+            key_storage_status(&third_token, trust_anchors, &public_uri, &time),
             StatusType::Valid
         );
 
@@ -364,7 +364,7 @@ mod tests {
             .expect("retrieving token status list from key storage status list should succeed");
 
         assert_eq!(
-            key_storage_status(&fourth_token, trust_anchors, public_uri.clone(), &time),
+            key_storage_status(&fourth_token, trust_anchors, &public_uri, &time),
             StatusType::Invalid
         );
     }

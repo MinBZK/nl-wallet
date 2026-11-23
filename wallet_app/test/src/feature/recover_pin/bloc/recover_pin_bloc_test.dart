@@ -436,11 +436,11 @@ void main() {
     );
 
     blocTest<RecoverPinBloc, RecoverPinState>(
-      'emits RecoverPinDigidMismatch when a WrongDigidError is received',
+      'emits RecoverPinDigidMismatch when a WrongIdentityError is received',
       build: () {
         when(
           continuePinRecoveryUseCase.invoke(any),
-        ).thenAnswer((_) async => const Result.error(WrongDigidError(sourceError: 'test')));
+        ).thenAnswer((_) async => const Result.error(WrongIdentityError(sourceError: 'test')));
         when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
         return RecoverPinBloc(
           createPinRecoveryRedirectUriUseCase,
@@ -460,11 +460,11 @@ void main() {
     );
 
     blocTest<RecoverPinBloc, RecoverPinState>(
-      'emits RecoverPinDigidLoginCancelled when a DeniedDigidError is received',
+      'emits RecoverPinDigidLoginCancelled when a DeniedPidIssuanceError is received',
       build: () {
         when(
           continuePinRecoveryUseCase.invoke(any),
-        ).thenAnswer((_) async => const Result.error(DeniedDigidError(sourceError: 'test')));
+        ).thenAnswer((_) async => const Result.error(DeniedPidIssuanceError(sourceError: 'test')));
         when(cancelPinRecoveryUseCase.invoke()).thenAnswer((_) async => const Result<void>.success(null));
         return RecoverPinBloc(
           createPinRecoveryRedirectUriUseCase,

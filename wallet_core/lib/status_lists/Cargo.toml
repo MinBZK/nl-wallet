@@ -28,7 +28,6 @@ required-features = ["serve_test"]
 [features]
 axum = [
     "dep:etag",
-    "dep:mediatype",
     "dep:utoipa-axum",
     "axum/json",
     "http_utils/server",
@@ -41,10 +40,9 @@ axum = [
 revocation_helper = []
 test_api = ["axum", "revocation_helper"]
 serve_test = ["axum", "dep:reqwest"]
-db_test = ["serve_test", "dep:db_test", "tokio/rt-multi-thread"]
+db_test = ["serve_test", "tokio/rt-multi-thread"]
 
 [dependencies]
-anyhow.workspace = true
 chrono = { workspace = true, features = ["now"] }
 derive_more = { workspace = true, features = ["as_ref", "constructor", "debug", "from", "into_iterator"] }
 futures.workspace = true
@@ -74,7 +72,6 @@ uuid.workspace = true
 
 axum = { workspace = true, optional = true }
 etag = { workspace = true, optional = true }
-mediatype = { workspace = true, optional = true }
 reqwest = { workspace = true, optional = true }
 tower-http = { workspace = true, optional = true }
 utoipa = { workspace = true, optional = true }
@@ -89,9 +86,9 @@ measure.path = "../measure"
 token_status_list.path = "../token_status_list"
 utils.path = "../utils"
 
-db_test = { path = "../db_test", optional = true }
 
 [dev-dependencies]
+anyhow.workspace = true
 coset.workspace = true
 p256.workspace = true
 rstest.workspace = true
@@ -100,4 +97,5 @@ tokio = { workspace = true, features = ["macros"] }
 uuid = { workspace = true, features = ["v4"] }
 
 crypto = { path = "../crypto", features = ["generate", "mock"] }
+db_test.path = "../db_test"
 utils = { path = "../utils", features = ["mock_time"] }

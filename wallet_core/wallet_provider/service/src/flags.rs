@@ -177,7 +177,6 @@ where
 
 #[cfg(any(test, feature = "mock"))]
 pub mod mock {
-    use std::convert::Infallible;
     use std::sync::Arc;
     use std::sync::atomic::AtomicBool;
     use std::sync::atomic::Ordering;
@@ -192,7 +191,7 @@ pub mod mock {
     }
 
     impl WalletFlags for StubWalletFlags {
-        type Error = Infallible;
+        type Error = !;
 
         async fn set_solution_revoked(&self) -> Result<(), Self::Error> {
             self.solution_revoked.store(true, Ordering::Relaxed);
@@ -205,9 +204,9 @@ pub mod mock {
     }
 
     impl RevokeAll for StubWalletFlags {
-        type Error = Infallible;
+        type Error = !;
 
-        async fn is_revoked_all(&self) -> Result<bool, Infallible> {
+        async fn is_revoked_all(&self) -> Result<bool, !> {
             Ok(self.solution_is_revoked())
         }
     }

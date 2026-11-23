@@ -42,7 +42,7 @@ pub trait CborIndexedFields {
 /// - **Serialization**: field names are replaced by their declaration-order index (0, 1, 2, ...); fields whose value
 ///   serializes as CBOR null are omitted.
 /// - **Deserialization**: integer keys are mapped back to field names by position before delegating to `T`'s own
-///   deserializer.
+///   deserializer. Entries with an unknown or non-integer key are skipped as required by ISO 18013-5.
 ///
 /// # Example
 ///
@@ -123,20 +123,15 @@ where
 
         let with_fieldnames: Vec<(Value, Value)> = ordered_map
             .into_iter()
-            .map(|(index, val)| {
-                let index: u64 = index
+            .filter_map(|(index, val)| {
+                // Skip unknown keys, including non-integer ones
+                let field_name = index
                     .as_integer()
-                    .ok_or(de::Error::custom(
-                        "CborIntMap::deserialize failed: key was not an integer",
-                    ))?
-                    .try_into()
-                    .map_err(|e| de::Error::custom(format!("CborIntMap::deserialize failed: {e}")))?;
-                let fieldname = index_to_field.get(&index).ok_or(de::Error::custom(format!(
-                    "CborIntMap::deserialize failed: unknown index {index}"
-                )))?;
-                Ok((Value::Text(fieldname.to_string()), val))
+                    .and_then(|index| u64::try_from(index).ok())
+                    .and_then(|index| index_to_field.get(&index))?;
+                Some((Value::Text(field_name.to_string()), val))
             })
-            .collect::<Result<_, _>>()?;
+            .collect();
 
         Value::Map(with_fieldnames)
             .deserialized()
@@ -155,6 +150,7 @@ mod tests {
     use ciborium::value::Value::Null;
     use ciborium::value::Value::Text;
     use hex_literal::hex;
+    use mdoc_derive::CborIndexedFields;
     use rstest::rstest;
 
     use super::*;
@@ -201,6 +197,29 @@ mod tests {
         assert_matches!(
             error,
             CborError::Serialization(ciborium::ser::Error::Value(message)) if message == expected_message
+        );
+    }
+
+    #[derive(Debug, PartialEq, Eq, Deserialize, CborIndexedFields)]
+    struct IndexedStruct {
+        field: String,
+    }
+
+    #[test]
+    fn test_cbor_int_map_deserialization_ignores_unknown_fields() {
+        let value = Map(vec![
+            (Value::from(0), Text("value".to_owned())),
+            (Value::from(1), Text("unknown index".to_owned())),
+            (Text("unknown key".to_owned()), Value::Bool(true)),
+        ]);
+
+        let CborIntMap(deserialized) = value.deserialized::<CborIntMap<IndexedStruct>>().unwrap();
+
+        assert_eq!(
+            deserialized,
+            IndexedStruct {
+                field: "value".to_owned()
+            }
         );
     }
 

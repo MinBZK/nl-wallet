@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../environment.dart';
 import '../domain/model/attribute/attribute.dart';
@@ -308,6 +308,7 @@ Widget _createPinScreenBuilder(BuildContext context) => BlocProvider<PinBloc>(
 
 Widget _createSetupSecurityScreenBuilder(BuildContext context) => BlocProvider<SetupSecurityBloc>(
   create: (BuildContext context) => SetupSecurityBloc(
+    context.read(),
     context.read(),
     context.read(),
     context.read(),

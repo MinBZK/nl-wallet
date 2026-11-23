@@ -46,8 +46,9 @@ sonar-flutter:
       artifacts: true
     - job: test-flutter-ui
       artifacts: true
-    # - job: dependency-check
-    #   artifacts: true
+    - job: dependency-check
+      artifacts: true
+      optional: true
   script:
     - cd wallet_app
     - flutter pub get --enforce-lockfile
@@ -103,6 +104,7 @@ sonar-wallet-web:
 
 sonar-ios:
   extends: .default-sonar
+  rules: !reference [test-ios-platform-support-device, rules]
   needs:
     - job: test-ios-platform-support-device
       artifacts: true
@@ -128,6 +130,7 @@ sonar-android:
       artifacts: true
     - job: test-android-platform-support-device
       artifacts: true
+      optional: true
   script:
     - cd wallet_core/wallet/platform_support/android
     - sonar-scanner

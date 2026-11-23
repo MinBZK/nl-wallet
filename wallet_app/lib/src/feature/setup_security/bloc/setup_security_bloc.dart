@@ -8,7 +8,9 @@ import '../../../domain/model/bloc/error_state.dart';
 import '../../../domain/model/flow_progress.dart';
 import '../../../domain/model/pin/pin_validation_error.dart';
 import '../../../domain/model/result/application_error.dart';
+import '../../../domain/usecase/biometrics/biometric_authentication_result.dart';
 import '../../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
+import '../../../domain/usecase/biometrics/request_biometrics_usecase.dart';
 import '../../../domain/usecase/biometrics/set_biometrics_usecase.dart';
 import '../../../domain/usecase/pin/check_is_valid_pin_usecase.dart';
 import '../../../domain/usecase/wallet/create_wallet_usecase.dart';
@@ -27,6 +29,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   final CreateWalletUseCase createWalletUseCase;
   final GetAvailableBiometricsUseCase supportsBiometricsUsecase;
   final SetBiometricsUseCase setBiometricsUseCase;
+  final RequestBiometricsUseCase requestBiometricsUseCase;
 
   String _newPin = '';
   String _confirmPin = '';
@@ -37,6 +40,7 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
     this.createWalletUseCase,
     this.supportsBiometricsUsecase,
     this.setBiometricsUseCase,
+    this.requestBiometricsUseCase,
   ) : super(const SetupSecuritySelectPinInProgress(0)) {
     on<SetupSecurityBackPressed>(_onSetupSecurityBackPressedEvent);
     on<PinDigitPressed>(_onPinDigitPressedEvent);
@@ -158,13 +162,32 @@ class SetupSecurityBloc extends Bloc<SetupSecurityEvent, SetupSecurityState> {
   Future<void> _onRetryPressed(SetupSecurityRetryPressed event, Emitter<SetupSecurityState> emit) => _resetFlow(emit);
 
   Future<void> _onEnableBiometricsPressed(EnableBiometricsPressed event, Emitter<SetupSecurityState> emit) async {
-    assert(state is SetupSecurityConfigureBiometrics, 'Can only enable biometrics from the configuration state');
-    final result = await setBiometricsUseCase.invoke(enable: true, authenticateBeforeEnabling: true);
-    await result.process(
-      onSuccess: (_) {
-        final biometrics = tryCast<SetupSecurityConfigureBiometrics>(state)?.biometrics ?? Biometrics.some;
-        emit(SetupSecurityCompleted(enabledBiometrics: biometrics));
+    final currentState = state;
+    assert(currentState is SetupSecurityConfigureBiometrics, 'Can only enable biometrics from the configuration state');
+    final biometrics = tryCast<SetupSecurityConfigureBiometrics>(currentState)?.biometrics ?? Biometrics.some;
+
+    final authResult = await requestBiometricsUseCase.invoke();
+    await authResult.process(
+      onSuccess: (result) async {
+        switch (result) {
+          case BiometricAuthenticationResult.success:
+            await _enableBiometrics(biometrics, emit);
+          case BiometricAuthenticationResult.setupRequired:
+            emit(SetupSecurityBiometricsSetupRequired(biometrics: biometrics));
+            emit(SetupSecurityConfigureBiometrics(biometrics: biometrics));
+          case BiometricAuthenticationResult.lockedOut:
+            emit(SetupSecurityBiometricsLockedOut(biometrics: biometrics));
+            emit(SetupSecurityConfigureBiometrics(biometrics: biometrics));
+        }
       },
+      onError: (error) => Fimber.e('Failed to authenticate with biometrics', ex: error),
+    );
+  }
+
+  Future<void> _enableBiometrics(Biometrics biometrics, Emitter<SetupSecurityState> emit) async {
+    final result = await setBiometricsUseCase.invoke(enable: true);
+    await result.process(
+      onSuccess: (_) => emit(SetupSecurityCompleted(enabledBiometrics: biometrics)),
       onError: (error) => Fimber.e('Failed to enable biometrics', ex: error),
     );
   }

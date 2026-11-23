@@ -71,7 +71,6 @@ test-rust:
   extends: .test-rust
   rules: !reference [.default-or-merge-request, rules]
   variables:
-    SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
     SKIP_KEYCLOAK: "true"
     DB_HOST: "postgres"
@@ -163,7 +162,6 @@ test-sea-orm-generate-entity:
   extends: .test-rust
   rules: !reference [.default-or-merge-request, rules]
   variables:
-    SKIP_DIGID_CONNECTOR: "true"
     SKIP_WALLET_WEB: "true"
     SKIP_KEYCLOAK: "true"
     DB_HOST: "postgres"
@@ -187,9 +185,6 @@ test-sea-orm-generate-entity:
     - !reference [.default-or-merge-request, rules]
   needs:
     - job: test-rust
-      artifacts: false
-      optional: true
-    - job: test-rust-digid
       artifacts: false
       optional: true
     - job: test-rust-doctest
@@ -370,44 +365,6 @@ build-acf-demo-issuer-binary:
       - wallet_core/wallet_server/acf_demo_issuer/assets
       - wallet_core/target/x86_64-unknown-linux-musl/release/acf_demo_issuer
 
-build-gba-hc-converter-binary:
-  extends: .build-binary
-  script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin
-      gba_hc_converter
-  artifacts:
-    name: gba_hc_converter
-    paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/release/gba_hc_converter
-
-build-gba-fetch-binary:
-  extends: .build-binary
-  script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --package "gba_hc_converter" --bin gba_fetch
-  artifacts:
-    name: gba_fetch
-    paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/debug/gba_fetch
-
-build-gba-encrypt-binary:
-  extends: .build-binary
-  script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --package "gba_hc_converter" --bin gba_encrypt
-  artifacts:
-    name: gba_encrypt
-    paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/debug/gba_encrypt
-
-build-gba-fetch-frontend-binary:
-  extends: .build-binary
-  script:
-    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "gba_hc_converter" --bin
-      gba_fetch_frontend
-  artifacts:
-    name: gba_fetch_frontend
-    paths:
-      - wallet_core/target/x86_64-unknown-linux-musl/release/gba_fetch_frontend
-
 build-revocation-portal-binary:
   extends: .build-binary
   needs:
@@ -425,9 +382,7 @@ build-revocation-portal-binary:
       - wallet_core/target/x86_64-unknown-linux-musl/release/revocation_portal
 
 build-performance-test:
-  extends:
-    - .build-binary
-    - .env-k8s
+  extends: [.build-binary, .env-k8s]
   rules:
     - !reference [.on-schedule-nightly-performance-test, rules]
     - !reference [.default-or-merge-request-manual, rules]
@@ -438,11 +393,6 @@ build-performance-test:
       optional: true
     - job: wallet-config-ont
       artifacts: true
-  before_script:
-    - !reference [.build-binary, before_script]
-    - DIGID_TRUST_ANCHORS="$(kubectl get configmap nl-wallet-pid-issuer-digid-http-trust-anchors
-      --output=jsonpath='{.data.trust_anchors}')"
-    - export DIGID_TRUST_ANCHORS
   script:
     - cargo build --locked --release --package "tests_integration" --bin performance_test --features
       performance_test,allow_insecure_url

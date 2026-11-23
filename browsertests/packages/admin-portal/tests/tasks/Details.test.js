@@ -14,7 +14,7 @@ test.describe("Admin portal tasks", () => {
       const withdrawUrl = `**/admin-portal/tasks/${task.taskId}/withdraw`
       await mockTaskLists(page, { open: [task] })
       await page.route(withdrawUrl, (route) => route.fulfill({ json: { ...task, status: "withdrawn" } }))
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
       await adminPortal.navMyTasks.click()
       await adminPortal.openTaskDetails(task.taskId)
 
@@ -39,10 +39,10 @@ test.describe("Admin portal tasks", () => {
     }) => {
       const task = aTask()
       await mockTaskLists(page, { reviewable: [task] })
-      await adminPortal.loginAs(USERS.operator)
+      await adminPortal.openAs(USERS.operator)
 
       await expect(adminPortal.taskRow(task.taskId)).toContainText(task.createdBy)
-      await adminPortal.openTaskDetails(task.taskId)
+      await adminPortal.openReviewableTask(task.taskId)
 
       await expect(adminPortal.detailRow("Aangemaakt door:")).toContainText(task.createdBy)
       await expect(adminPortal.detailRow("Reden")).toContainText(task.taskReason)
@@ -98,7 +98,7 @@ test.describe("Admin portal tasks", () => {
           withdrawnAt: "2026-01-16T10:00:00Z",
         })
         await mockTaskLists(page, { history: [task] })
-        await adminPortal.loginAs(USERS.operator)
+        await adminPortal.openAs(USERS.operator)
 
         await adminPortal.navHistory.click()
         await expect(adminPortal.taskRow(task.taskId)).toContainText(verdict)

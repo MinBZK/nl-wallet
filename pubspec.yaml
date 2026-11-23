@@ -2,7 +2,7 @@ name: nl_wallet_workspace
 
 environment:
   sdk: ^3.13.0
-  flutter: ^3.47.0
+  flutter: ^3.50.0
 
 publish_to: none
 

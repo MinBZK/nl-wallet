@@ -23,7 +23,6 @@ then
         adb reverse tcp:${ACF_DEMO_ISSUER_PORT} tcp:${ACF_DEMO_ISSUER_PORT}
         adb reverse tcp:${DEMO_RP_PORT} tcp:${DEMO_RP_PORT}
         adb reverse tcp:${VERIFICATION_SERVER_PORT} tcp:${VERIFICATION_SERVER_PORT}
-        adb reverse tcp:${RDO_MAX_PORT} tcp:${RDO_MAX_PORT}
     else
         echo -e "Please start the Android emulator, and run ${BLUE}$0 $@${NC} again"
     fi

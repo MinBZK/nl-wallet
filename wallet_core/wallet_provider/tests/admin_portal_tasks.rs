@@ -8,6 +8,7 @@
 //! Although E2E browser tests also cover these flows, these tests provide shorter iteration times, but don't include
 //! the frontend.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -23,16 +24,22 @@ use serde_json::json;
 use tower::ServiceExt;
 use utils::vec_nonempty;
 use uuid::Uuid;
+use wallet_account::messages::errors::RevocationReason;
 use wallet_provider::admin_portal;
+use wallet_provider::admin_portal::CheckRecoveryCodeRequest;
+use wallet_provider::admin_portal::CheckRecoveryCodeResponse;
 use wallet_provider::admin_portal::CheckWalletRequest;
 use wallet_provider::admin_portal::CheckWalletResponse;
 use wallet_provider::admin_portal::CreateTaskRequest;
+use wallet_provider::admin_portal::RecoveryCodeStatus;
 use wallet_provider::admin_portal::ReviewTaskRequest;
 use wallet_provider::admin_portal::TaskResponse;
 use wallet_provider::admin_portal::WithdrawTaskRequest;
 use wallet_provider::test_support::TestState;
+use wallet_provider::test_support::post_json_request;
 use wallet_provider::test_support::setup_state;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_task::BlockUserParameters;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
 use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
@@ -40,10 +47,12 @@ use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
 use wallet_provider_domain::repository::TransactionStarter;
+use wallet_provider_domain::repository::WalletUserRepository;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_persistence::test::WalletDeviceVendor;
 use wallet_provider_persistence::test::create_wallet_user_with_random_keys;
@@ -91,6 +100,55 @@ async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: 
         .expect("should insert session");
 
     format!("sid={session_id}")
+}
+
+/// Returns a recovery code that is unique within the test, so that tests do not share wallets.
+fn new_recovery_code() -> String {
+    format!("recovery-code-{}", Uuid::new_v4())
+}
+
+fn block_user_payload(recovery_codes: &[String]) -> TaskPayload {
+    let recovery_codes = recovery_codes
+        .iter()
+        .map(|recovery_code| RecoveryCode::from(recovery_code.clone()))
+        .collect::<Vec<_>>();
+
+    TaskPayload::BlockUser(BlockUserParameters {
+        recovery_codes: recovery_codes.try_into().unwrap(),
+    })
+}
+
+/// Inserts a wallet user with a unique wallet id and `recovery_code`, and returns that wallet id.
+async fn seed_wallet_with_recovery_code(repositories: &Repositories, recovery_code: &str) -> WalletId {
+    let wallet_id = seed_wallet(repositories).await;
+    let transaction = repositories.begin_transaction().await.unwrap();
+    repositories
+        .store_recovery_code(&transaction, &wallet_id, RecoveryCode::from(recovery_code.to_string()))
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
+    wallet_id
+}
+
+/// Revokes the wallet with `wallet_id`, as an admin would.
+async fn revoke_wallet(repositories: &Repositories, wallet_id: &WalletId) {
+    let transaction = repositories.begin_transaction().await.unwrap();
+    let wallet_user_ids = repositories
+        .find_wallet_user_id_by_wallet_ids(&transaction, &HashSet::from([wallet_id.clone()]))
+        .await
+        .unwrap()
+        .into_values()
+        .collect();
+    repositories
+        .revoke_wallet_users(
+            &transaction,
+            wallet_user_ids,
+            RevocationReason::AdminRequest,
+            Utc::now(),
+        )
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
 }
 
 fn revoke_wallet_payload() -> TaskPayload {
@@ -275,6 +333,129 @@ async fn test_check_wallet_bad_request() {
 
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_check_recovery_code_counts_active_and_inactive_wallets() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+    let recovery_code = new_recovery_code();
+    seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
+    let revoked_wallet = seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
+    revoke_wallet(&repositories, &revoked_wallet).await;
+
+    let request = post_json_request(
+        "/recovery-codes/check",
+        &cookie,
+        &CheckRecoveryCodeRequest {
+            recovery_code: RecoveryCode::from(recovery_code),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.status(), RecoveryCodeStatus::Allowed);
+    assert_eq!(body.active_wallet_count(), 1);
+    assert_eq!(body.inactive_wallet_count(), 1);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_check_recovery_code_unknown_returns_unknown_status() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+
+    let request = post_json_request(
+        "/recovery-codes/check",
+        &cookie,
+        &CheckRecoveryCodeRequest {
+            recovery_code: RecoveryCode::from(new_recovery_code()),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.status(), RecoveryCodeStatus::NotKnown);
+    assert_eq!(body.active_wallet_count(), 0);
+    assert_eq!(body.inactive_wallet_count(), 0);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_create_block_user_task_accepts_unknown_recovery_code() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+    // No wallet has this recovery code, which is allowed: a wallet may not have been created yet.
+    let payload = block_user_payload(&[new_recovery_code()]);
+
+    let request = post_json_request(
+        "/tasks",
+        &cookie,
+        &CreateTaskRequest {
+            payload: payload.clone(),
+            task_reason: "integration test".to_string(),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Created);
+    assert_eq!(task.payload, payload);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_block_user_task_approval_revokes_wallet() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let bob = TestUser::new("bob");
+    let cookie = seed_session(&repositories, &bob, &[TaskType::BlockUser]).await;
+    let recovery_code = new_recovery_code();
+    seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
+    let task_id = seed_task_with_payload(
+        &repositories,
+        &alice,
+        block_user_payload(std::slice::from_ref(&recovery_code)),
+    )
+    .await;
+
+    let response = app
+        .clone()
+        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Approved);
+    assert_eq!(task.execution_successful, Some(true));
+    assert_eq!(task.execution_details, Some("revoked 1 wallet(s)".to_string()));
+
+    // The wallet is now revoked, so the recovery code has no active wallets left.
+    let request = post_json_request(
+        "/recovery-codes/check",
+        &cookie,
+        &CheckRecoveryCodeRequest {
+            recovery_code: RecoveryCode::from(recovery_code),
+        },
+    );
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let body: CheckRecoveryCodeResponse = json_body(response).await;
+    assert_eq!(body.status(), RecoveryCodeStatus::Denied);
+    assert_eq!(body.active_wallet_count(), 0);
+    assert_eq!(body.inactive_wallet_count(), 1);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_create_task_succeeds() {
     let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
@@ -284,19 +465,14 @@ async fn test_create_task_succeeds() {
         wallet_ids: vec_nonempty![wallet_id].into(),
     });
 
-    let request = Request::builder()
-        .method("POST")
-        .uri("/tasks")
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&CreateTaskRequest {
-                payload: payload.clone(),
-                task_reason: "integration test".to_string(),
-            })
-            .unwrap(),
-        ))
-        .unwrap();
+    let request = post_json_request(
+        "/tasks",
+        &cookie,
+        &CreateTaskRequest {
+            payload: payload.clone(),
+            task_reason: "integration test".to_string(),
+        },
+    );
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
@@ -315,18 +491,13 @@ async fn test_withdraw_task_succeeds() {
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
 
-    let request = Request::builder()
-        .method("POST")
-        .uri(format!("/tasks/{task_id}/withdraw"))
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&WithdrawTaskRequest {
-                withdrawal_comment: "no longer needed".to_string(),
-            })
-            .unwrap(),
-        ))
-        .unwrap();
+    let request = post_json_request(
+        &format!("/tasks/{task_id}/withdraw"),
+        &cookie,
+        &WithdrawTaskRequest {
+            withdrawal_comment: "no longer needed".to_string(),
+        },
+    );
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -393,19 +564,14 @@ fn review_request(task_id: Uuid, cookie: &str, verdict: ReviewVerdict) -> Reques
         ReviewVerdict::Approve => "looks good",
         ReviewVerdict::Reject => "not today",
     };
-    Request::builder()
-        .method("POST")
-        .uri(format!("/tasks/{task_id}/review"))
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&ReviewTaskRequest {
-                verdict,
-                review_comment: review_comment.to_string(),
-            })
-            .unwrap(),
-        ))
-        .unwrap()
+    post_json_request(
+        &format!("/tasks/{task_id}/review"),
+        cookie,
+        &ReviewTaskRequest {
+            verdict,
+            review_comment: review_comment.to_string(),
+        },
+    )
 }
 
 #[serial_test::serial(hsm)]

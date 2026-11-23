@@ -1,5 +1,5 @@
 import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../domain/model/attribute/attribute.dart';
 import '../../../domain/model/card/wallet_card.dart';
@@ -75,8 +75,10 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               ),
             ),
             const SliverDivider(),
-            SliverToBoxAdapter(child: _buildReasonSection(context)),
-            const SliverDivider(),
+            if (requestPurpose.hasL10nText(context)) ...[
+              SliverToBoxAdapter(child: _buildReasonSection(context)),
+              const SliverDivider(),
+            ],
             SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

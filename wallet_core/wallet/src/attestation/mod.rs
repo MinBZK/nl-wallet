@@ -56,12 +56,12 @@ pub enum AttributeError {
 
 pub trait AttestationPresentationConfig {
     /// The key path of the attribute that should be filtered from the presentation of the attestation, if any.
-    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<impl Iterator<Item = &str> + Clone>;
+    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<impl Iterator<Item = &str>>;
 }
 
 impl AttestationPresentationConfig for PidAttributesConfiguration {
-    fn filtered_attribute(&self, format: Format, attribute: &str) -> Option<impl Iterator<Item = &str> + Clone> {
-        self.recovery_code_key_path(format, attribute)
+    fn filtered_attribute(&self, format: Format, attestation_type: &str) -> Option<impl Iterator<Item = &str>> {
+        self.recovery_code_key_path(format, attestation_type)
     }
 }
 
@@ -247,11 +247,7 @@ pub mod mock {
     pub struct EmptyPresentationConfig;
 
     impl AttestationPresentationConfig for EmptyPresentationConfig {
-        fn filtered_attribute(
-            &self,
-            _format: Format,
-            _attestation_type: &str,
-        ) -> Option<impl Iterator<Item = &str> + Clone> {
+        fn filtered_attribute(&self, _format: Format, _attestation_type: &str) -> Option<impl Iterator<Item = &str>> {
             None::<Empty<&str>>
         }
     }

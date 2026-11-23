@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:wallet/src/feature/common/builder/request_detail_common_builders.dart';
 import 'package:wallet/src/feature/common/widget/card/shared_attributes_card.dart';
 import 'package:wallet/src/feature/common/widget/divider_side.dart';
@@ -41,6 +41,36 @@ void main() {
     final l10n = await TestUtils.englishLocalizations;
     expect(find.text(l10n.historyDetailScreenPurposeTitle), findsOneWidget);
     expect(find.text(WalletMockData.disclosureEvent.purpose.testValue), findsOneWidget);
+  });
+
+  testWidgets('buildPurpose is hidden when purpose is empty', (WidgetTester tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPurpose(
+          context,
+          purpose: const {},
+          side: DividerSide.bottom,
+        ),
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.historyDetailScreenPurposeTitle), findsNothing);
+  });
+
+  testWidgets('buildPurpose is hidden when purpose text is blank', (WidgetTester tester) async {
+    await tester.pumpWidgetWithAppWrapper(
+      _WidgetTestWrapper(
+        widgetBuilder: (context) => RequestDetailCommonBuilders.buildPurpose(
+          context,
+          purpose: {const Locale('en'): '  '},
+          side: DividerSide.bottom,
+        ),
+      ),
+    );
+
+    final l10n = await TestUtils.englishLocalizations;
+    expect(find.text(l10n.historyDetailScreenPurposeTitle), findsNothing);
   });
 
   testWidgets('buildSharedAttributes', (WidgetTester tester) async {

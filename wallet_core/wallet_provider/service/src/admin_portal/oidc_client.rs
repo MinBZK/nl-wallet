@@ -161,7 +161,7 @@ impl OidcHttpClient {
     where
         C: DeserializeOwned + JwtTyp,
     {
-        let claims = request_userinfo(&self.http_client, metadata, access_token, client_id, None)
+        let claims = request_userinfo(&self.http_client, metadata, access_token, client_id)
             .await
             .map_err(OidcHttpClientError::UserInfo)?;
         Ok(claims)

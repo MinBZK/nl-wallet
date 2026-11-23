@@ -2,6 +2,7 @@ use anyhow::Result;
 use anyhow::ensure;
 use attestation_data::registration_certificate::RegistrationCertificateAuthorizationError;
 use attestation_data::registration_certificate::RegistrationCertificateEnvelopeError;
+use attestation_data::registration_certificate::RegistrationCertificateEnvelopeParseError;
 use attestation_data::registration_certificate::RegistrationCertificateRequestParseError;
 use attestation_data::registration_certificate::RegistrationCertificateStatusValidationError;
 use attestation_data::registration_certificate::RegistrationCertificateValidationError;
@@ -12,6 +13,7 @@ use attestation_types::pid_constants::PID_GIVEN_NAME;
 use attestation_types::pid_constants::PID_MDOC_DOCTYPE;
 use chrono::Utc;
 use ciborium::value::Value;
+use cose::CoseError;
 use cose::wrprc_cwt::WrprcCwtError;
 use indexmap::IndexMap;
 use jwt::error::JwtParseError;
@@ -21,6 +23,7 @@ use serde_json::json;
 use token_status_list::status_list::StatusList;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_jwt::StatusListJwt;
+use token_status_list::status_list_token::StatusListTokenParseError;
 use token_status_list::verification::client::StatusListClientError;
 
 use crate::errors::DisclosureError;
@@ -115,9 +118,9 @@ impl RegistrationCertificateCase {
                 Ok(authority.sign_status_list(list))
             }
             // Simulate retrieval returning an unusable status-list token, without network dependencies.
-            Self::StatusUnavailable => Err(StatusListClientError::JwtParsing(
+            Self::StatusUnavailable => Err(StatusListClientError::Parse(StatusListTokenParseError::Jwt(
                 JwtParseError::UnexpectedNumberOfParts(0),
-            )),
+            ))),
             Self::UntrustedStatusList => Ok(MockRegistrationCertificateAuthority::new().status_list_client.0),
             _ => Ok(authority.status_list_client.0.clone()),
         }
@@ -172,8 +175,24 @@ impl RegistrationCertificateCase {
             (case, DisclosureError::CloseProximityDisclosureSessionError(error)) => match (case, error) {
                 (Self::Missing, RegistrationCertificateParsing(Parse::Missing))
                 | (Self::WrongType, RegistrationCertificateParsing(Parse::NotByteString))
-                | (Self::Malformed, RegistrationCertificateParsing(Parse::Envelope(_)))
-                | (Self::TamperedSignature | Self::Untrusted, RegistrationCertificateVerification(Envelope::Cwt(_)))
+                | (
+                    Self::Malformed,
+                    RegistrationCertificateParsing(Parse::Envelope(
+                        RegistrationCertificateEnvelopeParseError::NeitherFormat { .. },
+                    )),
+                )
+                | (
+                    Self::TamperedSignature,
+                    RegistrationCertificateVerification(Envelope::Cwt(WrprcCwtError::Cose(
+                        CoseError::Esp256SignatureVerificationFailed(_),
+                    ))),
+                )
+                | (
+                    Self::Untrusted,
+                    RegistrationCertificateVerification(Envelope::Cwt(WrprcCwtError::Cose(
+                        CoseError::CertificateVerify(_),
+                    ))),
+                )
                 | (Self::Expired, RegistrationCertificateVerification(Envelope::Cwt(WrprcCwtError::Expired)))
                 | (
                     Self::MismatchedReader,
