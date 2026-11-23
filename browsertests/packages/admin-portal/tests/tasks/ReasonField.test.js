@@ -67,7 +67,7 @@ test.describe("Admin portal tasks", () => {
       await mockTaskLists(page, { reviewable: [task] })
       await adminPortal.openAs(USERS.operator)
 
-      await adminPortal.openTaskDetails(task.taskId)
+      await adminPortal.openReviewableTask(task.taskId)
 
       await expect(adminPortal.detailRow("Reden")).toContainText(reason)
       await expect(adminPortal.detailRow("Reden").locator("img, b")).toHaveCount(0)

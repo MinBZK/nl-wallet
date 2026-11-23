@@ -74,7 +74,7 @@ test.describe("Admin portal tasks", () => {
         await mockTaskLists(page, { reviewable: [task] })
         await adminPortal.openAs(USERS.operator)
 
-        await adminPortal.openTaskDetails(task.taskId)
+        await adminPortal.openReviewableTask(task.taskId)
 
         await expect(adminPortal.detailRow("Actie")).toContainText("Wallet(s) intrekken")
         await expect(adminPortal.detailRow("Doel:")).toHaveText(/^Doel:\s*1 Wallet-ID$/)

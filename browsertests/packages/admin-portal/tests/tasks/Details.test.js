@@ -42,7 +42,7 @@ test.describe("Admin portal tasks", () => {
       await adminPortal.openAs(USERS.operator)
 
       await expect(adminPortal.taskRow(task.taskId)).toContainText(task.createdBy)
-      await adminPortal.openTaskDetails(task.taskId)
+      await adminPortal.openReviewableTask(task.taskId)
 
       await expect(adminPortal.detailRow("Aangemaakt door:")).toContainText(task.createdBy)
       await expect(adminPortal.detailRow("Reden")).toContainText(task.taskReason)
