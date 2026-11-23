@@ -1119,6 +1119,7 @@
     "privacySectionTitle": "Privacybeleid",
     "qrActionButtonSubtitle": "Scan QR of laat je QR-code zien",
     "qrActionButtonTitle": "Start je actie",
+    "qrActionSheetDescription": "Kies wat je wilt doen.",
     "qrActionSheetScanQrDescription": "Scan de QR-code van de organisatie. Of van een ander apparaat.",
     "qrActionSheetScanQrTitle": "Scan een QR-code",
     "qrActionSheetShowQrDescription": "Laat de organisatie jouw QR-code scannen.",

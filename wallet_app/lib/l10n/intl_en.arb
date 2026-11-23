@@ -1123,6 +1123,7 @@
     "privacySectionTitle": "Privacy Policy",
     "qrActionButtonSubtitle": "Scan QR or show your QR code",
     "qrActionButtonTitle": "Start your action",
+    "qrActionSheetDescription": "Choose what you want to do.",
     "qrActionSheetScanQrDescription": "Scan the QR code from the organisation. Or from another device.",
     "qrActionSheetScanQrTitle": "Scan a QR code",
     "qrActionSheetShowQrDescription": "Let the organisation scan your QR code.",
