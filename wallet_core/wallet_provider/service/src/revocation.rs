@@ -346,3 +346,22 @@ where
 
     Ok(())
 }
+
+pub async fn remove_denied_recovery_codes<T, R, F, H>(
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    recovery_codes: &[RecoveryCode],
+) -> Result<u64, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    let tx = user_state.repositories.begin_transaction().await?;
+    let unblocked = user_state
+        .repositories
+        .allow_recovery_codes(&tx, recovery_codes)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(unblocked)
+}

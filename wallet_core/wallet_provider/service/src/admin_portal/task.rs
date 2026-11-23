@@ -35,6 +35,7 @@ use super::MissingPrivileges;
 use crate::account_server::UserState;
 use crate::admin_portal::execution::block_users;
 use crate::admin_portal::execution::revoke_wallets;
+use crate::admin_portal::execution::unblock_users;
 
 #[derive(Debug, thiserror::Error)]
 pub enum RetrieveTaskError {
@@ -410,7 +411,13 @@ where
                     Err(error) => (false, error.to_string()),
                 }
             }
-            TaskPayload::UnblockUser(_) => todo!("PVW-6177"),
+            TaskPayload::UnblockUser(parameters) => {
+                let recovery_codes = &parameters.recovery_codes;
+                match unblock_users(task.id, approver, recovery_codes, user_state, audit_log).await {
+                    Ok(unblocked_codes) => (true, format!("unblocked {unblocked_codes} recovery code(s)")),
+                    Err(error) => (false, error.to_string()),
+                }
+            }
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         };
 
@@ -780,6 +787,21 @@ mod tests {
                     .filter(|code| denied_recovery_codes.contains(&code.as_ref().as_str()))
                     .collect())
             });
+        wallet_user_repo
+    }
+
+    /// Returns a repository that answers the allow of recovery codes with `result`.
+    fn wallet_user_repository_allowing_recovery_codes(
+        result: Result<u64, PersistenceError>,
+    ) -> MockTransactionalWalletUserRepository {
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_allow_recovery_codes()
+            .times(1)
+            .return_once(move |_, _| result);
         wallet_user_repo
     }
 
@@ -1341,6 +1363,37 @@ mod tests {
 
         assert_eq!(executed.execution_successful, Some(true));
         assert_eq!(executed.execution_details.as_deref(), Some("revoked 2 wallet(s)"));
+        assert!(audit_log.contains_match(|log: &String| log.contains("recovery_codes")));
+    }
+
+    #[rstest]
+    #[case::unblocked(Ok(2), true, "unblocked 2 recovery code(s)")]
+    #[case::storage_error(Err(PersistenceError::NoRowsUpdated), false, "persistence error")]
+    #[tokio::test]
+    async fn execute_task_stores_unblock_user_result(
+        now: DateTime<Utc>,
+        task_id: Uuid,
+        #[case] allowed: Result<u64, PersistenceError>,
+        #[case] expected_successful: bool,
+        #[case] expected_details: &str,
+    ) {
+        let approved = AdminTask {
+            payload: unblock_user_payload(&["recovery-code-1", "recovery-code-2"]),
+            ..task_in(State::Approved, task_id)
+        };
+        let mut repository = MockAdminPortalRepository::new();
+        expect_transaction(&mut repository);
+        expect_find_task(&mut repository, task_id, Some(approved.clone()));
+        expect_store_execution_result(&mut repository, approved, now);
+
+        let user_repo = wallet_user_repository_allowing_recovery_codes(allowed);
+        let audit_log = InMemoryAuditLog::default();
+        let executed = execute(repository, user_repo, now, task_id, &audit_log)
+            .await
+            .expect("task should be executed");
+
+        assert_eq!(executed.execution_successful, Some(expected_successful));
+        assert!(executed.execution_details.unwrap().contains(expected_details));
         assert!(audit_log.contains_match(|log: &String| log.contains("recovery_codes")));
     }
 

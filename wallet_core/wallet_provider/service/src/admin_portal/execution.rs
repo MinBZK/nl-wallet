@@ -18,6 +18,7 @@ use wallet_provider_domain::repository::WalletUserRepository;
 use crate::account_server::UserState;
 use crate::admin_portal::LoggedInUser;
 use crate::revocation::RevocationError;
+use crate::revocation::remove_denied_recovery_codes;
 use crate::revocation::system_revoke_wallets_by_recovery_code_list;
 use crate::revocation::system_revoke_wallets_by_wallet_id;
 
@@ -56,4 +57,21 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     system_revoke_wallets_by_recovery_code_list(recovery_codes, user_state, time).await
+}
+
+/// Unblocks the users of an approved admin task by allowing the recovery codes again, in one transaction. Returns the
+/// number of recovery codes matched by this call.
+#[audited]
+pub async fn unblock_users<T, R, F, H>(
+    #[audit] task_id: Uuid,
+    #[audit_user] approved_by: &LoggedInUser,
+    #[audit] recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    #[auditor] audit_log: &impl AuditLog,
+) -> Result<u64, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    remove_denied_recovery_codes(user_state, recovery_codes.as_slice()).await
 }

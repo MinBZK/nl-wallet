@@ -963,6 +963,35 @@ async fn test_remove_nonexistent_denied_recovery_code_service() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_remove_denied_recovery_codes_service() {
+    let db_setup = DbSetup::create().await;
+    let temp_dir = tempfile::tempdir().unwrap();
+    let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
+    let (user_state, _) = setup_state(&db_setup, publish_dir).await;
+
+    let recovery_codes: Vec<RecoveryCode> = vec![random_string(64).into(), random_string(64).into()];
+
+    let tx = user_state.repositories.begin_transaction().await.unwrap();
+    user_state
+        .repositories
+        .deny_recovery_codes(&tx, &recovery_codes.clone().try_into().unwrap())
+        .await
+        .unwrap();
+    tx.commit().await.unwrap();
+
+    let unblocked = wallet_provider_service::revocation::remove_denied_recovery_codes(&user_state, &recovery_codes)
+        .await
+        .unwrap();
+    assert_eq!(unblocked, 2);
+
+    // the committed change must be visible outside the transaction
+    let denied = wallet_provider_service::revocation::list_denied_recovery_codes(&user_state)
+        .await
+        .unwrap();
+    assert!(recovery_codes.iter().all(|code| !denied.contains(code)));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_revoke_solution() {
     let db_setup = DbSetup::create_clean_only([DbName::WalletProvider]).await;
     let _clear_flags = clear_flags_dropper(&db_setup);
