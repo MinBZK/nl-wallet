@@ -10,18 +10,23 @@ use p256::ecdsa::SigningKey;
 use p256::ecdsa::VerifyingKey;
 use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::DecodePublicKey;
+use p256::pkcs8::EncodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
+use serde::Serializer;
+use serde_with::SerializeAs;
+use zeroize::Zeroizing;
 
 use crate::keys::AsPublicKeyRef;
 use crate::keys::PublicKeyRef;
 use crate::utils::sha256;
 
-/// Wraps a [`SigningKey`] and implements `TryFrom<Vec<u8>>` for deserialization using `serde_with`.
+/// A PKCS#8 DER adapter for a [`SigningKey`].
 pub type DerSigningKey = DerPrivateKey<SigningKey>;
 
-/// Wraps a [`SecretKey`] and implements `TryFrom<Vec<u8>>` for deserialization using `serde_with`.
+/// A PKCS#8 DER adapter for a [`SecretKey`].
 pub type DerSecretKey = DerPrivateKey<SecretKey>;
 
+/// Parses owned PKCS#8 DER bytes with [`TryFrom`] and serializes a borrowed key as DER bytes with [`SerializeAs`].
 #[derive(Debug, Clone, From)]
 pub struct DerPrivateKey<T>(T);
 
@@ -52,9 +57,16 @@ where
     type Error = p256::pkcs8::Error;
 
     fn try_from(value: Vec<u8>) -> Result<Self, Self::Error> {
-        let private_key = T::from_pkcs8_der(&value)?;
+        let private_key = T::from_pkcs8_der(&Zeroizing::new(value))?;
 
         Ok(Self(private_key))
+    }
+}
+
+impl<T: EncodePrivateKey> SerializeAs<T> for DerPrivateKey<T> {
+    fn serialize_as<S: Serializer>(key: &T, serializer: S) -> Result<S::Ok, S::Error> {
+        let der = key.to_pkcs8_der().map_err(serde::ser::Error::custom)?;
+        serializer.serialize_bytes(der.as_bytes())
     }
 }
 

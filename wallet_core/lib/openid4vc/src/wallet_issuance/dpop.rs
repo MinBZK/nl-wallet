@@ -1,3 +1,4 @@
+use crypto::p256_der::DerSigningKey;
 use derive_more::Debug;
 use http::HeaderMap;
 use http::StatusCode;
@@ -8,12 +9,13 @@ use oauth::dpop::DpopNonce;
 use oauth::token::AccessToken;
 use p256::ecdsa::SigningKey;
 use p256::elliptic_curve::Generate;
+use p256::elliptic_curve::zeroize::Zeroizing;
 use reqwest::Method;
 use reqwest::Response;
 use serde::Deserialize;
 use serde::Deserializer;
 use serde::Serialize;
-use serde::Serializer;
+use serde_with::SerializeAs;
 use url::Url;
 
 use super::WalletIssuanceError;
@@ -24,7 +26,7 @@ use super::WalletIssuanceError;
 pub(crate) struct DpopState {
     #[debug(skip)]
     #[serde(
-        serialize_with = "serialize_signing_key",
+        serialize_with = "DerSigningKey::serialize_as",
         deserialize_with = "deserialize_signing_key"
     )]
     pub signing_key: SigningKey,
@@ -40,13 +42,15 @@ impl Default for DpopState {
     }
 }
 
-fn serialize_signing_key<S: Serializer>(key: &SigningKey, serializer: S) -> Result<S::Ok, S::Error> {
-    serializer.serialize_bytes(key.to_bytes().as_slice())
-}
-
 fn deserialize_signing_key<'de, D: Deserializer<'de>>(deserializer: D) -> Result<SigningKey, D::Error> {
     let bytes = Vec::<u8>::deserialize(deserializer)?;
-    SigningKey::from_slice(&bytes).map_err(serde::de::Error::custom)
+    // Sessions saved before the switch to PKCS#8 stored just the 32-byte P-256 scalar.
+    if bytes.len() == 32 {
+        return SigningKey::from_slice(&Zeroizing::new(bytes)).map_err(serde::de::Error::custom);
+    }
+    DerSigningKey::try_from(bytes)
+        .map(DerSigningKey::into_inner)
+        .map_err(serde::de::Error::custom)
 }
 
 /// Send a credential request with its access-token-bound DPoP proof. On a nonce challenge, sign a fresh proof
@@ -183,6 +187,7 @@ pub(super) mod tests {
     use jwt::nonce::Nonce;
     use oauth::dpop::DPOP_HEADER_NAME;
     use oauth::errors::RemoteErrorCode;
+    use p256::pkcs8::DecodePrivateKey;
     use rstest::rstest;
     use serde_json::Value;
     use serde_json::json;
@@ -334,10 +339,28 @@ pub(super) mod tests {
         assert_matches!(nonce_from_headers(&headers), Err(WalletIssuanceError::DpopNonce(_)));
     }
 
+    #[test]
+    fn legacy_dpop_session_is_saved_with_the_same_signing_key_in_pkcs8() {
+        let key = SigningKey::generate();
+        let legacy_session = json!({"signing_key": key.to_bytes().as_slice(), "nonce": "par_nonce"});
+        let state: DpopState = serde_json::from_value(legacy_session).unwrap();
+
+        let saved = serde_json::to_value(&state).unwrap();
+        let der = Vec::<u8>::deserialize(&saved["signing_key"]).unwrap();
+        let persisted_key = SigningKey::from_pkcs8_der(&der).unwrap();
+        assert_eq!(persisted_key.verifying_key(), key.verifying_key());
+
+        let restored: DpopState = serde_json::from_value(saved).unwrap();
+        assert_eq!(restored.signing_key.verifying_key(), key.verifying_key());
+        assert_eq!(restored.nonce.unwrap().as_ref(), "par_nonce");
+    }
+
     #[rstest]
     #[case(Vec::<u8>::new())]
+    #[case(vec![1_u8; 31])]
     #[case(vec![0_u8; 32])]
     #[case(vec![u8::MAX; 32])]
+    #[case(vec![1_u8; 33])]
     fn invalid_persisted_signing_keys_are_rejected(#[case] key: Vec<u8>) {
         assert!(serde_json::from_value::<DpopState>(json!({"signing_key": key, "nonce": null})).is_err());
     }
