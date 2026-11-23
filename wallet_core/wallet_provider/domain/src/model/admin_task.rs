@@ -23,7 +23,7 @@ use crate::model::wallet_user::RecoveryCode;
 pub enum TaskPayload {
     RevokeWallet(RevokeWalletParameters),
     BlockUser(BlockUserParameters),
-    UnblockUser {},    // TODO PVW-6177
+    UnblockUser(UnblockUserParameters),
     RevokeSolution {}, // TODO PVW-6178
 }
 
@@ -47,6 +47,15 @@ pub struct RevokeWalletParameters {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BlockUserParameters {
+    #[serde_as(as = "Vec<_>")]
+    pub recovery_codes: VecNonEmptyUnique<RecoveryCode>,
+}
+
+/// Parameters of a [`TaskType::UnblockUser`] task: the recovery_codes to unblock, at least one, without duplicates.
+#[serde_as]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct UnblockUserParameters {
     #[serde_as(as = "Vec<_>")]
     pub recovery_codes: VecNonEmptyUnique<RecoveryCode>,
 }
@@ -197,10 +206,25 @@ mod tests {
         })
     }
 
+    fn unblock_user_payload(recovery_codes: &[&str]) -> TaskPayload {
+        TaskPayload::UnblockUser(UnblockUserParameters {
+            recovery_codes: recovery_codes
+                .iter()
+                .map(|recovery_code| RecoveryCode::from(recovery_code.to_string()))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
+        })
+    }
+
     #[rstest]
     #[case::revoke_wallet(
         json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1", "wallet-2"]}}),
         revoke_wallet_payload(&["wallet-1", "wallet-2"]),
+    )]
+    #[case::unblock_user(
+        json!({"taskType": "unblock_user", "taskParameters": {"recoveryCodes": ["code-1", "code-2"]}}),
+        unblock_user_payload(&["code-1", "code-2"]),
     )]
     fn task_payload_round_trips(#[case] value: JsonValue, #[case] payload: TaskPayload) {
         // JSON <-> payload
@@ -222,6 +246,14 @@ mod tests {
     #[case::missing_wallet_ids(json!({"taskType": "revoke_wallet", "taskParameters": {}}))]
     #[case::unknown_parameter(
         json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1"], "unknown": true}})
+    )]
+    #[case::unblock_user_empty_recovery_codes(json!({"taskType": "unblock_user", "taskParameters": {"recoveryCodes": []}}))]
+    #[case::unblock_user_duplicate_recovery_codes(
+        json!({"taskType": "unblock_user", "taskParameters": {"recoveryCodes": ["code-1", "code-1"]}})
+    )]
+    #[case::unblock_user_missing_recovery_codes(json!({"taskType": "unblock_user", "taskParameters": {}}))]
+    #[case::unblock_user_wallet_ids_instead_of_recovery_codes(
+        json!({"taskType": "unblock_user", "taskParameters": {"walletIds": ["wallet-1"]}})
     )]
     #[case::missing_task_parameters(json!({"taskType": "revoke_wallet"}))]
     #[case::unknown_task_type(json!({"taskType": "not_a_real_task_type", "taskParameters": {}}))]

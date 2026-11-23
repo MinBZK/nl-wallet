@@ -200,7 +200,7 @@ where
             // Recovery codes are not required to exist, a wallet may not have been created yet. The parameters are
             // validated by their type.
             TaskPayload::BlockUser(_) => {}
-            TaskPayload::UnblockUser {} => todo!("PVW-6177"),
+            TaskPayload::UnblockUser(_) => todo!("PVW-6177"),
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         }
 
@@ -403,7 +403,7 @@ where
                     Err(error) => (false, error.to_string()),
                 }
             }
-            TaskPayload::UnblockUser {} => todo!("PVW-6177"),
+            TaskPayload::UnblockUser(_) => todo!("PVW-6177"),
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         };
 
