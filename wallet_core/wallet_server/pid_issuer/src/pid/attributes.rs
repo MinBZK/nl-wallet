@@ -267,8 +267,6 @@ impl BirthPlace {
         .flatten()
         .collect::<IndexMap<_, _>>();
 
-        // place_of_birth SHALL contain at least one of the following key-value pairs: "country",
-        // "region", or "locality". This is checked by the `validate` attribute.
         assert!(
             !group.is_empty(),
             "birth place should have at least a country, region or locality"

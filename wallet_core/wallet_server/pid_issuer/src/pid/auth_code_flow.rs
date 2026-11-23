@@ -114,9 +114,11 @@ struct LoginForm {
 /// Concrete [`AuthorizationCodeFlow`] for the pid_issuer.
 ///
 /// Owns:
-/// - the state-bridge store linking the issuer-generated `bridge_key` (sent to the upstream as `state`)
+/// - the issuer metadata
+/// - the state-bridge store, linking the random `login_state` passed to the login page to the wallet's
 /// - the recovery-code HMAC key;
 /// - the issuer's own login URL.
+/// - the persons database.
 pub struct LoginAuthorizationCodeFlow {
     recovery_code_secret_key: SecretKeyVariant,
     issuer_metadata: PidIssuerMetadata,
