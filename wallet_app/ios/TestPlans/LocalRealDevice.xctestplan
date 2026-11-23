@@ -1,0 +1,23 @@
+{
+  "configurations" : [
+    {
+      "id" : "D4605200-0000-0000-0000-000000000001",
+      "name" : "Test Scheme Action",
+      "options" : {}
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : true
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:Runner.xcodeproj",
+        "identifier" : "D46052000000000000000001",
+        "name" : "Wallet Integration Tests"
+      },
+      "parallelizable" : false
+    }
+  ],
+  "version" : 1
+}

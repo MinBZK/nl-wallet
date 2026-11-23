@@ -1733,6 +1733,7 @@ dependencies = [
  "futures",
  "hex-literal",
  "indexmap 2.12.1",
+ "mdoc_derive",
  "p256 0.14.0",
  "p384 0.14.0",
  "rand 0.10.3",
@@ -2584,6 +2585,17 @@ dependencies = [
  "rustc_version",
  "syn 2.0.117",
  "unicode-ident",
+]
+
+[[package]]
+name = "device_integration_tests"
+version = "0.8.0-dev"
+dependencies = [
+ "anyhow",
+ "platform_support",
+ "serde_json",
+ "tokio",
+ "wallet",
 ]
 
 [[package]]
@@ -3914,7 +3926,6 @@ dependencies = [
  "dashmap 6.1.0",
  "der 0.8.2",
  "derive_more",
- "futures",
  "hmac 0.13.0",
  "measure",
  "metrics",
@@ -9175,7 +9186,6 @@ dependencies = [
  "itertools 0.14.0",
  "jwt",
  "measure",
- "mediatype",
  "metrics",
  "nutype",
  "p256 0.14.0",
@@ -9763,6 +9773,8 @@ dependencies = [
  "futures",
  "hex",
  "http",
+ "http_utils",
+ "httpmock",
  "jwt",
  "mdoc_derive",
  "mockall",

@@ -300,7 +300,7 @@ pub mod mock {
     use hsm::model::TestHsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use p256::ecdsa::VerifyingKey;
@@ -315,8 +315,8 @@ pub mod mock {
 
     pub const REVOCATION_CODE_KEY_IDENTIFIER: &str = "revocation_code_key_identifier_1";
 
-    pub async fn setup_hsm() -> MockPkcs11Client<HsmError> {
-        let hsm = MockPkcs11Client::default();
+    pub async fn setup_hsm() -> MockHsm<HsmError> {
+        let hsm = MockHsm::default();
         hsm.generate_generic_secret_key(&certificate_signing_key_identifier(&CERTIFICATE_KID))
             .await
             .unwrap();
@@ -347,7 +347,7 @@ pub mod mock {
             let signing_pubkey = *signing_key.verifying_key();
 
             let encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
-                &MockPkcs11Client::<HsmError>::default(),
+                &MockHsm::<HsmError>::default(),
                 &pin_pubkey_encryption_key_identifier(&ENCRYPTION_KID),
                 pin_pubkey,
             )
@@ -376,7 +376,7 @@ mod tests {
     use crypto::utils::random_bytes;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use hsm::service::HsmError;
     use jwt::KeyWithKid;
     use p256::ecdsa::SigningKey;
@@ -405,9 +405,8 @@ mod tests {
     fn init_user_state(
         hw_pubkey: VerifyingKey,
         encrypted_pin_pubkey: Encrypted<VerifyingKey>,
-        hsm: MockPkcs11Client<HsmError>,
-    ) -> UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService>
-    {
+        hsm: MockHsm<HsmError>,
+    ) -> UserState<WalletUserTestRepo, StubWalletFlags, MockHsm<HsmError>, SigningKey, MockStatusListService> {
         user_state(
             WalletUserTestRepo {
                 hw_pubkey,
@@ -555,7 +554,7 @@ mod tests {
         .unwrap();
 
         let other_encrypted_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
-            &MockPkcs11Client::<HsmError>::default(),
+            &MockHsm::<HsmError>::default(),
             &pin_pubkey_encryption_key_identifier(&mock::ENCRYPTION_KID),
             *SigningKey::generate().verifying_key(),
         )

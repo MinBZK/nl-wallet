@@ -14,6 +14,7 @@ use indexmap::IndexMap;
 use itertools::Itertools;
 use p256::SecretKey;
 use p256::ecdsa::VerifyingKey;
+use token_status_list::status_list_token::StatusListFormat;
 use token_status_list::verification::client::StatusListClient;
 use token_status_list::verification::verifier::RevocationStatus;
 use token_status_list::verification::verifier::RevocationVerifier;
@@ -283,7 +284,7 @@ impl IssuerSigned {
             .transpose()?
             .unwrap_or_default();
 
-        let signing_cert = self.issuer_auth.x5chain()?.into_first();
+        let signing_cert = self.issuer_auth.unprotected_x5chain()?.into_first();
         let ca_cns = signing_cert
             .issuer_common_names()
             .map_err(Error::CertificateNameError)?;
@@ -404,12 +405,17 @@ impl Document {
         }
         debug!("signature valid");
 
-        let issuer_certificate = &self.issuer_signed.issuer_auth.x5chain()?.into_first();
+        let issuer_certificate = &self.issuer_signed.issuer_auth.unprotected_x5chain()?.into_first();
 
         let revocation_status = match &mso.status {
             Some(MdocStatus::StatusList(status_list_claim)) => {
                 let revocation_status = revocation_verifier
-                    .verify(trust_anchors, StatusClaim::StatusList(status_list_claim.clone()), time)
+                    .verify(
+                        trust_anchors,
+                        StatusClaim::StatusList(status_list_claim.clone()),
+                        StatusListFormat::Cwt,
+                        time,
+                    )
                     .await;
                 Some(revocation_status)
             }

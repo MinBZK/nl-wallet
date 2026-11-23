@@ -1095,6 +1095,8 @@ mod tests {
     use token_status_list::status_list::StatusList;
     use token_status_list::status_list::StatusType;
     use token_status_list::status_list_jwt::StatusListJwt;
+    use token_status_list::status_list_token::StatusListFormat;
+    use token_status_list::status_list_token::StatusListTokenParseError;
     use token_status_list::verification::client::StatusListClientError;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use url::Url;
@@ -1200,8 +1202,8 @@ mod tests {
         let mut client = MockStatusListClient::new();
         client
             .expect_fetch()
-            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
-            .returning(|_| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
+            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()), eq(StatusListFormat::Jwt))
+            .returning(|_, _| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone().into()));
         Arc::new(client)
     }
 
@@ -2001,9 +2003,9 @@ mod tests {
             status_list_result.unwrap_or_else(|| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
         status_list_client
             .expect_fetch()
-            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
+            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()), eq(StatusListFormat::Jwt))
             .once()
-            .return_once(move |_| status_list_result);
+            .return_once(move |_, _| status_list_result.map(Into::into));
         wallet.status_list_client = Arc::new(status_list_client);
         wallet
             .mut_storage()
@@ -2230,8 +2232,8 @@ mod tests {
                 status_list.insert(1, status);
                 Ok(REGISTRATION_CERTIFICATE_AUTHORITY.sign_status_list(status_list))
             }
-            RegistrationCertificateStatusFailure::Unavailable => Err(StatusListClientError::JwtParsing(
-                JwtParseError::UnexpectedNumberOfParts(0),
+            RegistrationCertificateStatusFailure::Unavailable => Err(StatusListClientError::Parse(
+                StatusListTokenParseError::Jwt(JwtParseError::UnexpectedNumberOfParts(0)),
             )),
             RegistrationCertificateStatusFailure::UntrustedList => {
                 Ok(MockRegistrationCertificateAuthority::new().status_list_client.0)
@@ -2482,9 +2484,9 @@ mod tests {
         let mut status_list_client = MockStatusListClient::new();
         status_list_client
             .expect_fetch()
-            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()))
+            .with(eq(STATUS_LIST_URI.parse::<Url>().unwrap()), eq(StatusListFormat::Jwt))
             .once()
-            .returning(|_| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone()));
+            .returning(|_, _| Ok(REGISTRATION_CERTIFICATE_AUTHORITY.status_list_client.0.clone().into()));
 
         let result = verify_device_request_with_crl(
             &device_request,

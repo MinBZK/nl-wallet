@@ -464,7 +464,7 @@ async fn fetch_key_storage_revocation_status(
         .unwrap()
         .parse::<StatusListJwt>()
         .unwrap()
-        .parse_and_verify(wptl_trust_anchors, url, &TimeGenerator)
+        .parse_and_verify(wptl_trust_anchors, &url, &TimeGenerator)
         .unwrap()
         .status_list
         .unpack()

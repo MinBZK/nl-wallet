@@ -23,6 +23,8 @@ use attestation_types::credential_kind::CredentialKind;
 use axum::Json;
 use axum::Router;
 use axum::routing::post;
+use chrono::DateTime;
+use chrono::Utc;
 use crypto::kid::Kid;
 use crypto::kid::VerifyingKeyWithKid;
 use crypto::p256_der::DerVerifyingKey;
@@ -97,6 +99,8 @@ use tracing::Instrument;
 use tracing::info_span;
 use update_policy_server::settings::Settings as UpsSettings;
 use url::Url;
+use utils::generator::Generator;
+use utils::generator::TimeGenerator;
 use utils::path::prefix_local_path;
 use utils::vec_at_least::VecNonEmpty;
 use utils::vec_nonempty;
@@ -366,7 +370,7 @@ pub async fn setup_env(
     let hsm = hsm_setup
         .pkcs11_hsm(wp_settings.hsm.clone())
         .expect("Could not initialize HSM");
-    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca).await;
+    let wp_port = start_wallet_provider(wp_settings, hsm.clone(), wp_root_ca, TimeGenerator).await;
 
     let attestation_server_url =
         start_mock_attestation_server(issuable_documents, di_tls_config, di_root_ca.clone()).await;
@@ -712,6 +716,7 @@ pub async fn setup_wallet_env(
     hsm_setup: &HsmSetup,
     tempdir: &TempDir,
     vendor: WalletDeviceVendor,
+    wp_time_generator: impl Generator<DateTime<Utc>> + Send + Sync + 'static,
 ) -> WalletWithStorage {
     let mock_device_config = MockDeviceConfig::generate();
 
@@ -728,7 +733,7 @@ pub async fn setup_wallet_env(
     let hsm = hsm_setup
         .pkcs11_hsm(wp_settings.hsm.clone())
         .expect("Could not initialize HSM");
-    let wp_port = start_wallet_provider(wp_settings, hsm, wp_root_ca).await;
+    let wp_port = start_wallet_provider(wp_settings, hsm, wp_root_ca, wp_time_generator).await;
 
     let (config_server_config, wallet_config) =
         build_wallet_environment(static_settings, static_root_ca, ups_port, ups_root_ca, wp_port, None).await;
@@ -889,8 +894,13 @@ pub async fn start_update_policy_server(settings: UpsSettings, trust_anchor: Req
     port
 }
 
-pub async fn start_wallet_provider(settings: WpSettings, hsm: Pkcs11Hsm, trust_anchor: ReqwestTrustAnchor) -> u16 {
-    let (port, _) = start_wallet_provider_with_abort_handle(settings, hsm, trust_anchor).await;
+pub async fn start_wallet_provider(
+    settings: WpSettings,
+    hsm: Pkcs11Hsm,
+    trust_anchor: ReqwestTrustAnchor,
+    time_generator: impl Generator<DateTime<Utc>> + Send + Sync + 'static,
+) -> u16 {
+    let (port, _) = start_wallet_provider_with_abort_handle(settings, hsm, trust_anchor, time_generator).await;
     port
 }
 
@@ -898,6 +908,7 @@ pub async fn start_wallet_provider_with_abort_handle(
     mut settings: WpSettings,
     hsm: Pkcs11Hsm,
     trust_anchor: ReqwestTrustAnchor,
+    time_generator: impl Generator<DateTime<Utc>> + Send + Sync + 'static,
 ) -> (u16, tokio::task::AbortHandle) {
     let listener = TcpListener::bind("localhost:0").await.unwrap();
     let port = listener.local_addr().unwrap().port();
@@ -916,6 +927,7 @@ pub async fn start_wallet_provider_with_abort_handle(
             hsm,
             RevocationStatusList::default(),
             play_integrity_client,
+            time_generator,
         )
         .await
         {

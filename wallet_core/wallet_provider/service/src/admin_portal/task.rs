@@ -468,7 +468,7 @@ mod tests {
     use chrono::Utc;
     use crypto::kid::Kid;
     use crypto::trust_anchor::TrustAnchors;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use hsm::service::HsmError;
     use p256::ecdsa::SigningKey;
     use rstest::fixture;
@@ -717,7 +717,7 @@ mod tests {
     ) -> UserState<
         MockTransactionalWalletUserRepository,
         StubWalletFlags,
-        MockPkcs11Client<HsmError>,
+        MockHsm<HsmError>,
         SigningKey,
         MockStatusListService,
     > {

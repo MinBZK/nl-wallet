@@ -17,6 +17,8 @@
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
 		B96C8A6329E5792500470EBE /* libPlatformSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B96C8A5E29E578DD00470EBE /* libPlatformSupport.a */; };
+		D46052000000000000000003 /* CloseProximityDisclosureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D46052000000000000000004 /* CloseProximityDisclosureTests.swift */; };
+		D46052000000000000000014 /* libPlatformSupport.a in Frameworks */ = {isa = PBXBuildFile; fileRef = B96C8A5E29E578DD00470EBE /* libPlatformSupport.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -39,6 +41,20 @@
 			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
 			proxyType = 2;
 			remoteGlobalIDString = 61D577B729A8FD7C00030578;
+			remoteInfo = "Integration Tests Host App";
+		};
+		D4605200000000000000000C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 61F5335D29A8AB4100624E46;
+			remoteInfo = "PlatformSupport";
+		};
+		D4605200000000000000000E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 61C0D52929B789B100085A54 /* PlatformSupport.xcodeproj */;
+			proxyType = 1;
+			remoteGlobalIDString = 61D577B629A8FD7C00030578;
 			remoteInfo = "Integration Tests Host App";
 		};
 /* End PBXContainerItemProxy section */
@@ -81,6 +97,10 @@
 		D14B777650202078B8D2B5FB /* Pods-Runner.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"; sourceTree = "<group>"; };
 		F1D9B2D8AC0E2D5A2AB81DA8 /* Pods-Runner.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"; sourceTree = "<group>"; };
 		FBB2C0241F80AA35B401D836 /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
+		D46052000000000000000002 /* Wallet Integration Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Wallet Integration Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D46052000000000000000004 /* CloseProximityDisclosureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseProximityDisclosureTests.swift; sourceTree = "<group>"; };
+		D46052000000000000000005 /* Wallet-Integration-Tests-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Wallet-Integration-Tests-Bridging-Header.h"; sourceTree = "<group>"; };
+		D46052000000000000000013 /* LocalRealDevice.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; name = LocalRealDevice.xctestplan; path = TestPlans/LocalRealDevice.xctestplan; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +111,14 @@
 				78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */,
 				B96C8A6329E5792500470EBE /* libPlatformSupport.a in Frameworks */,
 				891BDE760E7FA86877ED2FC8 /* Pods_Runner.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D46052000000000000000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D46052000000000000000014 /* libPlatformSupport.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -133,6 +161,8 @@
 				61D8FE8D29ACB88000718402 /* Subprojects */,
 				9740EEB11CF90186004384FC /* Flutter */,
 				97C146F01CF9000F007C117D /* Runner */,
+				D46052000000000000000006 /* Wallet Integration Tests */,
+				D46052000000000000000013 /* LocalRealDevice.xctestplan */,
 				97C146EF1CF9000F007C117D /* Products */,
 				6F17A9080C9DF456F943229B /* Pods */,
 				B28C702157D025B197FCC2D4 /* Frameworks */,
@@ -145,6 +175,7 @@
 			isa = PBXGroup;
 			children = (
 				97C146EE1CF9000F007C117D /* Runner.app */,
+				D46052000000000000000002 /* Wallet Integration Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -187,6 +218,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		D46052000000000000000006 /* Wallet Integration Tests */ = {
+			isa = PBXGroup;
+			children = (
+				D46052000000000000000004 /* CloseProximityDisclosureTests.swift */,
+				D46052000000000000000005 /* Wallet-Integration-Tests-Bridging-Header.h */,
+			);
+			path = "Wallet Integration Tests";
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -216,6 +256,26 @@
 			productName = Runner;
 			productReference = 97C146EE1CF9000F007C117D /* Runner.app */;
 			productType = "com.apple.product-type.application";
+		};
+		D46052000000000000000001 /* Wallet Integration Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D4605200000000000000000F /* Build configuration list for PBXNativeTarget "Wallet Integration Tests" */;
+			buildPhases = (
+				D4605200000000000000000A /* Compile Rust Device Tests */,
+				D46052000000000000000007 /* Sources */,
+				D46052000000000000000008 /* Frameworks */,
+				D46052000000000000000009 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D4605200000000000000000B /* PBXTargetDependency */,
+				D4605200000000000000000D /* PBXTargetDependency */,
+			);
+			name = "Wallet Integration Tests";
+			productName = "Wallet Integration Tests";
+			productReference = D46052000000000000000002 /* Wallet Integration Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 /* End PBXNativeTarget section */
 
@@ -255,6 +315,7 @@
 			projectRoot = "";
 			targets = (
 				97C146ED1CF9000F007C117D /* Runner */,
+				D46052000000000000000001 /* Wallet Integration Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -293,6 +354,13 @@
 				97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */,
 				61723C812BADC2280030B4DE /* PrivacyInfo.xcprivacy in Resources */,
 				97C146FC1CF9000F007C117D /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D46052000000000000000009 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -405,6 +473,21 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+		D4605200000000000000000A /* Compile Rust Device Tests */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Compile Rust Device Tests";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -e\nPATH=\"/usr/bin:/bin:/usr/sbin:/sbin\"\nsource \"${PROJECT_DIR}/../../scripts/find-cargo.sh\" > /dev/null\n\nexec > >(tee \"${PROJECT_DIR}/compile_rust_device_tests.log\") 2>&1\n\nCARGO_FLAGS=\"--package device_integration_tests --locked\"\n\nif [ \"$CARGO_BUILD_MODE\" == release ]; then\n    CARGO_FLAGS=\"${CARGO_FLAGS} --release\"\nfi\n\nfor TARGET in $CARGO_TARGETS; do\n    CARGO_FLAGS=\"${CARGO_FLAGS} --target ${TARGET}\"\ndone\n\ncargo build --manifest-path \"${PROJECT_DIR}/../../wallet_core/Cargo.toml\" --lib ${CARGO_FLAGS}\n";
+		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -417,7 +500,28 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		D46052000000000000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D46052000000000000000003 /* CloseProximityDisclosureTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D4605200000000000000000B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "PlatformSupport";
+			targetProxy = D4605200000000000000000C /* PBXContainerItemProxy */;
+		};
+		D4605200000000000000000D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = "Integration Tests Host App";
+			targetProxy = D4605200000000000000000E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		97C146FA1CF9000F007C117D /* Main.storyboard */ = {
@@ -713,6 +817,105 @@
 			};
 			name = Release;
 		};
+		D46052000000000000000010 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CARGO_BUILD_MODE = debug;
+				CARGO_TARGETS = "";
+				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/debug/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/debug/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/debug/libdevice_integration_tests.a";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallet Integration Tests/Wallet-Integration-Tests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Integration Tests Host App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Integration Tests Host App";
+			};
+			name = Debug;
+		};
+		D46052000000000000000011 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CARGO_BUILD_MODE = release;
+				CARGO_TARGETS = "";
+				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/release/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libdevice_integration_tests.a";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallet Integration Tests/Wallet-Integration-Tests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Integration Tests Host App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Integration Tests Host App";
+			};
+			name = Release;
+		};
+		D46052000000000000000012 /* Profile */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CARGO_BUILD_MODE = release;
+				CARGO_TARGETS = "";
+				"CARGO_TARGETS[sdk=iphoneos*]" = "aarch64-apple-ios";
+				"CARGO_TARGETS[sdk=iphonesimulator*]" = "aarch64-apple-ios-sim x86_64-apple-ios";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = XGL6UKBPLP;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				"OTHER_LDFLAGS[sdk=iphoneos*]" = "$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios/release/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=arm64]" = "$(PROJECT_DIR)/../../wallet_core/target/aarch64-apple-ios-sim/release/libdevice_integration_tests.a";
+				"OTHER_LDFLAGS[sdk=iphonesimulator*][arch=x86_64]" = "$(PROJECT_DIR)/../../wallet_core/target/x86_64-apple-ios/release/libdevice_integration_tests.a";
+				PRODUCT_BUNDLE_IDENTIFIER = "nl.ictu.edi.wallet.integration-tests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "match Development nl.ictu.edi.wallet.integration-tests";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = "Wallet Integration Tests/Wallet-Integration-Tests-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Integration Tests Host App.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Integration Tests Host App";
+			};
+			name = Profile;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -732,6 +935,16 @@
 				97C147061CF9000F007C117D /* Debug */,
 				97C147071CF9000F007C117D /* Release */,
 				249021D4217E4FDB00AE95B9 /* Profile */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D4605200000000000000000F /* Build configuration list for PBXNativeTarget "Wallet Integration Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D46052000000000000000010 /* Debug */,
+				D46052000000000000000011 /* Release */,
+				D46052000000000000000012 /* Profile */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

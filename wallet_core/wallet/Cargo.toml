@@ -11,11 +11,6 @@ workspace = true
 doctest = false
 
 [[example]]
-name = "device_integration_tests"
-crate-type = ["staticlib"]
-required-features = ["hardware_integration_test"]
-
-[[example]]
 name = "verify_close_proximity_response"
 required-features = ["hardware_integration_test"]
 

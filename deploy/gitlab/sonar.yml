@@ -104,6 +104,7 @@ sonar-wallet-web:
 
 sonar-ios:
   extends: .default-sonar
+  rules: !reference [test-ios-platform-support-device, rules]
   needs:
     - job: test-ios-platform-support-device
       artifacts: true
@@ -129,6 +130,7 @@ sonar-android:
       artifacts: true
     - job: test-android-platform-support-device
       artifacts: true
+      optional: true
   script:
     - cd wallet_core/wallet/platform_support/android
     - sonar-scanner

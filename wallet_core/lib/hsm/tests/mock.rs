@@ -1,4 +1,4 @@
-use hsm::model::mock::MockPkcs11Client;
+use hsm::model::mock::MockHsm;
 use hsm::service::HsmError;
 use hsm::test::TestCase;
 use rstest::Context;
@@ -9,11 +9,11 @@ use rstest::rstest;
 #[case::sign_ecdsa(TestCase::sign_ecdsa)]
 #[case::encrypt_decrypt(TestCase::encrypt_decrypt)]
 #[case::encrypt_decrypt_verifying_key(TestCase::encrypt_decrypt_verifying_key)]
-// #[case::wrap_key_and_sign(TestCase::wrap_key_and_sign)] // TODO: generate aes key is unsupported for Mock
+#[case::wrap_key_and_sign(TestCase::wrap_key_and_sign)]
 #[tokio::test]
 async fn hsm_mock_tests<F>(#[context] ctx: Context, #[case] test: F)
 where
-    F: AsyncFnOnce(TestCase<MockPkcs11Client<HsmError>>),
+    F: AsyncFnOnce(TestCase<MockHsm<HsmError>>),
 {
     let test_case = TestCase::mock(ctx.description.unwrap().to_string());
     test(test_case).await;

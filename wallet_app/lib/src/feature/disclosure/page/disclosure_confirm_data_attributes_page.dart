@@ -75,8 +75,10 @@ class DisclosureConfirmDataAttributesPage extends StatelessWidget {
               ),
             ),
             const SliverDivider(),
-            SliverToBoxAdapter(child: _buildReasonSection(context)),
-            const SliverDivider(),
+            if (requestPurpose.hasL10nText(context)) ...[
+              SliverToBoxAdapter(child: _buildReasonSection(context)),
+              const SliverDivider(),
+            ],
             SliverToBoxAdapter(child: _buildCardsSectionHeader(context)),
             SliverPadding(
               padding: const EdgeInsets.symmetric(horizontal: 16),

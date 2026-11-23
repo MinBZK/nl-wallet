@@ -275,6 +275,7 @@ mod tests {
     use std::sync::Arc;
 
     use attestation_data::validity::ValidityWindow;
+    use attestation_types::credential_format::Format;
     use attestation_types::status_claim::StatusClaim;
     use attestation_types::status_claim::StatusListClaim;
     use crypto::server_keys::generate::Ca;
@@ -282,7 +283,7 @@ mod tests {
     use itertools::Itertools;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use parking_lot::Mutex;
-    use token_status_list::status_list_jwt::mock::create_status_list_jwt;
+    use token_status_list::status_list_jwt::mock::mock_status_list_jwt;
     use token_status_list::verification::client::mock::MockStatusListClient;
     use token_status_list::verification::verifier::RevocationStatus;
     use utils::generator::mock::MockTimeGenerator;
@@ -314,11 +315,11 @@ mod tests {
         wallet_config.issuer_trust_anchors = ca.to_trust_anchors();
         let config_repo = Arc::new(TestConfigRepo(parking_lot::RwLock::new(wallet_config)));
 
-        let (_, _, status_list_token) = create_status_list_jwt(&keypair, None, None).await;
+        let (_, _, status_list_token) = mock_status_list_jwt(&keypair, None, None).await;
         let mut mock_status_list_client = MockStatusListClient::new();
         mock_status_list_client
             .expect_fetch()
-            .returning(move |_| Ok(status_list_token.clone()));
+            .returning(move |_, _| Ok(status_list_token.clone().into()));
 
         let mut storage = MockStorage::new();
 
@@ -326,9 +327,10 @@ mod tests {
         let revocation_id_2 = Uuid::new_v4();
 
         let test_revocation_info = vec![
-            RevocationInfo::new(revocation_id_1, StatusClaim::new_mock()),
+            RevocationInfo::new(revocation_id_1, Format::SdJwt, StatusClaim::new_mock()),
             RevocationInfo::new(
                 revocation_id_2,
+                Format::SdJwt,
                 StatusClaim::StatusList(StatusListClaim {
                     idx: 3,
                     uri: "https://example.com/statuslists/1".parse().unwrap(),

@@ -54,7 +54,7 @@ impl DocRequest {
                 // Perform verification and return the `Certificate`.
                 let cose = reader_auth.clone_with_payload(serialization::cbor_serialize(&reader_auth_payload)?);
                 cose.verify_against_trust_anchors(trust_anchors, time, Some(CertificateExtendedKeyUsage::MdlReader))?;
-                let cert = cose.x5chain()?.into_first();
+                let cert = cose.unprotected_x5chain()?.into_first();
 
                 Ok(cert)
             })
@@ -81,7 +81,7 @@ impl DocRequest {
             Some(CertificateExtendedKeyUsage::MdlReader),
         )
         .await?;
-        Ok(cose.x5chain()?.into_first())
+        Ok(cose.unprotected_x5chain()?.into_first())
     }
 }
 

@@ -1502,8 +1502,8 @@ fn verify_metadata_integrity(
 /// - `cnf`: each copy is bound to a distinct holder key.
 /// - `status`: each copy may have its own status list entry, so it can be revoked separately.
 ///
-/// Note that `exp` and `nbf` are required to be identical, as the wallet stores a single validity window for all
-/// copies of an attestation.
+/// Under EUDI Wallet ARF requirement `ISSU_11a`, all copies in a batch must have the same technical validity period.
+/// The wallet therefore checks that `exp` and `nbf` match across copies and stores one validity window per attestation.
 fn verify_copies_consistency(
     credential_copies: &IssuedCredentialCopies,
     credential_payloads: VecNonEmpty<CredentialPayload>,
@@ -3218,15 +3218,15 @@ mod tests {
     ) {
         assert_eq!(access_token.as_ref(), "access_token");
 
-        dpop_header
+        let verified_nonce = dpop_header
             .verify_expecting_key(
                 PublicKey::from(*dpop_signing_key.verifying_key()),
                 url,
                 &Method::POST,
                 Some(&"access_token".to_string().into()),
-                Some(dpop_nonce),
             )
             .unwrap();
+        assert_eq!(verified_nonce.into_inner().as_ref(), Some(dpop_nonce));
     }
 
     fn create_mock_wscd() -> (IssuanceMockRemoteWscd, TrustAnchors) {

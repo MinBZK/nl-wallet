@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fimber/fimber.dart';
 import 'package:wallet_core/core.dart';
 
@@ -40,16 +42,48 @@ abstract class WalletUseCase {
 
 extension WalletUseCaseStreamExtension<T> on Stream<T> {
   /// Helper method for Stream exposing usecases. This method makes sure any errors exposed by
-  /// the source stream are converted into [ApplicationError]s.
-  /// Note: do not use for streams that might emit after the listener has cancelled the subscription.
-  Stream<T> handleAppError(String errorMessage) async* {
-    try {
-      await for (final value in this) {
-        yield value;
-      }
-    } catch (ex) {
-      Fimber.e(errorMessage, ex: ex);
-      throw (await WalletUseCase.exceptionToApplicationError(ex));
-    }
+  /// the source stream are converted into [ApplicationError]s. The stream closes after the first error.
+  Stream<T> handleAppError(String errorMessage) {
+    // Deliberately not an async* generator: one suspended in `await for` keeps listening to the source
+    // until its next event, so upstream work continues after cancel and its errors escape through the
+    // (often unawaited) cancel future.
+    StreamSubscription<T>? subscription;
+    late final StreamController<T> controller;
+    controller = StreamController<T>(
+      sync: true,
+      onListen: () {
+        subscription = listen(
+          controller.add,
+          onError: (Object ex, StackTrace stackTrace) async {
+            // Cleared so the consumer's later cancel doesn't get this same (possibly failing) cancel future.
+            final source = subscription;
+            subscription = null;
+            // Not awaited: a cancel that fails or never completes must not keep the error from the consumer.
+            unawaited(
+              source?.cancel().catchError(
+                (Object cancelEx, StackTrace cancelStackTrace) =>
+                    Fimber.w('Failed to cancel source after error', ex: cancelEx, stacktrace: cancelStackTrace),
+              ),
+            );
+            Fimber.e(errorMessage, ex: ex, stacktrace: stackTrace);
+            try {
+              controller.addError(await WalletUseCase.exceptionToApplicationError(ex), stackTrace);
+            } catch (mapEx, mapStackTrace) {
+              // Mapping can fail (e.g. the internet check for a CoreNetworkError); consumers still expect an
+              // ApplicationError and a closed stream.
+              Fimber.e('Failed to map source error', ex: mapEx, stacktrace: mapStackTrace);
+              controller.addError(GenericError(ex.toString(), sourceError: ex), stackTrace);
+            } finally {
+              await controller.close();
+            }
+          },
+          onDone: controller.close,
+        );
+      },
+      onPause: () => subscription?.pause(),
+      onResume: () => subscription?.resume(),
+      onCancel: () => subscription?.cancel(),
+    );
+    return controller.stream;
   }
 }

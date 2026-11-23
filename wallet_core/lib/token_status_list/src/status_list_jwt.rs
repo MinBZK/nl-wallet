@@ -101,10 +101,7 @@ impl From<StatusListJwtClaims> for StatusListTokenClaims {
 
 #[cfg(feature = "verification")]
 pub mod verification {
-    use std::ops::Add;
-
     use chrono::DateTime;
-    use chrono::Duration;
     use chrono::Utc;
     use crypto::trust_anchor::TrustAnchors;
     use jwt::DEFAULT_VALIDATION;
@@ -114,26 +111,22 @@ pub mod verification {
 
     use crate::status_list_jwt::StatusListJwt;
     use crate::status_list_token::StatusListTokenClaims;
-
-    const EXP_LEEWAY: Duration = Duration::seconds(60);
+    use crate::status_list_token::verification::StatusListTokenClaimsVerificationError;
 
     #[derive(Debug, thiserror::Error)]
     pub enum StatusListJwtVerificationError {
         #[error("JWT verification failed: {0}")]
         JwtVerification(#[from] JwtX5cVerifyError),
 
-        #[error("JWT is expired")]
-        Expired,
-
-        #[error("JWT subject claim ('{sub}') does not match url claim of Reference Token ('{url}')")]
-        UnexpectedSubject { sub: Box<Url>, url: Box<Url> },
+        #[error("JWT claims verification failed: {0}")]
+        Claims(#[source] StatusListTokenClaimsVerificationError),
     }
 
     impl StatusListJwt {
         pub fn parse_and_verify(
             &self,
             trust_anchors: &TrustAnchors,
-            url: Url,
+            url: &Url,
             time: &impl Generator<DateTime<Utc>>,
         ) -> Result<StatusListTokenClaims, StatusListJwtVerificationError> {
             // No extended key usage is required of the signer: neither the Token Status List draft nor ETSI TS 119 475
@@ -145,17 +138,9 @@ pub mod verification {
                 DEFAULT_VALIDATION.to_owned(),
             )?;
             let claims = StatusListTokenClaims::from(claims);
-
-            if url != claims.sub {
-                return Err(StatusListJwtVerificationError::UnexpectedSubject {
-                    sub: claims.sub.into(),
-                    url: url.into(),
-                });
-            }
-
-            if claims.exp.is_some_and(|exp| exp.add(EXP_LEEWAY) < time.generate()) {
-                return Err(StatusListJwtVerificationError::Expired);
-            }
+            claims
+                .verify(url, time)
+                .map_err(StatusListJwtVerificationError::Claims)?;
 
             Ok(claims)
         }
@@ -179,7 +164,7 @@ pub mod mock {
     use crate::status_list_token::StatusListToken;
     use crate::status_list_token::StatusListTokenClaims;
 
-    pub async fn create_status_list_jwt<S>(
+    pub async fn mock_status_list_jwt<S>(
         keypair: &KeyPair<S>,
         exp: Option<i64>,
         ttl: Option<i64>,
@@ -235,8 +220,9 @@ mod test {
     use jwt::error::JwtX5cVerifyError;
     use utils::generator::mock::MockTimeGenerator;
 
-    use crate::status_list_jwt::mock::create_status_list_jwt;
+    use crate::status_list_jwt::mock::mock_status_list_jwt;
     use crate::status_list_jwt::verification::StatusListJwtVerificationError;
+    use crate::status_list_token::verification::StatusListTokenClaimsVerificationError;
 
     const SLT_EXP: i64 = 2291720170;
     const SLT_TTL: i64 = 43200;
@@ -247,7 +233,7 @@ mod test {
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
         let (expected_header, expected_claims, signed) =
-            create_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+            mock_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let verified = signed
             .0
@@ -269,12 +255,12 @@ mod test {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_status_list_mock().unwrap();
 
-        let (_, expected_claims, signed) = create_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+        let (_, expected_claims, signed) = mock_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         let err = signed
             .parse_and_verify(
                 &TrustAnchors::empty(),
-                expected_claims.sub.clone(),
+                &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
             .expect_err("should not verify for empty trust anchors");
@@ -286,25 +272,31 @@ mod test {
         let err = signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                "http://example.com/sub".parse().unwrap(),
+                &"http://example.com/sub".parse().unwrap(),
                 &MockTimeGenerator::default(),
             )
             .expect_err("should not verify for different sub claim");
-        assert_matches!(err, StatusListJwtVerificationError::UnexpectedSubject { .. });
+        assert_matches!(
+            err,
+            StatusListJwtVerificationError::Claims(StatusListTokenClaimsVerificationError::UnexpectedSubject { .. })
+        );
 
         let err = signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                expected_claims.sub.clone(),
+                &expected_claims.sub,
                 &MockTimeGenerator::new(DateTime::from_timestamp(SLT_EXP, 0).unwrap().add(Days::new(1))),
             )
             .expect_err("should not verify when jwt is expired");
-        assert_matches!(err, StatusListJwtVerificationError::Expired);
+        assert_matches!(
+            err,
+            StatusListJwtVerificationError::Claims(StatusListTokenClaimsVerificationError::Expired)
+        );
 
         signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                expected_claims.sub,
+                &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
             .unwrap();
@@ -315,12 +307,12 @@ mod test {
         let ca = Ca::generate_mock();
         let keypair = ca.generate_issuer_mock().unwrap();
 
-        let (_, expected_claims, signed) = create_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
+        let (_, expected_claims, signed) = mock_status_list_jwt(&keypair, Some(SLT_EXP), Some(SLT_TTL)).await;
 
         signed
             .parse_and_verify(
                 &ca.to_trust_anchors(),
-                expected_claims.sub,
+                &expected_claims.sub,
                 &MockTimeGenerator::default(),
             )
             .unwrap();

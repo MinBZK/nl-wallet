@@ -15,7 +15,7 @@ use readable_identifier::ReadableIdentifierParseError;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::warn;
-use utils::generator::TimeGenerator;
+use utils::generator::Generator;
 use utoipa::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 use utoipa_axum::routes;
@@ -72,18 +72,19 @@ impl IntoResponse for RevocationError {
         (status = NOT_FOUND, body = NotFoundResponse, description = "One or more wallet IDs were not found."),
     )
 )]
-async fn revoke_wallets_by_id<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn revoke_wallets_by_id<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(wallet_ids): Json<HashSet<WalletId>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     Ok(wallet_provider_service::revocation::revoke_wallets_by_wallet_id(
         &wallet_ids,
         &router_state.user_state,
-        &TimeGenerator,
+        &router_state.generators,
         &router_state.audit_log,
     )
     .await?)
@@ -107,13 +108,14 @@ pub struct RevokeByRevocationCodeResponse {
         (status = NOT_FOUND, description = "No wallet found for the provided revocation code.")
     )
 )]
-async fn revoke_wallet_by_revocation_code<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn revoke_wallet_by_revocation_code<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(revocation_code): Json<String>,
 ) -> Result<Json<RevokeByRevocationCodeResponse>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let revocation_code = revocation_code.parse()?;
 
@@ -121,7 +123,7 @@ where
         revocation_code,
         &router_state.account_server.keys.revocation_code_key_identifier,
         &router_state.user_state,
-        &TimeGenerator,
+        &router_state.generators,
         &router_state.audit_log,
     )
     .await?;
@@ -145,18 +147,19 @@ pub struct RevokeByRecoveryCodeResponse {
         (status = OK, body = RevokeByRecoveryCodeResponse, description = "Successfully revoked the wallets."),
     )
 )]
-async fn revoke_wallets_by_recovery_code<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn revoke_wallets_by_recovery_code<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
     Json(recovery_code): Json<RecoveryCode>,
 ) -> Result<Json<RevokeByRecoveryCodeResponse>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let found_wallet_count = wallet_provider_service::revocation::revoke_wallets_by_recovery_code(
         &recovery_code,
         &router_state.user_state,
-        &TimeGenerator,
+        &router_state.generators,
         &router_state.audit_log,
     )
     .await?;
@@ -171,12 +174,13 @@ where
         (status = OK, description = "Successfully revoked wallet solution."),
     )
 )]
-async fn revoke_solution<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn revoke_solution<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     Ok(wallet_provider_service::revocation::revoke_solution(&router_state.user_state, &router_state.audit_log).await?)
 }
@@ -189,12 +193,13 @@ where
         (status = OK, description = "Successfully restored solution."),
     )
 )]
-async fn restore_solution<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn restore_solution<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
 ) -> Result<(), RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     Ok(wallet_provider_service::revocation::restore_solution(&router_state.user_state).await?)
 }
@@ -211,12 +216,13 @@ where
         ),
     )
 )]
-async fn list_wallets<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn list_wallets<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
 ) -> Result<Json<Vec<WalletUserIsRevoked>>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     Ok(Json(
         wallet_provider_service::revocation::list_wallets(&router_state.user_state)
@@ -244,12 +250,13 @@ where
         ),
     )
 )]
-async fn list_denied_recovery_codes<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn list_denied_recovery_codes<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
 ) -> Result<Json<Vec<RecoveryCode>>, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     Ok(Json(
         wallet_provider_service::revocation::list_denied_recovery_codes(&router_state.user_state).await?,
@@ -277,26 +284,28 @@ where
         ),
     )
 )]
-async fn remove_denied_recovery_code<GRC, PIC>(
-    State(router_state): State<Arc<RouterState<GRC, PIC>>>,
+async fn remove_denied_recovery_code<GRC, PIC, T>(
+    State(router_state): State<Arc<RouterState<GRC, PIC, T>>>,
     Path(recovery_code): Path<RecoveryCode>,
 ) -> Result<NoContent, RevocationError>
 where
     GRC: Send + Sync + 'static,
     PIC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     wallet_provider_service::revocation::remove_denied_recovery_code(&router_state.user_state, &recovery_code).await?;
 
     Ok(NoContent)
 }
 
-pub fn internal_router<GRC, PIC>(
-    state: Arc<RouterState<GRC, PIC>>,
+pub fn internal_router<GRC, PIC, T>(
+    state: Arc<RouterState<GRC, PIC, T>>,
     revoke_solution_enabled: bool,
 ) -> (Router, utoipa::openapi::OpenApi)
 where
     PIC: Send + Sync + 'static,
     GRC: Send + Sync + 'static,
+    T: Generator<DateTime<Utc>> + Send + Sync + 'static,
 {
     let mut router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         .routes(routes!(revoke_wallets_by_id))

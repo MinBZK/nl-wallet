@@ -841,7 +841,7 @@ mod test {
 
         // The issuer certificate generated above should be included in the IssuerAuth
         assert_eq!(
-            &issuer_signed.issuer_auth.x5chain().unwrap().into_first(),
+            &issuer_signed.issuer_auth.unprotected_x5chain().unwrap().into_first(),
             issuance_key.certificate()
         );
 

@@ -8,6 +8,7 @@ use rustls::crypto::CryptoProvider;
 use rustls::crypto::ring;
 use tracing::level_filters::LevelFilter;
 use tracing_subscriber::EnvFilter;
+use utils::generator::TimeGenerator;
 use wallet_provider::logging::redirect_stdout_stderr_to_log;
 use wallet_provider::server;
 use wallet_provider::settings::Settings;
@@ -71,7 +72,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    server::serve(settings, hsm, google_crl_client, play_integrity_client).await?;
+    server::serve(settings, hsm, google_crl_client, play_integrity_client, TimeGenerator).await?;
 
     if let Some(log_redirect) = log_redirect {
         let _ = log_redirect.stop_and_wait();

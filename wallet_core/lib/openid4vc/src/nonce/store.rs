@@ -91,6 +91,21 @@ pub mod test {
         assert_matches!(status, NonceStatus::AllValid);
         assert_eq!(count_nonces(&store).await, 1);
 
+        // Concurrent attempts to consume one nonce must have exactly one winner, including on PostgreSQL.
+        let nonce = Nonce::new_random();
+        store.store_nonce(nonce.clone()).await.unwrap();
+        let (first, second) = tokio::join!(
+            store.check_nonce_status_and_remove([&nonce]),
+            store.check_nonce_status_and_remove([&nonce]),
+        );
+        assert_eq!(
+            [first.unwrap(), second.unwrap()]
+                .into_iter()
+                .filter(|status| matches!(status, NonceStatus::AllValid))
+                .count(),
+            1
+        );
+
         let status = store
             .check_nonce_status_and_remove(&[Nonce::from("foo".to_string()), Nonce::from("barfoo".to_string())])
             .await

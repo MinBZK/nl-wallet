@@ -44,6 +44,26 @@ void main() {
       expect(find.text(event.purpose.testValue), findsOneWidget);
     });
 
+    testWidgets("The purpose section is hidden when the event's purpose is empty", (tester) async {
+      final event = WalletEvent.disclosure(
+        dateTime: DateTime(2024, 3, 1),
+        status: EventStatus.success,
+        relyingParty: WalletMockData.organization,
+        purpose: const {},
+        cards: [WalletMockData.card],
+        type: DisclosureType.regular,
+      ) as DisclosureEvent;
+      await tester.pumpWidgetWithAppWrapper(
+        RequestDetailsScreen.forDisclosureEvent(
+          'Title',
+          event,
+        ),
+      );
+
+      final l10n = await TestUtils.englishLocalizations;
+      expect(find.text(l10n.historyDetailScreenPurposeTitle), findsNothing);
+    });
+
     testWidgets('A stopped (cancelled) event renders read-only cards without the View CTA', (tester) async {
       final event = WalletMockData.cancelledDisclosureEvent;
       await tester.pumpWidgetWithAppWrapper(

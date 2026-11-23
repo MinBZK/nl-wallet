@@ -47,7 +47,6 @@ use hsm::model::encrypted::Encrypted;
 use hsm::model::encrypter::Decrypter;
 use hsm::model::encrypter::Encrypter;
 use hsm::service::HsmError;
-use hsm::service::Pkcs11Client;
 use itertools::Itertools;
 use jwt::JwtSub;
 use jwt::JwtTyp;
@@ -664,6 +663,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         certificate_signing_key: &impl WalletCertificateSigningKey,
         user_state: &UserState<R, F, H, impl SecureEcdsaKey, S>,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<Vec<u8>, ChallengeError>
     where
         T: Committable,
@@ -678,7 +678,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             RegistrationChallengeClaims {
                 wallet_id: crypto::utils::random_string(32).into(),
                 random: crypto::utils::random_bytes(32),
-                exp: Utc::now() + Duration::from_secs(60),
+                exp: time.generate() + Duration::from_secs(60),
             },
             certificate_signing_key,
         )
@@ -731,7 +731,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
 
         debug!("Validating attestation and checking signed registration against the provided hardware and pin keys");
 
-        let attestation_timestamp = Utc::now();
+        let attestation_timestamp = time.generate();
         let challenge_hash = crypto::utils::sha256(challenge);
         let sequence_number_comparison = SequenceNumberComparison::EqualTo(0);
         let pin_pubkey = unverified.payload.pin_pubkey.into_inner();
@@ -1082,8 +1082,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1101,7 +1100,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
             .await?;
 
-        self.sign_instruction_result(instruction_result_signing_key, instruction_result)
+        self.sign_instruction_result(instruction_result_signing_key, instruction_result, generators)
             .await
     }
 
@@ -1118,7 +1117,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         I: HandleInstruction<Result = IR> + InstructionAndResult + ValidateInstruction + Serialize + DeserializeOwned,
         IR: Serialize + DeserializeOwned,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client + Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
+        H: Hsm<Error = HsmError> + Encrypter<VerifyingKey, Error = HsmError>,
     {
         if user_state.flags.solution_is_revoked() {
             return Err(InstructionError::WalletSolutionRevoked);
@@ -1180,7 +1179,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .handle(&wallet_user, generators, user_state, &self.recovery_code_paths)
             .await?;
 
-        self.sign_instruction_result(instruction_result_signing_key, instruction_result)
+        self.sign_instruction_result(instruction_result_signing_key, instruction_result, generators)
             .await
     }
 
@@ -1207,8 +1206,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1272,7 +1270,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        let result = self.sign_instruction_result(signing_keys.0, wallet_certificate).await?;
+        let result = self
+            .sign_instruction_result(signing_keys.0, wallet_certificate, generators)
+            .await?;
 
         tx.commit().await?;
 
@@ -1297,8 +1297,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1351,7 +1350,8 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         )
         .await?;
 
-        self.sign_instruction_result(signing_keys.0, wallet_certificate).await
+        self.sign_instruction_result(signing_keys.0, wallet_certificate, generators)
+            .await
     }
 
     // Implements the logic behind the ChangePinRollback instruction.
@@ -1372,7 +1372,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client + Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
+        H: Hsm<Error = HsmError> + Decrypter<VerifyingKey, Error = HsmError>,
     {
         if user_state.flags.solution_is_revoked() {
             return Err(InstructionError::WalletSolutionRevoked);
@@ -1399,7 +1399,9 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
             .rollback_pin_change(&tx, &wallet_user.wallet_id)
             .await?;
 
-        let result = self.sign_instruction_result(instruction_result_signing_key, ()).await?;
+        let result = self
+            .sign_instruction_result(instruction_result_signing_key, (), generators)
+            .await?;
 
         tx.commit().await?;
 
@@ -1418,8 +1420,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
         F: WalletFlags,
         G: Generator<Uuid> + Generator<DateTime<Utc>>,
-        H: Pkcs11Client
-            + Hsm<Error = HsmError>
+        H: Hsm<Error = HsmError>
             + Decrypter<VerifyingKey, Error = HsmError>
             + Encrypter<VerifyingKey, Error = HsmError>,
     {
@@ -1528,6 +1529,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
                     issuance_result,
                     certificate,
                 },
+                generators,
             )
             .await?;
 
@@ -1842,6 +1844,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         &self,
         instruction_result_signing_key: &impl InstructionResultSigningKey,
         result: R,
+        time: &impl Generator<DateTime<Utc>>,
     ) -> Result<InstructionResult<R>, InstructionError>
     where
         R: Serialize + DeserializeOwned,
@@ -1849,7 +1852,7 @@ impl<GRC, PIC> AccountServer<GRC, PIC> {
         let claims = InstructionResultClaims {
             result,
             iss: self.name.to_string(),
-            iat: Utc::now(),
+            iat: time.generate(),
         };
 
         SignedJwt::sign_with_sub_and_kid(claims, instruction_result_signing_key)
@@ -1920,7 +1923,7 @@ pub mod mock {
     use crypto::keys::PublicKey;
     use crypto::kid::Kid;
     use crypto::server_keys::generate::Ca;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use platform_support::attested_key::mock::MockAppleAttestedKey;
@@ -2027,16 +2030,16 @@ pub mod mock {
     }
 
     pub type MockUserState =
-        UserState<WalletUserTestRepo, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, MockStatusListService>;
+        UserState<WalletUserTestRepo, StubWalletFlags, MockHsm<HsmError>, SigningKey, MockStatusListService>;
 
     pub fn user_state<R, S>(
         repositories: R,
         flags: StubWalletFlags,
-        wallet_user_hsm: MockPkcs11Client<HsmError>,
+        wallet_user_hsm: MockHsm<HsmError>,
         wrapping_kid: Kid,
         pid_issuer_trust_anchors: TrustAnchors,
         wia_status_list: S,
-    ) -> UserState<R, StubWalletFlags, MockPkcs11Client<HsmError>, SigningKey, S> {
+    ) -> UserState<R, StubWalletFlags, MockHsm<HsmError>, SigningKey, S> {
         let key_attestation_key_pair = MOCK_WPTL_CA.generate_key_attestation_mock().unwrap();
         let key_storage_tsl_key_pair = MOCK_WPTL_CA.generate_key_storage_status_list_mock().unwrap();
 
@@ -2236,7 +2239,7 @@ mod tests {
     use hsm::model::Hsm;
     use hsm::model::encrypted::Encrypted;
     use hsm::model::encrypter::Encrypter;
-    use hsm::model::mock::MockPkcs11Client;
+    use hsm::model::mock::MockHsm;
     use hsm::service::HsmError;
     use jwt::KeyWithKid;
     use jwt::nonce::Nonce;
@@ -2378,7 +2381,7 @@ mod tests {
             RevocationCode,
             Vec<u8>,
             MockHardwareKey,
-            MockPkcs11Client<HsmError>,
+            MockHsm<HsmError>,
         ),
         RegistrationError,
     > {
@@ -2411,7 +2414,7 @@ mod tests {
         );
 
         let challenge = account_server
-            .registration_challenge(certificate_signing_key, &user_state)
+            .registration_challenge(certificate_signing_key, &user_state, &MockTimeGenerator::default())
             .await
             .expect("Could not get registration challenge");
 
@@ -2657,7 +2660,7 @@ mod tests {
         let new_pin_pubkey = *new_pin_privkey.verifying_key();
 
         let encrypted_new_pin_pubkey = Encrypter::<VerifyingKey>::encrypt(
-            &MockPkcs11Client::<HsmError>::default(),
+            &MockHsm::<HsmError>::default(),
             &pin_pubkey_encryption_key_identifier(&wallet_certificate::mock::ENCRYPTION_KID),
             new_pin_pubkey,
         )
@@ -2786,7 +2789,7 @@ mod tests {
             wrapping_kid,
         )
         .await
-        .map(|_| ()) // the return value MockPkcs11Client doesn't implement Debug, so discard it
+        .map(|_| ()) // the return value MockHsm doesn't implement Debug, so discard it
         .expect_err("registering with an invalid Apple attestation should fail");
 
         assert_matches!(error, RegistrationError::AppleAttestation(_));
@@ -3995,7 +3998,7 @@ mod tests {
         UserState<
             MockTransactionalWalletUserRepository,
             StubWalletFlags,
-            MockPkcs11Client<HsmError>,
+            MockHsm<HsmError>,
             SigningKey,
             MockStatusListService,
         >,
@@ -4028,7 +4031,7 @@ mod tests {
         user_state.flags.set_solution_revoked().await.unwrap();
 
         let err = account_server
-            .registration_challenge(&setup.signing_key, &user_state)
+            .registration_challenge(&setup.signing_key, &user_state, &MockTimeGenerator::default())
             .await
             .expect_err("challenge should fail due to wallet solution revoked");
 
@@ -4041,7 +4044,7 @@ mod tests {
 
         // Get registration challenge
         let challenge = account_server
-            .registration_challenge(&SigningKey::generate(), &user_state)
+            .registration_challenge(&SigningKey::generate(), &user_state, &MockTimeGenerator::default())
             .await
             .expect("Could not get registration challenge");
 
