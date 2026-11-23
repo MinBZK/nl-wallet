@@ -125,6 +125,9 @@ fn has_nonce_challenge(value: &str) -> bool {
     let mut error = None;
     for part in parts {
         let part = part.trim();
+        if part.is_empty() {
+            continue;
+        }
         let (first, rest) = part.split_once(char::is_whitespace).unwrap_or((part, ""));
         let parameters = if !first.contains('=') && !rest.trim_start().starts_with('=') {
             if dpop && error == Some(true) {
@@ -303,11 +306,13 @@ pub(super) mod tests {
     #[case(r#"Bearer realm="other", DPoP error="use_dpop_nonce""#, true)]
     #[case(r#"DPoP error="use_dpop_nonce", Bearer realm="other""#, true)]
     #[case(r#"DPoP error="use\_dpop_nonce""#, true)]
+    #[case(r#"DPoP realm="issuer", , error="use_dpop_nonce""#, true)]
     #[case(r#"Bearer error="use_dpop_nonce""#, false)]
     #[case(r#"DPoP realm="example", Bearer error="use_dpop_nonce""#, false)]
     #[case(r#"DPoP error="invalid_dpop_proof", error_description="use_dpop_nonce""#, false)]
     #[case(r#"DPoP realm="error=\"use_dpop_nonce\"""#, false)]
     #[case(r#"DPoP error="use_dpop_nonce", error="invalid_dpop_proof""#, false)]
+    #[case(r#"DPoP error="use_dpop_nonce",, error="invalid_dpop_proof""#, false)]
     #[case(r#"DPoP error="use_dpop_nonce"suffix"#, false)]
     #[case(r#"DPoP error="USE_DPOP_NONCE""#, false)]
     fn parses_only_the_dpop_error_parameter(#[case] value: &str, #[case] expected: bool) {
