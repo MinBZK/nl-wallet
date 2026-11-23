@@ -19,7 +19,9 @@ use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
+use wallet_provider_domain::model::admin_task::UnblockUserParameters;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
+use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::Committable;
@@ -60,6 +62,8 @@ pub enum CreateTaskError {
     WalletIdsNotFound(HashSet<WalletId>),
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
+    #[error("some recovery codes to unblock are already unblocked: {0:?}")]
+    RecoveryCodesAlreadyUnblocked(Vec<RecoveryCode>),
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
@@ -194,13 +198,16 @@ where
 
         // Verify payload
         match &payload {
-            TaskPayload::RevokeWallet(revoke_wallet_parameters) => {
-                verify_revoke_wallet_parameters(revoke_wallet_parameters, user_state).await?;
+            TaskPayload::RevokeWallet(parameters) => {
+                verify_revoke_wallet_parameters(parameters, user_state).await?;
             }
-            // Recovery codes are not required to exist, a wallet may not have been created yet. The parameters are
-            // validated by their type.
-            TaskPayload::BlockUser(_) => {}
-            TaskPayload::UnblockUser(_) => todo!("PVW-6177"),
+            TaskPayload::BlockUser(_) => {
+                // Recovery codes are not required to exist, a wallet may not have been created yet. The parameters are
+                // validated by their type.
+            }
+            TaskPayload::UnblockUser(parameters) => {
+                verify_unblock_user_parameters(parameters, user_state).await?;
+            }
             TaskPayload::RevokeSolution {} => todo!("PVW-6178"),
         }
 
@@ -458,6 +465,40 @@ where
     Ok(())
 }
 
+async fn verify_unblock_user_parameters<TX, UR, F, H>(
+    parameters: &UnblockUserParameters,
+    user_state: &UserState<UR, F, H, impl SecureEcdsaKey, impl StatusListService>,
+) -> Result<(), CreateTaskError>
+where
+    TX: Committable,
+    UR: TransactionStarter<TransactionType = TX> + WalletUserRepository<TransactionType = TX>,
+{
+    let transaction = user_state
+        .repositories
+        .begin_transaction()
+        .await
+        .map_err(CreateTaskError::Storage)?;
+
+    let all_denied = user_state
+        .repositories
+        .list_denied_recovery_codes_in(&transaction, parameters.recovery_codes.iter().cloned().collect())
+        .await
+        .map_err(CreateTaskError::Storage)?;
+
+    let already_unblocked_codes: Vec<RecoveryCode> = parameters
+        .recovery_codes
+        .iter()
+        .filter(|code| !all_denied.contains(code))
+        .cloned()
+        .collect();
+
+    if !already_unblocked_codes.is_empty() {
+        return Err(CreateTaskError::RecoveryCodesAlreadyUnblocked(already_unblocked_codes));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
@@ -480,6 +521,7 @@ mod tests {
     use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
     use wallet_provider_domain::model::admin_task::TaskStatus;
     use wallet_provider_domain::model::admin_task::TaskType;
+    use wallet_provider_domain::model::admin_task::UnblockUserParameters;
     use wallet_provider_domain::model::wallet_user::RecoveryCode;
     use wallet_provider_domain::model::wallet_user::RevokedWalletUsers;
     use wallet_provider_domain::repository::MockTransaction;
@@ -563,6 +605,17 @@ mod tests {
     fn revoke_wallet_payload() -> TaskPayload {
         TaskPayload::RevokeWallet(RevokeWalletParameters {
             wallet_ids: vec_nonempty!["wallet-1".to_string().into()].into(),
+        })
+    }
+
+    fn unblock_user_payload(recovery_codes: &[&str]) -> TaskPayload {
+        TaskPayload::UnblockUser(UnblockUserParameters {
+            recovery_codes: recovery_codes
+                .iter()
+                .map(|recovery_code| RecoveryCode::from(recovery_code.to_string()))
+                .collect::<Vec<_>>()
+                .try_into()
+                .unwrap(),
         })
     }
 
@@ -711,6 +764,25 @@ mod tests {
         wallet_user_repo
     }
 
+    /// Returns a repository in which only the recovery codes in `denied_recovery_codes` are denied.
+    fn wallet_user_repository_with_denied_recovery_codes(
+        denied_recovery_codes: &'static [&'static str],
+    ) -> MockTransactionalWalletUserRepository {
+        let mut wallet_user_repo = MockTransactionalWalletUserRepository::new();
+        wallet_user_repo
+            .expect_begin_transaction()
+            .returning(|| Ok(MockTransaction));
+        wallet_user_repo
+            .expect_list_denied_recovery_codes_in()
+            .returning(move |_, recovery_codes| {
+                Ok(recovery_codes
+                    .into_iter()
+                    .filter(|code| denied_recovery_codes.contains(&code.as_ref().as_str()))
+                    .collect())
+            });
+        wallet_user_repo
+    }
+
     /// Builds a [`UserState`] around `wallet_user_repo`, with every other parameter fixed to a test default.
     async fn setup_user_state(
         wallet_user_repo: MockTransactionalWalletUserRepository,
@@ -819,6 +891,67 @@ mod tests {
             result,
             Err(CreateTaskError::WalletIdsNotFound(ids)) if ids == HashSet::from([WalletId::from("wallet-1".to_string())])
         );
+    }
+
+    #[rstest]
+    #[case::none_denied(&[], &["recovery-code-1", "recovery-code-2"])]
+    #[case::some_denied(&["recovery-code-1"], &["recovery-code-2"])]
+    #[tokio::test]
+    async fn create_task_rejects_unblock_user_with_already_unblocked_recovery_codes(
+        now: DateTime<Utc>,
+        task_id: Uuid,
+        #[case] denied_recovery_codes: &'static [&'static str],
+        #[case] already_unblocked_recovery_codes: &[&str],
+    ) {
+        let user_state =
+            setup_user_state(wallet_user_repository_with_denied_recovery_codes(denied_recovery_codes)).await;
+        let expected_already_unblocked: Vec<RecoveryCode> = already_unblocked_recovery_codes
+            .iter()
+            .map(|code| RecoveryCode::from(code.to_string()))
+            .collect();
+
+        let result = service(MockAdminPortalRepository::new(), now, task_id)
+            .create_task(
+                &unblock_user_payload(&["recovery-code-1", "recovery-code-2"]),
+                TASK_REASON,
+                &user(CREATOR, &[TaskType::UnblockUser]),
+                &user_state,
+                &MockAuditLog,
+            )
+            .await;
+
+        assert_matches!(
+            result,
+            Err(CreateTaskError::RecoveryCodesAlreadyUnblocked(codes)) if codes == expected_already_unblocked
+        );
+    }
+
+    #[rstest]
+    #[tokio::test]
+    async fn create_task_inserts_unblock_user_task_when_recovery_codes_are_denied(now: DateTime<Utc>, task_id: Uuid) {
+        let payload = unblock_user_payload(&["recovery-code-1"]);
+        let expected_payload = payload.clone();
+        let mut repository = MockAdminPortalRepository::new();
+        repository.expect_insert_task().times(1).return_once(move |create| {
+            assert_eq!(create.payload, expected_payload);
+            Ok(AdminTask::from(create))
+        });
+        let user_state =
+            setup_user_state(wallet_user_repository_with_denied_recovery_codes(&["recovery-code-1"])).await;
+
+        let task = service(repository, now, task_id)
+            .create_task(
+                &payload,
+                TASK_REASON,
+                &user(CREATOR, &[TaskType::UnblockUser]),
+                &user_state,
+                &MockAuditLog,
+            )
+            .await
+            .expect("task should be created");
+
+        assert_eq!(task.payload, payload);
+        assert_eq!(task.status, TaskStatus::Created);
     }
 
     #[rstest]
