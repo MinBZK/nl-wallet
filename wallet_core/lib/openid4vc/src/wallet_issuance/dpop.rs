@@ -190,7 +190,6 @@ pub(super) mod tests {
 
     use super::*;
     use crate::client_auth::ClientAttestationChallengeMechanism;
-    use crate::client_auth::ClientAttestationChallengeMechanismError;
     use crate::errors::CredentialErrorCode;
     use crate::token::VciTokenRequest;
     use crate::wallet_issuance::authorization::AttestedRequest;
@@ -339,8 +338,18 @@ pub(super) mod tests {
     }
 
     #[rstest]
+    #[case::endpoint_only(None, None, "challenge_1", "challenge_2", 2)]
+    #[case::header_on_retry(None, Some("retry_header"), "challenge_1", "retry_header", 1)]
+    #[case::fallback_after_par_header(Some("par_header"), None, "par_header", "challenge_1", 1)]
+    #[case::replace_par_header(Some("par_header"), Some("retry_header"), "par_header", "retry_header", 0)]
     #[tokio::test]
-    async fn token_retry_fetches_a_fresh_attestation_challenge(#[values(false, true)] conflicting_header: bool) {
+    async fn token_retry_uses_response_header_before_challenge_endpoint(
+        #[case] par_header: Option<&'static str>,
+        #[case] retry_header: Option<&'static str>,
+        #[case] first_challenge: &'static str,
+        #[case] retry_challenge: &'static str,
+        #[case] endpoint_calls: usize,
+    ) {
         use std::sync::atomic::AtomicUsize;
         use std::sync::atomic::Ordering;
 
@@ -360,11 +369,13 @@ pub(super) mod tests {
             .await;
         let first = server
             .mock_async(|when, then| {
-                when.method(httpmock::Method::POST).path("/token").is_true(|request| {
-                    request_nonce_matches(request, None) && wia_challenge_matches(request, Some("challenge_1"))
-                });
-                let then = if conflicting_header {
-                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "header_challenge")
+                when.method(httpmock::Method::POST)
+                    .path("/token")
+                    .is_true(move |request| {
+                        request_nonce_matches(request, None) && wia_challenge_matches(request, Some(first_challenge))
+                    });
+                let then = if let Some(header) = retry_header {
+                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, header)
                 } else {
                     then
                 };
@@ -375,10 +386,12 @@ pub(super) mod tests {
             .await;
         let second = server
             .mock_async(|when, then| {
-                when.method(httpmock::Method::POST).path("/token").is_true(|request| {
-                    request_nonce_matches(request, Some("retry_nonce"))
-                        && wia_challenge_matches(request, Some("challenge_2"))
-                });
+                when.method(httpmock::Method::POST)
+                    .path("/token")
+                    .is_true(move |request| {
+                        request_nonce_matches(request, Some("retry_nonce"))
+                            && wia_challenge_matches(request, Some(retry_challenge))
+                    });
                 then.status(200)
                     .json_body(json!({"access_token":"token", "token_type":"DPoP"}));
             })
@@ -388,8 +401,9 @@ pub(super) mod tests {
         let request = VciTokenRequest::new_pre_authorized("code".to_string().into());
         let issuer = server.base_url().parse().unwrap();
         let mechanism =
-            ClientAttestationChallengeMechanism::ChallengeEndpoint(server.url("/challenge").parse().unwrap());
-        let result = tokio::spawn(async move {
+            ClientAttestationChallengeMechanism::ChallengeEndpoint(server.url("/challenge").parse().unwrap())
+                .after_response(par_header.map(|value| Nonce::from(value.to_owned())));
+        let (response, _) = tokio::spawn(async move {
             AttestedRequest {
                 endpoint: &url,
                 audience: &issuer,
@@ -404,23 +418,12 @@ pub(super) mod tests {
             .await
         })
         .await
+        .unwrap()
         .unwrap();
+        assert_eq!(response.oauth_response.access_token.as_ref(), "token");
         first.assert_calls_async(1).await;
-        if conflicting_header {
-            assert_matches!(
-                result,
-                Err(WalletIssuanceError::ClientAttestationChallengeMechanism(
-                    ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
-                ))
-            );
-            challenge.assert_calls_async(1).await;
-            second.assert_calls_async(0).await;
-        } else {
-            let (response, _) = result.unwrap();
-            assert_eq!(response.oauth_response.access_token.as_ref(), "token");
-            challenge.assert_calls_async(2).await;
-            second.assert_calls_async(1).await;
-        }
+        second.assert_calls_async(1).await;
+        challenge.assert_calls_async(endpoint_calls).await;
     }
 
     #[rstest]

@@ -158,7 +158,8 @@ impl AttestedRequest<'_> {
                 ClientAttestationChallengeMechanism::ChallengeEndpoint(url) => {
                     Some(fetch_challenge(url.clone()).await?)
                 }
-                ClientAttestationChallengeMechanism::Header(challenge) => Some(challenge.clone()),
+                ClientAttestationChallengeMechanism::Header(header)
+                | ClientAttestationChallengeMechanism::HeaderWithEndpoint { header, .. } => Some(header.clone()),
                 ClientAttestationChallengeMechanism::None => None,
             };
             let wia = wia_client
@@ -182,10 +183,7 @@ impl AttestedRequest<'_> {
                     if retried {
                         return Err(WalletIssuanceError::UseDpopNonce(nonce));
                     }
-                    self.challenge = self
-                        .challenge
-                        .with_header(attestation_challenge)
-                        .map_err(WalletIssuanceError::ClientAttestationChallengeMechanism)?;
+                    self.challenge = self.challenge.after_response(attestation_challenge);
                     dpop.nonce = Some(nonce);
                     retried = true;
                 }
@@ -533,7 +531,6 @@ mod tests {
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::client_auth::ClientAttestationChallengeMechanism;
-    use crate::client_auth::ClientAttestationChallengeMechanismError;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -738,7 +735,7 @@ mod tests {
     #[case::none(false, false, ExpectedChallengeMechanism::None)]
     #[case::header(false, true, ExpectedChallengeMechanism::Header)]
     #[case::challenge_endpoint(true, false, ExpectedChallengeMechanism::ChallengeEndpoint)]
-    #[case::double_challenge_mechanism(true, true, ExpectedChallengeMechanism::Both)]
+    #[case::header_with_endpoint(true, true, ExpectedChallengeMechanism::Both)]
     #[tokio::test]
     #[serial(MockPkcePair)]
     async fn test_auth_url_client_auth_challenge_mechanism(
@@ -824,6 +821,7 @@ mod tests {
         let expected_challenge = challenge_endpoint_configured.then(|| Nonce::from(challenge.to_string()));
         assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
 
+        let expected_endpoint: Url = server.url(CHALLENGE_ENDPOINT).parse().unwrap();
         match expected {
             ExpectedChallengeMechanism::None => {
                 assert_matches!(
@@ -842,15 +840,14 @@ mod tests {
                 assert_matches!(
                     result.unwrap().client_attestation_challenge,
                     ClientAttestationChallengeMechanism::ChallengeEndpoint(url)
-                        if url == server.base_url().parse::<Url>().unwrap().join("/issuance/client_auth_challenge").unwrap()
+                        if url == expected_endpoint
                 );
             }
             ExpectedChallengeMechanism::Both => {
                 assert_matches!(
-                    result.unwrap_err(),
-                    WalletIssuanceError::ClientAttestationChallengeMechanism(
-                        ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
-                    )
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::HeaderWithEndpoint { header, endpoint }
+                        if header.as_ref() == "header-challenge" && endpoint == expected_endpoint
                 );
             }
         }

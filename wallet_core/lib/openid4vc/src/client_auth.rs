@@ -86,14 +86,16 @@ pub enum ClientAttestationChallengeMechanism {
     ChallengeEndpoint(Url),
     Header(Nonce),
     None,
+    /// Use this response header for the next PoP, then fetch from the endpoint unless another header arrives.
+    HeaderWithEndpoint {
+        header: Nonce,
+        endpoint: Url,
+    },
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(critical)]
 pub enum ClientAttestationChallengeMechanismError {
-    #[error("cannot use both a challenge endpoint and a header value for attestation-based client authentication")]
-    DoubleChallengeMechanism,
-
     #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
     ChallengeHeaderNonVisibleAscii,
 }
@@ -105,24 +107,21 @@ impl ClientAttestationChallengeMechanism {
         http_response: &Response,
     ) -> Result<Self, ClientAttestationChallengeMechanismError> {
         let mechanism = challenge_endpoint.map_or(Self::None, Self::ChallengeEndpoint);
-        mechanism.with_header(attestation_challenge_from_headers(http_response.headers())?)
+        Ok(mechanism.after_response(attestation_challenge_from_headers(http_response.headers())?))
     }
 
-    /// Use the server's latest `OAuth-Client-Attestation-Challenge` for the next WIA PoP.
-    /// A DPoP challenge alone gives no indication whether the last WIA challenge was consumed.
-    /// In header mode the last value is the only one available for the retry.
-    /// The wallet treats endpoint and header delivery as mutually exclusive.
+    /// A response header supplies the challenge for the next WIA PoP, even when the server advertises an endpoint.
+    /// After using that header, fetch from the endpoint again unless the server sends a replacement.
+    /// With header-only delivery, the last value is the only one available for a retry.
     /// See [Attestation-Based Client Authentication §6](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6).
-    pub(crate) fn with_header(
-        self,
-        challenge: Option<Nonce>,
-    ) -> Result<Self, ClientAttestationChallengeMechanismError> {
-        match (self, challenge) {
-            (Self::ChallengeEndpoint(_), Some(_)) => {
-                Err(ClientAttestationChallengeMechanismError::DoubleChallengeMechanism)
+    pub(crate) fn after_response(self, header: Option<Nonce>) -> Self {
+        match (self, header) {
+            (Self::ChallengeEndpoint(endpoint) | Self::HeaderWithEndpoint { endpoint, .. }, Some(header)) => {
+                Self::HeaderWithEndpoint { header, endpoint }
             }
-            (_, Some(challenge)) => Ok(Self::Header(challenge)),
-            (mechanism, None) => Ok(mechanism),
+            (Self::HeaderWithEndpoint { endpoint, .. }, None) => Self::ChallengeEndpoint(endpoint),
+            (_, Some(header)) => Self::Header(header),
+            (mechanism, None) => mechanism,
         }
     }
 
@@ -250,15 +249,16 @@ mod tests {
     }
 
     #[test]
-    fn try_new_acf_double_challenge_mechanism() {
+    fn try_new_acf_preserves_header_and_endpoint_when_serialized() {
         let url: Url = "https://issuer.example.com/challenge".parse().unwrap();
-
-        let error =
-            ClientAttestationChallengeMechanism::try_new_acf(Some(url), &http_response(Some("the-nonce"))).unwrap_err();
-
+        let mechanism =
+            ClientAttestationChallengeMechanism::try_new_acf(Some(url.clone()), &http_response(Some("par-challenge")))
+                .unwrap();
+        let restored = serde_json::from_value(serde_json::to_value(mechanism).unwrap()).unwrap();
         assert_matches!(
-            error,
-            ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
+            restored,
+            ClientAttestationChallengeMechanism::HeaderWithEndpoint { header, endpoint }
+                if header.as_ref() == "par-challenge" && endpoint == url
         );
     }
 
