@@ -562,6 +562,7 @@ platform :ios do
     # Create an .ipa file from the archive produce by Flutter
     ipa_file = "#{bundle_id}-#{version}.ipa"
     build_app(
+      scheme: "Runner",
       skip_build_archive: true,
       archive_path: "wallet_app/build/ios/archive/Runner.xcarchive",
       codesigning_identity: "iPhone Distribution",
