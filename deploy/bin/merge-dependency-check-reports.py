@@ -8,6 +8,8 @@ directory with a JSON and XML report. Dependencies with the same SHA-1
 become one dependency, with the project references and vulnerabilities
 of all of them. Vulnerable dependencies come first, so the HTML anchors
 match the Quality-time links of both dependencies and security warnings.
+The HTML report also shows the files and packages of the related
+dependencies that dependency-check bundled into a dependency.
 
 A SOURCE without a report, for example because its scan failed, is
 skipped with a warning.
@@ -62,11 +64,17 @@ class Reference(TypedDict):
     reference: str
 
 
+class RelatedDependency(TypedDict):
+    filePath: str
+    packageIds: NotRequired[list[Package]]
+
+
 class Dependency(TypedDict):
     fileName: str
     filePath: str
     sha1: NotRequired[str]
     packages: NotRequired[list[Package]]
+    relatedDependencies: NotRequired[list[RelatedDependency]]
     projectReferences: NotRequired[list[str]]
     includedBy: NotRequired[list[Reference]]
     vulnerabilities: NotRequired[list[Vulnerability]]
@@ -154,12 +162,17 @@ def html_vuln(vuln: Vulnerability) -> str:
 
 
 def html_row(index: int, dependency: Dependency) -> str:
+    related = dependency.get("relatedDependencies", [])
+    packages = [package["id"] for package in dependency.get("packages", [])]
+    packages += [package["id"] for item in related for package in item.get("packageIds", [])]
+    # Show the projects of Gradle dependencies, else all scanned files
+    users = dependency.get("projectReferences") or [dependency["filePath"], *(item["filePath"] for item in related)]
     return HTML_ROW.substitute(
         index=index,
         sha1=escape(dependency.get("sha1", "")),
         name=escape(dependency["fileName"]),
-        packages="<br>".join(escape(package["id"]) for package in dependency.get("packages", [])),
-        users="<br>".join(map(escape, dependency.get("projectReferences", []))) or escape(dependency["filePath"]),
+        packages="<br>".join(map(escape, dict.fromkeys(packages))),
+        users="<br>".join(map(escape, users)),
         vulns="<br>".join(map(html_vuln, dependency.get("vulnerabilities", []))),
     )
 
