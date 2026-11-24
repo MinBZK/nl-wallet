@@ -33,6 +33,7 @@ use wallet_provider::admin_portal::CheckWalletResponse;
 use wallet_provider::admin_portal::CreateTaskRequest;
 use wallet_provider::admin_portal::RecoveryCodeStatus;
 use wallet_provider::admin_portal::ReviewTaskRequest;
+use wallet_provider::admin_portal::SESSION_ID_COOKIE;
 use wallet_provider::admin_portal::TaskResponse;
 use wallet_provider::admin_portal::WithdrawTaskRequest;
 use wallet_provider::test_support::TestState;
@@ -84,7 +85,7 @@ async fn test_admin_portal_app() -> (Router, Repositories, TestState) {
     )
 }
 
-/// Inserts a session for `user`, authorized for `privileges`, and returns the `sid` cookie header value.
+/// Inserts a session for `user`, authorized for `privileges`, and returns the session cookie header value.
 async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: &[TaskType]) -> String {
     let session_id = Uuid::new_v4().to_string();
     repositories
@@ -102,7 +103,7 @@ async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: 
         .await
         .expect("should insert session");
 
-    format!("sid={session_id}")
+    format!("{SESSION_ID_COOKIE}={session_id}")
 }
 
 /// Returns a recovery code that is unique within the test, so that tests do not share wallets.
@@ -694,7 +695,7 @@ async fn csrf_token_is_stable_and_unique_per_login_session() {
     let first_session = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let second_session = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let token = csrf_token(&app, &first_session).await;
-    assert_ne!(token, first_session.trim_start_matches("sid="));
+    assert_ne!(token, first_session.split_once('=').unwrap().1);
     let replica = admin_portal::router(Arc::clone(&state));
     let (a, b) = tokio::join!(csrf_token(&app, &first_session), csrf_token(&replica, &first_session));
     assert_eq!(token, a);

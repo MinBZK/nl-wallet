@@ -60,7 +60,9 @@ use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 use crate::router_state::ProductionUserState;
 use crate::settings::AdminPortalSettings;
 
-const SESSION_ID_COOKIE: &str = "sid";
+/// The `__Host-` prefix makes browsers reject this cookie unless it is `Secure`, has `Path=/` and no `Domain`, so a
+/// sibling subdomain cannot set or overwrite it.
+pub const SESSION_ID_COOKIE: &str = "__Host-sid";
 
 /// Failure of a `/tasks` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
