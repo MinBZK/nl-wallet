@@ -12,13 +12,11 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Write
+  - Edit(./TRIAGE.*)
+  - Edit(./.triage-state/**)
   - Task
   - AskUserQuestion
   - Bash(git log:*)
-  - Bash(git -C:*)
-  - Bash(jq:*)
-  - Bash(find:*)
   - Bash(ls:*)
   - Bash(wc:*)
   - Bash(python3 .claude/skills/_lib/checkpoint.py:*)
@@ -620,7 +618,8 @@ For each finding in `confirmed[]`, stop at the first hit:
    `file` against its patterns (last match wins). Hint:
    `"CODEOWNERS: <pattern> → <owner(s)>"`.
 2. **git log**: if the repo has git history, run
-   `git -C {REPO} log --format='%an' -n 50 -- "{file}" | sort | uniq -c | sort -rn | head -3`.
+   `git log --format='%an' -n 50 -- "{REPO}/{file}"` and count the authors
+   yourself.
    Hint: `"top committer: <name> (<n>/<total> recent commits); no CODEOWNERS entry"`.
 3. **Module fallback**: `"component: <top-level dir of file>/; no CODEOWNERS or git history"`.
 

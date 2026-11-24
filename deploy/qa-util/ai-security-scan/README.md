@@ -42,14 +42,14 @@ claude
 
 # Full scan of a workspace member, seeded by the threat model if present
 > /vuln-scan ../../../wallet_core/lib/jwt
-# → writes ../../../wallet_core/lib/jwt/VULN-FINDINGS.json + .md
+# → writes ./VULN-FINDINGS.json + .md
 
 # Scan only what a branch changed
 > /vuln-scan-diff ../../.. main..HEAD
-# → writes ../../../VULN-FINDINGS-DIFF.json + .md
+# → writes ./VULN-FINDINGS-DIFF.json + .md
 
 # Verify, dedupe and rank the findings
-> /triage ../../../wallet_core/lib/jwt/VULN-FINDINGS.json --repo ../../../wallet_core/lib/jwt
+> /triage VULN-FINDINGS.json --repo ../../../wallet_core/lib/jwt
 ```
 
 `/threat-model bootstrap <dir>` should be run locally **before every
@@ -66,10 +66,11 @@ claude
 
 Then commit `wallet_core/THREAT_MODEL.md` as part of the release preparation.
 
-Scan outputs (`VULN-FINDINGS*`, `TRIAGE*`) are written into the target
-directory (`/vuln-scan`, `/vuln-scan-diff`) or alongside the input findings
-file (`/triage`), and are gitignored — they are review input, not repository
-content.
+Scan outputs (`VULN-FINDINGS*`, `TRIAGE*`) are written into this directory
+and are gitignored. They are review input, not repository content. The
+allowlist permits writes only to these files and to the skills' state
+directories. Claude Code asks before it writes `THREAT_MODEL.md` into the
+target directory.
 
 ## Running in CI (GitLab)
 

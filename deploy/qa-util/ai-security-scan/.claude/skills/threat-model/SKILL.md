@@ -13,15 +13,12 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Write
+  - Edit(./.threat-model-state/**)
   - Bash(python3 .claude/skills/_lib/checkpoint.py:*)
   - Bash(git log:*)
   - Bash(git diff:*)
   - Bash(git show:*)
   - Bash(git rev-parse:*)
-  - Bash(git remote:*)
-  - Bash(git -C:*)
-  - Bash(find:*)
   - Bash(ls:*)
   - Bash(cat:*)
   - AskUserQuestion

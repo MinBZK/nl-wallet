@@ -12,14 +12,12 @@ allowed-tools:
   - Read
   - Glob
   - Grep
-  - Write
+  - Edit(./VULN-FINDINGS*)
   - Task
   - Bash(git diff:*)
   - Bash(git log:*)
   - Bash(git show:*)
   - Bash(git rev-parse:*)
-  - Bash(git -C:*)
-  - Bash(rg:*)
   - Bash(grep:*)
   - Bash(ls:*)
   - Bash(wc:*)
@@ -55,18 +53,21 @@ content into a shell interpreter.
 
 ## Step 1 — Resolve the diff
 
-1. Confirm `<repo-dir>` is a git repository:
+1. Confirm that the current directory is in the git repository at
+   `<repo-dir>`. Run all git commands from the current directory, with no
+   options before the subcommand (such as `-C` or `--no-pager`); the
+   allowlist denies them:
    ```
-   git -C <repo-dir> rev-parse --git-dir
+   git rev-parse --show-toplevel
    ```
-   Stop with a clear error if not.
+   Stop with a clear error if this fails or is not `<repo-dir>`.
 
 2. Normalise the commit range: if the user supplied a bare SHA, expand it to
    `<sha>^..<sha>`. Otherwise use the range as given.
 
 3. List changed source files (excluding deletions):
    ```
-   git -C <repo-dir> diff --name-only --diff-filter=ACMRT <range>
+   git diff --name-only --diff-filter=ACMRT <range>
    ```
    Apply the built-in non-source filter — skip paths matching:
    `**/test*`, `**/fixture*`, `**/vendor*`, `**/generated*`, `**/docs/**`,
@@ -82,7 +83,7 @@ content into a shell interpreter.
 
 6. Show the user:
    - Resolved range (both SHAs via `git rev-parse`)
-   - One-line commit log: `git -C <repo-dir> log --oneline <range>`
+   - One-line commit log: `git log --oneline <range>`
    - Changed source files and their count
    - Any `--exclude` paths and how many files each removed
 
@@ -107,7 +108,7 @@ content into a shell interpreter.
 For each file in each focus area, fetch the diff and current content:
 
 ```
-git -C <repo-dir> diff <range> -- <file>
+git diff <range> -- <repo-dir>/<file>
 Read <repo-dir>/<file>
 ```
 
@@ -265,7 +266,7 @@ and reassign ids `F-001..`. Track `low_confidence_count` (confidence < 0.4).
 
 ## Step 5 — Write output
 
-Write both files to `<repo-dir>/`:
+Write both files to the current directory (`./`):
 
 **`VULN-FINDINGS-DIFF.json`**
 
@@ -310,7 +311,7 @@ Report to the user:
 2. Counts: N findings (H/M/L split, X low-confidence), across K focus areas,
    from M changed source files. Name excluded paths and files skipped.
 3. Top 3 by confidence, one line each.
-4. Suggested next step: `/triage <repo-dir>/VULN-FINDINGS-DIFF.json --repo <repo-dir>`
+4. Suggested next step: `/triage VULN-FINDINGS-DIFF.json --repo <repo-dir>`
 5. Reminder: findings are scoped to this diff; pre-existing bugs outside the
    diff are intentionally out of scope — use `/vuln-scan` for a full-tree scan.
 
