@@ -10857,6 +10857,7 @@ dependencies = [
  "serde_json",
  "serde_with",
  "strum 0.28.0",
+ "subtle",
  "thiserror 2.0.17",
  "tracing",
  "trait-variant",
