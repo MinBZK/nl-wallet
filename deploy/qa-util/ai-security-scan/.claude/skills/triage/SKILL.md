@@ -8,18 +8,6 @@ description: Triage a batch of raw security findings. Verify each is real,
   or "review the backlog". Runs interactively by default; pass --auto to
   skip the interview.
 argument-hint: "<findings-path> [--auto] [--votes N] [--repo PATH] [--fp-rules FILE] [--fresh]"
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Edit(./TRIAGE.*)
-  - Edit(./.triage-state/**)
-  - Task
-  - AskUserQuestion
-  - Bash(git log:*)
-  - Bash(ls:*)
-  - Bash(wc:*)
-  - Bash(python3 .claude/skills/_lib/checkpoint.py:*)
 ---
 
 # /triage

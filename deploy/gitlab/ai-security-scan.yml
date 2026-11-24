@@ -21,7 +21,7 @@ ai-security-scan-fetch-token:
       artifacts: true
   variables:
     GIT_DEPTH: 0
-    CLAUDE_CODE_VERSION: "2.1.331"
+    CLAUDE_CODE_VERSION: "2.1.326"
     SCAN_MODEL: "claude-opus-5-5"
     SCAN_MAX_BUDGET_USD: "25"
     CLAUDE_CODE_MAX_TURNS: "50"
@@ -57,7 +57,7 @@ ai-security-scan-fetch-token:
     - cd deploy/qa-util/ai-security-scan
   artifacts:
     name: ai-security-scan
-    access: developer
+    access: maintainer
     when: always
     expire_in: 30 days
     paths:

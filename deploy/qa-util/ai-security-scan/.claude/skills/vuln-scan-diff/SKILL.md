@@ -8,21 +8,6 @@ description: >-
   "scan this PR", "review changes between commits", "check what changed in
   <range>", or to focus vuln-scan on a branch diff.
 argument-hint: "<repo-dir> <commit-range> [--focus <area>] [--exclude <path>] [--single] [--extra <file>] [--no-score]"
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Edit(./VULN-FINDINGS*)
-  - Task
-  - Bash(git diff:*)
-  - Bash(git log:*)
-  - Bash(git show:*)
-  - Bash(git rev-parse:*)
-  - Bash(grep:*)
-  - Bash(ls:*)
-  - Bash(wc:*)
-  - Bash(head:*)
-  - Bash(file:*)
 ---
 
 # /vuln-scan-diff
@@ -34,7 +19,7 @@ content, and produces `VULN-FINDINGS-DIFF.json` (plus `.md`) for `/triage`.
 **No code execution.** Reads source and reasons about it only.
 
 **Tool fallbacks.** Prefer built-in Glob and Grep. When unavailable, use the
-Bash fallbacks in `allowed-tools`. Do not write helper scripts or pipe target
+Bash fallbacks that `.claude/settings.json` allows. Do not write helper scripts or pipe target
 content into a shell interpreter.
 
 ## Arguments

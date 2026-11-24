@@ -8,9 +8,10 @@
 
 ## What the skills can and cannot do
 
-Each skill's `SKILL.md` declares a tool allowlist in `allowed-tools`, and
-`.claude/settings.json` declares the same rules for every run. The rules
-permit `Read`, `Glob`, `Grep`, subagents, writes to the output files and
+`.claude/settings.json` declares the tool rules for every run. The skills do
+not declare `allowed-tools`: Claude Code adds those rules to the settings,
+also in `dontAsk` mode, so a broad rule in a skill opens the allowlist. The
+rules permit `Read`, `Glob`, `Grep`, subagents, writes to the output files and
 state directories only, `git diff`, `git log`, `git show`, `git rev-parse`,
 some file inspection commands (`grep`, `ls`, `wc`, `head`, `file`, `cat`),
 and `python3 .claude/skills/_lib/checkpoint.py` for state I/O. The skills
@@ -54,18 +55,28 @@ Claude Code then denies each tool call that the rules do not allow. Locally,
 tool calls, for example the write of `THREAT_MODEL.md` into the target
 directory.
 
-A `Bash(<prefix>:*)` rule allows all options of the command. Many commands
-have options that run other commands or write files. For this reason, the
-rules do not allow:
+The `allow` list is a list of prefixes. A `Bash(<prefix>:*)` rule allows
+each command that starts with the prefix, with all arguments after it. Many
+commands have options that run other commands or write files.
 
-- `git -C`, because the agent can then add `-c alias.x='!cmd'`, which runs
-  any command.
-- `rg`, because `rg --pre <cmd>` runs a command for each file.
-- `find`, because of `-exec`.
-- `jq`, because `jq -n '$ENV'` prints the environment.
-- `git --output=<file>` (a `deny` rule), because it writes files.
-- `Write` without a path, because the agent can then write outside the
-  repository, for example to `~/.gitconfig`.
+With the current rules, Claude Code denies commands like the following:
+
+- `Bash(git -C:*)`. This rule matches each git command that starts with
+  `-C <dir>`, with all global options and subcommands after it. For example,
+  `git -C . -c alias.x='!cmd' x` sets an alias with a `-c` config override,
+  and git runs `cmd` in a shell. Rules for a subcommand, such as
+  `Bash(git log:*)`, do not match a command with options before the
+  subcommand, so the skills run `git log` without `-C`.
+- `Bash(rg:*)`, because `rg --pre <cmd>` runs a command for each file.
+- `Bash(find:*)`, because `-exec`, `-execdir` and `-ok` run commands, and
+  `-delete` and `-fprint` change files.
+- `Bash(jq:*)`, because `jq -n '$ENV'` prints the environment.
+- `Write` without a path, because the agent can then write files outside the
+  repository. A changed `~/.gitconfig`, for example, can make the next git
+  command run a command.
+
+The allowed `git diff`, `git log` and `git show` accept `--output=<file>`,
+which writes a file. The `deny` rule `Bash(git * --output*)` blocks it.
 
 Claude Code itself blocks `find -exec`, reads of `/proc/*/environ`, and
 writes into `.git/` and `.claude/`.

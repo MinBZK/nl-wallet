@@ -112,7 +112,9 @@ human-readable end product, sorted by what actually needs attention.
 The job installs the Claude Code CLI version in `CLAUDE_CODE_VERSION` on the
 standard `ci-node` image. The allowlist was tested with this version. When you
 change the version, test the allowlist again (see
-[docs/security.md](docs/security.md)).
+[docs/security.md](docs/security.md)). The image installs only npm versions
+that are at least 7 days old (`min-release-age` in
+`deploy/docker-images/ci/skel/.npmrc`).
 
 ### Isolation
 
