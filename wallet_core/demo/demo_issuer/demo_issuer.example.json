@@ -40,6 +40,19 @@
     "university": {
       "client_id": "x509_hash:example-university-reader-cert-hash",
       "data": {
+        "default": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": { "type": "text", "value": "Demo University" },
+              "education": { "type": "text", "value": "BSc Computer Science" },
+              "graduation_date": { "type": "text", "value": "2020-07-01" },
+              "grade": { "type": "number", "value": 8 },
+              "cum_laude": { "type": "bool", "value": false }
+            }
+          }
+        ],
         "9999999999": [
           {
             "format": "dc+sd-jwt",
