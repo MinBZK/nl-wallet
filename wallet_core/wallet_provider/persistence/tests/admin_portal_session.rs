@@ -6,6 +6,7 @@ use crypto::utils::random_string;
 use db_test::DbSetup;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_portal_session::CsrfToken;
 use wallet_provider_persistence::admin_portal_session;
 use wallet_provider_persistence::test::db_from_setup;
 
@@ -115,6 +116,7 @@ async fn test_user_session_and_take() {
         &db,
         session_id.clone(),
         AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
             user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: vec!["privilege_admin".to_string()],
@@ -149,10 +151,12 @@ async fn test_fetch_user_session() {
     let now = now().trunc_subsecs(3);
 
     let old_expires_at = now + TimeDelta::minutes(15);
+    let csrf_token = CsrfToken::generate();
     admin_portal_session::insert_user_session(
         &db,
         session_id.clone(),
         AdminPortalUserSession {
+            csrf_token: csrf_token.clone(),
             user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: vec!["privilege_admin".to_string()],
@@ -168,6 +172,7 @@ async fn test_fetch_user_session() {
         .await
         .unwrap()
         .expect("session should be present and not expired");
+    assert!(session.csrf_token.verify(csrf_token.as_ref()));
     assert_eq!(session.user_id, "user_id");
     assert_eq!(session.display_name, "Jane Doe");
     assert_eq!(session.roles, vec!["privilege_admin".to_string()]);
@@ -186,6 +191,7 @@ async fn test_fetch_user_session() {
         .unwrap()
         .expect("session should be present and not expired");
     assert_eq!(session.expires_at, new_expires_at);
+    assert!(session.csrf_token.verify(csrf_token.as_ref()));
 
     // Should also be persisted in database
     let session = admin_portal_session::fetch_user_session(&db, &session_id, old_expires_at, None)
@@ -193,6 +199,7 @@ async fn test_fetch_user_session() {
         .unwrap()
         .expect("session should be present and not expired");
     assert_eq!(session.expires_at, new_expires_at);
+    assert!(session.csrf_token.verify(csrf_token.as_ref()));
 
     // Taking the session removes it and returns its contents.
     let session = admin_portal_session::take_user_session(&db, &session_id)
@@ -200,6 +207,7 @@ async fn test_fetch_user_session() {
         .unwrap()
         .expect("session should be present");
     assert_eq!(session.id_token, "id_token");
+    assert!(session.csrf_token.verify(csrf_token.as_ref()));
 
     let result = admin_portal_session::take_user_session(&db, &session_id).await.unwrap();
     assert!(result.is_none(), "session should have been removed");
@@ -218,6 +226,7 @@ async fn test_cleanup_expired_user_sessions() {
         &db,
         expired_id.clone(),
         AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
             user_id: "user_id".to_string(),
             display_name: "Expired".to_string(),
             roles: vec![],
@@ -231,6 +240,7 @@ async fn test_cleanup_expired_user_sessions() {
         &db,
         active_id.clone(),
         AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
             user_id: "user_id".to_string(),
             display_name: "Active".to_string(),
             roles: vec![],

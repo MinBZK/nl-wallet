@@ -1,5 +1,7 @@
 use crypto::kid::KidError;
 
+use crate::model::admin_portal_session::InvalidCsrfToken;
+
 #[derive(Debug, thiserror::Error)]
 pub enum PersistenceError {
     #[error("connection error: {0}")]
@@ -28,6 +30,9 @@ pub enum PersistenceError {
 
     #[error("invalid task parameters: {0}")]
     TaskParametersConversion(#[source] serde_json::Error),
+
+    #[error("invalid stored CSRF token: {0}")]
+    CsrfTokenConversion(#[source] InvalidCsrfToken),
 
     #[error("no rows were updated")]
     NoRowsUpdated,

@@ -39,6 +39,7 @@ use wallet_provider::test_support::TestState;
 use wallet_provider::test_support::post_json_request;
 use wallet_provider::test_support::setup_state;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_portal_session::CsrfToken;
 use wallet_provider_domain::model::admin_task::BlockUserParameters;
 use wallet_provider_domain::model::admin_task::CreateAdminTask;
 use wallet_provider_domain::model::admin_task::ReviewVerdict;
@@ -89,6 +90,7 @@ async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: 
         .insert_user_session(
             session_id.clone(),
             AdminPortalUserSession {
+                csrf_token: CsrfToken::generate(),
                 user_id: user.id.clone(),
                 display_name: user.display_name.clone(),
                 roles: privileges.iter().map(|p| format!("privilege_{p}")).collect(),

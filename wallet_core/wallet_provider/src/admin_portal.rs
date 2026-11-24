@@ -827,6 +827,7 @@ mod http_tests {
     use serde_json::json;
     use tower::ServiceExt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_portal_session::CsrfToken;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::AdminPortalRepository;
 
@@ -853,6 +854,7 @@ mod http_tests {
             .insert_user_session(
                 session_id.clone(),
                 AdminPortalUserSession {
+                    csrf_token: CsrfToken::generate(),
                     user_id: "user_id".to_string(),
                     display_name: "Jane Doe".to_string(),
                     roles,

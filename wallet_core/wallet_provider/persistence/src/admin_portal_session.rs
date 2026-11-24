@@ -131,6 +131,7 @@ where
 {
     let model = admin_portal_user_session::ActiveModel {
         id: Set(id),
+        csrf_token: Set(session.csrf_token.into()),
         user_id: Set(session.user_id),
         display_name: Set(session.display_name),
         roles: Set(session.roles),
@@ -182,6 +183,10 @@ where
     }
 
     Ok(Some(AdminPortalUserSession {
+        csrf_token: model
+            .csrf_token
+            .try_into()
+            .map_err(PersistenceError::CsrfTokenConversion)?,
         user_id: model.user_id,
         display_name: model.display_name,
         roles: model.roles,
@@ -214,6 +219,10 @@ where
     tx.commit().await.map_err(PersistenceError::Transaction)?;
 
     Ok(Some(AdminPortalUserSession {
+        csrf_token: model
+            .csrf_token
+            .try_into()
+            .map_err(PersistenceError::CsrfTokenConversion)?,
         user_id: model.user_id,
         display_name: model.display_name,
         roles: model.roles,

@@ -39,6 +39,7 @@ use utils::generator::TimeGenerator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_portal_session::CsrfToken;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::PersistenceError;
@@ -489,6 +490,7 @@ where
             .insert_user_session(
                 session_id.clone(),
                 AdminPortalUserSession {
+                    csrf_token: CsrfToken::generate(),
                     user_id: id_token.sub,
                     display_name: id_token.name,
                     roles,
@@ -616,6 +618,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_portal_session::CsrfToken;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
@@ -756,6 +759,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     fn user_session(roles: impl IntoIterator<Item = String>) -> AdminPortalUserSession {
         AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
             user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: roles.into_iter().collect(),
@@ -1195,6 +1199,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
         let (captured_session_id, session) = captured.lock().unwrap().take().unwrap();
         assert_eq!(captured_session_id, session_id);
+        assert!(!session.csrf_token.verify(&session_id));
         assert_eq!(session.display_name, "Jane Doe");
         assert_eq!(
             session.roles,
