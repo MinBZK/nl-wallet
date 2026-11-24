@@ -13,7 +13,6 @@ class IssuanceConfirmPinToRetrieveCardsPage extends StatelessWidget {
   final OnPinValidatedCallback<List<WalletCard>> onPinValidated;
   final OnPinErrorCallback onConfirmWithPinFailed;
   final VoidCallback? onForgotPinPressed;
-  final String? title;
 
   @visibleForTesting
   final PinBloc? bloc;
@@ -22,7 +21,6 @@ class IssuanceConfirmPinToRetrieveCardsPage extends StatelessWidget {
     required this.onPinValidated,
     required this.onConfirmWithPinFailed,
     this.onForgotPinPressed,
-    this.title,
     this.bloc,
     super.key,
   });
@@ -32,9 +30,7 @@ class IssuanceConfirmPinToRetrieveCardsPage extends StatelessWidget {
     return BlocProvider<PinBloc>(
       create: (BuildContext context) => bloc ?? PinBloc(context.read<IssueCardsForReviewUseCase>()),
       child: PinPage(
-        headerBuilder: (context, attempts, isFinalRound) {
-          return PinHeader(title: title ?? context.l10n.issuanceConfirmPinPageTitle);
-        },
+        headerBuilder: (context, _, _) => PinHeader(title: context.l10n.issuanceConfirmPinPageTitle),
         onPinValidated: (result) => onPinValidated.call(result as List<WalletCard>),
         onPinError: onConfirmWithPinFailed,
         onForgotPinPressed: onForgotPinPressed,
