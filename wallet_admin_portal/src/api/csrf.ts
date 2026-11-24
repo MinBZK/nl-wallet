@@ -1,5 +1,8 @@
 import type { CsrfTokenResponse } from '@/types/csrf-token-response.ts'
-import { request } from '@/api/request.ts'
+import { HTTP_FORBIDDEN, HTTP_UNAUTHORIZED, HttpError, postJson, request } from '@/api/request.ts'
+
+/** The header in which the wallet_provider expects the CSRF token on task mutations. */
+const CSRF_TOKEN_HEADER = 'X-CSRF-Token'
 
 let tokenPromise: Promise<string> | null = null
 
@@ -28,4 +31,25 @@ export function getCsrfToken(): Promise<string> {
 /** Forgets the stored CSRF token, so the next `getCsrfToken()` call fetches it again, e.g. for a new session. */
 export function clearCsrfToken() {
   tokenPromise = null
+}
+
+/**
+ * POSTs [body] as JSON to [path] with the session's CSRF token; see {@link postJson}.
+ *
+ * Required for the task mutations. On a 401 or 403 the stored token is cleared, as it may belong to an ended session,
+ * so the next call fetches it again. The request itself is not retried.
+ */
+export async function postJsonWithCsrfToken<T>(path: string, body?: unknown): Promise<T> {
+  const token = await getCsrfToken()
+  try {
+    return await postJson<T>(path, body, { [CSRF_TOKEN_HEADER]: token })
+  } catch (error) {
+    if (
+      error instanceof HttpError &&
+      (error.status === HTTP_UNAUTHORIZED || error.status === HTTP_FORBIDDEN)
+    ) {
+      clearCsrfToken()
+    }
+    throw error
+  }
 }

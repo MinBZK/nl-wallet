@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { clearCsrfToken, getCsrfToken } from '@/api/csrf.ts'
+import { clearCsrfToken, getCsrfToken, postJsonWithCsrfToken } from '@/api/csrf.ts'
 import { UnauthorizedError } from '@/api/request.ts'
 import router from '@/router'
 
@@ -71,5 +71,75 @@ describe('csrf api', () => {
 
     expect(await getCsrfToken()).toBe('token-1')
     expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+})
+
+/** Stubs fetch to return the CSRF token, and [status] with [body] for any other request. */
+function stubFetchWithToken(status: number, body?: unknown) {
+  const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<unknown>>(
+    async (input) =>
+      String(input) === '/admin-portal/api/csrf-token'
+        ? { status: 200, ok: true, json: async () => ({ csrfToken: 'token-1' }) }
+        : { status, ok: status >= 200 && status < 300, json: async () => body },
+  )
+  vi.stubGlobal('fetch', fetchMock)
+  return fetchMock
+}
+
+describe('postJsonWithCsrfToken', () => {
+  it('posts the body as JSON with the CSRF token header', async () => {
+    const fetchMock = stubFetchWithToken(200, { result: 'ok' })
+
+    const result = await postJsonWithCsrfToken('/tasks', { field: 'value' })
+
+    expect(fetchMock.mock.calls[1]).toEqual([
+      '/admin-portal/tasks',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'token-1' },
+        body: JSON.stringify({ field: 'value' }),
+      },
+    ])
+    expect(result).toEqual({ result: 'ok' })
+  })
+
+  it('reuses the stored token for later requests', async () => {
+    const fetchMock = stubFetchWithToken(200, {})
+
+    await postJsonWithCsrfToken('/tasks', {})
+    await postJsonWithCsrfToken('/tasks', {})
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      '/admin-portal/api/csrf-token',
+      '/admin-portal/tasks',
+      '/admin-portal/tasks',
+    ])
+  })
+
+  it('does not post when the token cannot be fetched', async () => {
+    const fetchMock = stubFetch(500)
+
+    await expect(postJsonWithCsrfToken('/tasks', {})).rejects.toThrow('500')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([401, 403])('clears the stored token on a %i response', async (status) => {
+    stubFetchWithToken(status)
+    await expect(postJsonWithCsrfToken('/tasks', {})).rejects.toMatchObject({ status })
+
+    const fetchMock = stubFetchWithToken(200, {})
+    await postJsonWithCsrfToken('/tasks', {})
+
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('/admin-portal/api/csrf-token')
+  })
+
+  it('keeps the stored token on other failures', async () => {
+    stubFetchWithToken(500)
+    await expect(postJsonWithCsrfToken('/tasks', {})).rejects.toThrow('500')
+
+    const fetchMock = stubFetchWithToken(200, {})
+    await postJsonWithCsrfToken('/tasks', {})
+
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual(['/admin-portal/tasks'])
   })
 })

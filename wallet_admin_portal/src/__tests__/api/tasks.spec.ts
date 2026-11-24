@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { clearCsrfToken } from '@/api/csrf.ts'
 import {
   approveTask,
   createTask,
@@ -60,6 +61,8 @@ const reviewableTask: TaskResponse = {
 }
 
 /** Stubs fetch to answer each `view` list with the given tasks and any other request with [other]. */
+const CSRF_TOKEN = 'csrf-token'
+
 function stubFetch(
   lists: Partial<Record<'open' | 'history' | 'reviewable', TaskResponse[]>>,
   other?: TaskResponse,
@@ -67,6 +70,9 @@ function stubFetch(
   const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<unknown>>(
     async (input) => {
       const url = String(input)
+      if (url === '/admin-portal/api/csrf-token') {
+        return { status: 200, ok: true, json: async () => ({ csrfToken: CSRF_TOKEN }) }
+      }
       const view = new URL(url, 'http://localhost').searchParams.get('view') as
         | keyof typeof lists
         | null
@@ -84,6 +90,7 @@ function lastRequest(fetchMock: ReturnType<typeof stubFetch>) {
 }
 
 afterEach(() => {
+  clearCsrfToken()
   vi.unstubAllGlobals()
 })
 
@@ -333,6 +340,43 @@ describe('tasks api', () => {
         reviewComment: 'Insufficient justification',
       })
       expect(task.verdict).toBe('Afgewezen')
+    })
+  })
+
+  describe('csrf protection', () => {
+    it.each([
+      [
+        'createTask',
+        () =>
+          createTask(
+            { taskType: TaskActionType.RevokeWallet, taskParameters: { walletIds: ['w-1'] } },
+            'Reason',
+          ),
+      ],
+      ['withdrawTask', () => withdrawTask(createdTask.taskId, 'Reason')],
+      ['approveTask', () => approveTask(createdTask.taskId)],
+      ['rejectTask', () => rejectTask(createdTask.taskId, 'Reason')],
+    ])('%s sends the CSRF token', async (_, mutate) => {
+      const fetchMock = stubFetch({}, createdTask)
+
+      await mutate()
+
+      expect(fetchMock.mock.calls[0]?.[0]).toBe('/admin-portal/api/csrf-token')
+      expect(lastRequest(fetchMock).init?.headers).toEqual({
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': CSRF_TOKEN,
+      })
+    })
+
+    it('does not send the CSRF token when fetching tasks', async () => {
+      const fetchMock = stubFetch({ open: [createdTask] }, createdTask)
+
+      await fetchMyOpenTasks()
+      await fetchTaskDetail(createdTask.taskId)
+
+      expect(fetchMock.mock.calls.map(([url]) => String(url))).not.toContain(
+        '/admin-portal/api/csrf-token',
+      )
     })
   })
 })
