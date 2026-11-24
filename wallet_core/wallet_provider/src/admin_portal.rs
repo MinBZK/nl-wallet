@@ -10,6 +10,7 @@ use axum::extract::Query;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
+use axum::http::header::CACHE_CONTROL;
 use axum::http::request::Parts;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
@@ -40,6 +41,7 @@ use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
+use wallet_provider_service::admin_portal::AuthenticatedSession;
 use wallet_provider_service::admin_portal::LoggedInUser;
 use wallet_provider_service::admin_portal::UuidV7Generator;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
@@ -198,6 +200,7 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
         .route("/auth/callback", get(callback))
         .route("/auth/logout", get(logout))
         .route("/api/me", get(me))
+        .route("/api/csrf-token", get(csrf_token))
         .nest(
             "/tasks",
             Router::new()
@@ -325,6 +328,12 @@ impl From<LoggedInUser> for MeResponse {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CsrfTokenResponse {
+    csrf_token: String,
+}
+
 async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
     Json(MeResponse::from(user)).into_response()
 }
@@ -334,7 +343,9 @@ async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
 #[derive(Debug)]
 pub struct AuthenticatedAdminUser(pub LoggedInUser);
 
-impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
+struct AuthenticatedAdminSession(AuthenticatedSession);
+
+impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminSession {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
@@ -346,8 +357,8 @@ impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
             return Err(StatusCode::UNAUTHORIZED.into_response());
         };
 
-        match state.service.authenticated_user(session_id).await {
-            Ok(Some(user)) => Ok(AuthenticatedAdminUser(user)),
+        match state.service.authenticated_session(session_id).await {
+            Ok(Some(user)) => Ok(AuthenticatedAdminSession(user)),
             Ok(None) => Err(StatusCode::UNAUTHORIZED.into_response()),
             Err(error) => {
                 warn!("session lookup failed: {error}");
@@ -355,6 +366,24 @@ impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
             }
         }
     }
+}
+
+impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
+        let AuthenticatedAdminSession(session) = AuthenticatedAdminSession::from_request_parts(parts, state).await?;
+        Ok(Self(session.user))
+    }
+}
+
+async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSession) -> impl IntoResponse {
+    (
+        [(CACHE_CONTROL, "no-store")],
+        Json(CsrfTokenResponse {
+            csrf_token: session.csrf_token.into(),
+        }),
+    )
 }
 
 #[derive(Debug, Deserialize)]

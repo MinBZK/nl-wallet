@@ -656,3 +656,49 @@ async fn test_list_tasks_reviewable_succeeds() {
     let tasks: Vec<TaskResponse> = json_body(response).await;
     assert!(tasks.iter().any(|task| task.task_id == task_id));
 }
+
+async fn csrf_token(app: &Router, cookie: &str) -> String {
+    let response = app
+        .clone()
+        .oneshot(
+            Request::builder()
+                .uri("/api/csrf-token")
+                .header(header::COOKIE, cookie)
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+    assert!(!response.headers().contains_key(header::SET_COOKIE));
+    let body: serde_json::Value = json_body(response).await;
+    body["csrfToken"].as_str().unwrap().to_owned()
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn csrf_token_requires_authentication() {
+    let (app, _, _state) = test_admin_portal_app().await;
+    let response = app
+        .oneshot(Request::builder().uri("/api/csrf-token").body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn csrf_token_is_stable_and_unique_per_login_session() {
+    let (app, repositories, state) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let first_session = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let second_session = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let token = csrf_token(&app, &first_session).await;
+    assert_ne!(token, first_session.trim_start_matches("sid="));
+    let replica = admin_portal::router(Arc::clone(&state));
+    let (a, b) = tokio::join!(csrf_token(&app, &first_session), csrf_token(&replica, &first_session));
+    assert_eq!(token, a);
+    assert_eq!(token, b);
+    assert_ne!(token, csrf_token(&app, &second_session).await);
+}
