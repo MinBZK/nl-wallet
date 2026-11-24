@@ -21,7 +21,9 @@ ai-security-scan-fetch-token:
       artifacts: true
   variables:
     GIT_DEPTH: 0
-    SCAN_MODEL: "claude-sonnet-4-6"
+    CLAUDE_CODE_VERSION: "2.1.326"
+    SCAN_MODEL: "claude-opus-5-5"
+    SCAN_MAX_BUDGET_USD: "25"
     CLAUDE_CODE_MAX_TURNS: "50"
     # Headless `claude -p` ends the session as soon as the model stops for input,
     # so a turn that ends with a clarifying question produces no findings. This
@@ -34,7 +36,7 @@ ai-security-scan-fetch-token:
       writing the output file before you finish. If the scope looks large, scan
       it in full anyway rather than pausing to ask how to narrow it.
   before_script:
-    - npm i -g @anthropic-ai/claude-code
+    - npm i -g "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}"
     - node "$(npm root -g)/@anthropic-ai/claude-code/install.cjs"
     # Headless Claude ignores the project's .claude/settings.json allowlist unless the
     # workspace is trusted, and CI has no trust dialog. Mark the checkout directory as
@@ -55,6 +57,7 @@ ai-security-scan-fetch-token:
     - cd deploy/qa-util/ai-security-scan
   artifacts:
     name: ai-security-scan
+    access: maintainer
     when: always
     expire_in: 30 days
     paths:
@@ -73,8 +76,7 @@ ai-security-scan-diff:
     SCAN_COMMIT_RANGE: "HEAD~1..HEAD"
   script:
     - 'echo "Scanning commit range: ${SCAN_COMMIT_RANGE}"'
-    - claude -p "/vuln-scan-diff ../../.. ${SCAN_COMMIT_RANGE} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
-    - mv ../../../VULN-FINDINGS-DIFF.* ./ 2>/dev/null || true
+    - ./run-skill.sh "/vuln-scan-diff ../../.. ${SCAN_COMMIT_RANGE} --no-score"
     - |
       if [ ! -f VULN-FINDINGS-DIFF.json ]; then
         echo "No source files in range — nothing to scan. Exiting successfully."
@@ -82,7 +84,7 @@ ai-security-scan-diff:
       fi
     - |
       if [ "${TRIAGE}" = "true" ]; then
-        claude -p "/triage VULN-FINDINGS-DIFF.json --auto --repo ../../.. --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
+        ./run-skill.sh "/triage VULN-FINDINGS-DIFF.json --auto --repo ../../.. --fp-rules false-positives.md"
         test -f TRIAGE.md || { echo "No TRIAGE.md (triage did not complete)"; exit 1; }
       else
         echo "Skipping triage (set TRIAGE=true when triggering to verify, dedupe and rank the findings)"
@@ -97,13 +99,13 @@ ai-security-scan-full:
     TRIAGE: "false"
     SCAN_TARGET: "wallet_core"
     SCAN_EXCLUDES: "--exclude target --exclude tests_integration --exclude demo --exclude wallet_server/pid_issuer"
+    SCAN_MAX_BUDGET_USD: "100"
   script:
-    - claude -p "/vuln-scan ../../../${SCAN_TARGET} ${SCAN_EXCLUDES} --no-score" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
-    - mv ../../../${SCAN_TARGET}/VULN-FINDINGS.* ./ 2>/dev/null || true
+    - ./run-skill.sh "/vuln-scan ../../../${SCAN_TARGET} ${SCAN_EXCLUDES} --no-score"
     - test -f VULN-FINDINGS.json || { echo "No VULN-FINDINGS.json (scan did not complete)"; exit 1; }
     - |
       if [ "${TRIAGE}" = "true" ]; then
-        claude -p "/triage VULN-FINDINGS.json --auto --repo ../../../${SCAN_TARGET} --fp-rules false-positives.md" --model "${SCAN_MODEL}" --add-dir ../../.. --verbose --append-system-prompt "$NONINTERACTIVE"
+        ./run-skill.sh "/triage VULN-FINDINGS.json --auto --repo ../../../${SCAN_TARGET} --fp-rules false-positives.md"
         test -f TRIAGE.md || { echo "No TRIAGE.md (triage did not complete)"; exit 1; }
       else
         echo "Skipping triage (set TRIAGE=true when triggering to verify, dedupe and rank the findings)"
