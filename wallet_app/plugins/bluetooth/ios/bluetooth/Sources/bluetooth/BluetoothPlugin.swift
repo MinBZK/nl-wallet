@@ -2,14 +2,17 @@ import Flutter
 import UIKit
 import CoreBluetooth
 
-public class BluetoothPlugin: NSObject, FlutterPlugin, CBCentralManagerDelegate {
+public class BluetoothPlugin: NSObject, FlutterPlugin, FlutterStreamHandler, CBCentralManagerDelegate {
   private var centralManager: CBCentralManager?
   private var currentState: CBManagerState = .unknown
+  private var stateSink: FlutterEventSink?
 
   public static func register(with registrar: FlutterPluginRegistrar) {
     let channel = FlutterMethodChannel(name: "bluetooth", binaryMessenger: registrar.messenger())
+    let stateChannel = FlutterEventChannel(name: "bluetooth/state", binaryMessenger: registrar.messenger())
     let instance = BluetoothPlugin()
     registrar.addMethodCallDelegate(instance, channel: channel)
+    stateChannel.setStreamHandler(instance)
   }
 
   public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
@@ -29,7 +32,19 @@ public class BluetoothPlugin: NSObject, FlutterPlugin, CBCentralManagerDelegate 
       result(FlutterMethodNotImplemented)
     }
   }
-    
+
+  public func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    stateSink = events
+    ensureCentralManager()
+    emitState()
+    return nil
+  }
+
+  public func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    stateSink = nil
+    return nil
+  }
+
   private func ensureCentralManager() {
     guard centralManager == nil else { return }
     centralManager = CBCentralManager(
@@ -39,7 +54,15 @@ public class BluetoothPlugin: NSObject, FlutterPlugin, CBCentralManagerDelegate 
     )
   }
 
+  // Right after Bluetooth is switched on, the state is still poweredOff or resetting; this
+  // callback is the only reliable moment to learn that it became poweredOn.
   public func centralManagerDidUpdateState(_ central: CBCentralManager) {
     currentState = central.state
+    emitState()
+  }
+
+  private func emitState() {
+    guard currentState != .unknown else { return }
+    stateSink?(currentState == .poweredOn)
   }
 }

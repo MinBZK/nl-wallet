@@ -3,9 +3,7 @@ import 'dart:async';
 import 'package:bloc_test/bloc_test.dart';
 import 'package:bluetooth/bluetooth.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
-import 'package:wallet/src/data/service/app_lifecycle_service.dart';
 import 'package:wallet/src/domain/model/close_proximity/ble_connection_event.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
@@ -18,27 +16,27 @@ void main() {
   late MockStartCloseProximityDisclosureUseCase mockStartQrEngagementUseCase;
   late MockCancelSessionUseCase mockCancelSessionUseCase;
   late MockObserveCloseProximityConnectionUseCase mockObserveCloseProximityConnectionUseCase;
-  late AppLifecycleService mockAppLifecycleService;
   late QrPresentBloc bloc;
   late Bluetooth bluetooth;
   late StreamController<BleConnectionEvent> connectionEventController;
+  late StreamController<bool> bluetoothStateController;
 
   setUp(() {
     mockStartQrEngagementUseCase = MockStartCloseProximityDisclosureUseCase();
     mockObserveCloseProximityConnectionUseCase = MockObserveCloseProximityConnectionUseCase();
     mockCancelSessionUseCase = MockCancelSessionUseCase();
     bluetooth = MockBluetooth();
-    mockAppLifecycleService = AppLifecycleService();
     connectionEventController = StreamController<BleConnectionEvent>.broadcast();
+    bluetoothStateController = StreamController<bool>();
 
     when(mockObserveCloseProximityConnectionUseCase.invoke()).thenAnswer((_) => connectionEventController.stream);
+    when(bluetooth.observeEnabled()).thenAnswer((_) => bluetoothStateController.stream);
 
     bloc = QrPresentBloc(
       mockStartQrEngagementUseCase,
       mockObserveCloseProximityConnectionUseCase,
       mockCancelSessionUseCase,
       bluetooth,
-      mockAppLifecycleService,
     );
   });
 
@@ -196,29 +194,26 @@ void main() {
       verifyNever(mockCancelSessionUseCase.invoke());
     });
 
-    group('Lifecycle', () {
+    group('Bluetooth state', () {
       blocTest<QrPresentBloc, QrPresentState>(
-        'adds QrPresentStopRequested when resumed and bluetooth is disabled while in QrPresentServerStarted',
+        'stops the session when bluetooth is switched off while in QrPresentServerStarted',
         build: () => bloc,
         seed: () => const QrPresentServerStarted('qr_content'),
-        setUp: () {
-          when(bluetooth.isEnabled()).thenAnswer((_) async => false);
-          when(mockCancelSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
-        },
-        act: (bloc) => mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed),
+        setUp: () => when(mockCancelSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null)),
+        act: (bloc) => bluetoothStateController.add(false),
         expect: () => [const QrPresentConnectionFailed()],
         verify: (_) => verify(mockCancelSessionUseCase.invoke()).called(2),
       );
 
       blocTest<QrPresentBloc, QrPresentState>(
-        'adds QrPresentStartRequested when resumed and bluetooth is enabled while in QrPresentBluetoothDisabled',
+        'starts the session when bluetooth is switched on while in QrPresentBluetoothDisabled',
         build: () => bloc,
         seed: () => const QrPresentBluetoothDisabled(),
         setUp: () {
           when(bluetooth.isEnabled()).thenAnswer((_) async => true);
           when(mockStartQrEngagementUseCase.invoke()).thenAnswer((_) async => const Result.success('qr_content'));
         },
-        act: (bloc) => mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed),
+        act: (bloc) => bluetoothStateController.add(true),
         expect: () => [
           const QrPresentInitial(),
           const QrPresentServerStarted('qr_content'),
@@ -227,20 +222,30 @@ void main() {
       );
 
       blocTest<QrPresentBloc, QrPresentState>(
-        'does nothing when resumed and bluetooth is still enabled while in QrPresentServerStarted',
+        'stops the session only once when bluetooth reports off twice while in QrPresentServerStarted',
         build: () => bloc,
         seed: () => const QrPresentServerStarted('qr_content'),
-        setUp: () => when(bluetooth.isEnabled()).thenAnswer((_) async => true),
-        act: (bloc) => mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed),
+        setUp: () => when(mockCancelSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null)),
+        act: (bloc) => bluetoothStateController
+          ..add(false)
+          ..add(false),
+        expect: () => [const QrPresentConnectionFailed()],
+        verify: (_) => verify(mockCancelSessionUseCase.invoke()).called(2),
+      );
+
+      blocTest<QrPresentBloc, QrPresentState>(
+        'does nothing when bluetooth is reported on while in QrPresentServerStarted',
+        build: () => bloc,
+        seed: () => const QrPresentServerStarted('qr_content'),
+        act: (bloc) => bluetoothStateController.add(true),
         expect: () => [],
       );
 
       blocTest<QrPresentBloc, QrPresentState>(
-        'does nothing when resumed and bluetooth is still disabled while in QrPresentBluetoothDisabled',
+        'does nothing when bluetooth is reported off while in QrPresentBluetoothDisabled',
         build: () => bloc,
         seed: () => const QrPresentBluetoothDisabled(),
-        setUp: () => when(bluetooth.isEnabled()).thenAnswer((_) async => false),
-        act: (bloc) => mockAppLifecycleService.notifyStateChanged(AppLifecycleState.resumed),
+        act: (bloc) => bluetoothStateController.add(false),
         expect: () => [],
       );
     });
