@@ -1,12 +1,10 @@
 import 'dart:async';
-import 'dart:ui';
 
 import 'package:bluetooth/bluetooth.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fimber/fimber.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../data/service/app_lifecycle_service.dart';
 import '../../../../domain/model/bloc/error_state.dart';
 import '../../../../domain/model/close_proximity/ble_connection_event.dart';
 import '../../../../domain/model/result/application_error.dart';
@@ -24,24 +22,22 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
   final ObserveCloseProximityConnectionUseCase _observeCloseProximityConnectionUseCase;
   final CancelSessionUseCase _cancelSessionUseCase;
   final Bluetooth _bluetoothPlugin;
-  final AppLifecycleService _lifecycleService;
 
   StreamSubscription? _connectionSubscription;
-  StreamSubscription? _lifecycleSubscription;
+  StreamSubscription? _bluetoothSubscription;
 
   QrPresentBloc(
     this._startCloseProximityDisclosureUseCase,
     this._observeCloseProximityConnectionUseCase,
     this._cancelSessionUseCase,
     this._bluetoothPlugin,
-    this._lifecycleService,
   ) : super(const QrPresentInitial()) {
     on<QrPresentStartRequested>(_onStartRequested);
     on<QrPresentStopRequested>(_onStopRequested);
     on<QrPresentEventReceived>(_onConnectionEvent);
     on<QrPresentPermissionDenied>(_onPermissionDenied);
 
-    _lifecycleSubscription = _lifecycleService.observe().where((it) => it == .resumed).listen(_onAppResumed);
+    _bluetoothSubscription = _bluetoothPlugin.observeEnabled().distinct().listen(_onBluetoothStateChanged);
   }
 
   FutureOr<void> _onStartRequested(QrPresentStartRequested event, Emitter<QrPresentState> emit) async {
@@ -101,8 +97,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
     emit(const QrPresentError(GenericError('Bluetooth permissions are missing', sourceError: 'missing_permissions')));
   }
 
-  Future<void> _onAppResumed(AppLifecycleState event) async {
-    final bluetoothEnabled = await _bluetoothPlugin.isEnabled();
+  void _onBluetoothStateChanged(bool bluetoothEnabled) {
     switch (state) {
       case QrPresentServerStarted():
         if (!bluetoothEnabled) add(const QrPresentStopRequested());
@@ -114,7 +109,7 @@ class QrPresentBloc extends Bloc<QrPresentEvent, QrPresentState> {
 
   @override
   Future<dynamic> close() async {
-    unawaited(_lifecycleSubscription?.cancel());
+    unawaited(_bluetoothSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
     Fimber.d('Closing QrPresentBLoC with state: $state');
     switch (state) {

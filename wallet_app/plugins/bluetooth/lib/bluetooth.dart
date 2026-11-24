@@ -8,6 +8,10 @@ class Bluetooth {
   /// and `false` otherwise.
   Future<bool> isEnabled() => BluetoothPlatform.instance.isBluetoothEnabled();
 
+  /// Emits whether Bluetooth is enabled, whenever that changes. When nobody is listening yet, the first listener
+  /// also receives the current state once it is known.
+  Stream<bool> observeEnabled() => BluetoothPlatform.instance.observeBluetoothEnabled();
+
   /// **Android only**
   /// Requests to enable Bluetooth on the device.
   /// Displays a system dialog asking the user to turn on Bluetooth.

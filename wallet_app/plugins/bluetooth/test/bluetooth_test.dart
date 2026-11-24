@@ -9,6 +9,9 @@ class MockBluetoothPlatform with MockPlatformInterfaceMixin implements Bluetooth
   Future<bool> isBluetoothEnabled() => Future.value(true);
 
   @override
+  Stream<bool> observeBluetoothEnabled() => Stream.fromIterable([false, true]);
+
+  @override
   Future<void> enableBluetooth() async {}
 }
 
@@ -25,6 +28,14 @@ void main() {
     BluetoothPlatform.instance = fakePlatform;
 
     expect(await bluetoothPlugin.isEnabled(), true);
+  });
+
+  test('observeEnabled', () async {
+    Bluetooth bluetoothPlugin = Bluetooth();
+    MockBluetoothPlatform fakePlatform = MockBluetoothPlatform();
+    BluetoothPlatform.instance = fakePlatform;
+
+    expect(bluetoothPlugin.observeEnabled(), emitsInOrder([false, true]));
   });
 
   test('enableBluetooth', () async {
