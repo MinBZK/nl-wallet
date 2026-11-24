@@ -22,6 +22,7 @@ use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::cookie::SameSite;
 use chrono::DateTime;
 use chrono::Utc;
+use http::HeaderName;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
@@ -193,7 +194,6 @@ impl AdminPortalState {
     }
 }
 
-// TODO (PVW-6427): Add CSRF protection
 pub fn router(state: Arc<AdminPortalState>) -> Router {
     Router::new()
         .route("/auth/login", get(login))
@@ -377,6 +377,30 @@ impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
     }
 }
 
+/// The request header in which task mutations must supply the session's CSRF token.
+pub const CSRF_TOKEN_HEADER: HeaderName = HeaderName::from_static("x-csrf-token");
+
+/// A logged-in user whose request explicitly supplied the session's CSRF token.
+#[derive(Debug)]
+struct CsrfProtectedAdminUser(LoggedInUser);
+
+impl FromRequestParts<Arc<AdminPortalState>> for CsrfProtectedAdminUser {
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
+        let AuthenticatedAdminSession(session) = AuthenticatedAdminSession::from_request_parts(parts, state).await?;
+        let valid = parts
+            .headers
+            .get(&CSRF_TOKEN_HEADER)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|supplied| session.csrf_token.verify(supplied));
+        if !valid {
+            return Err(StatusCode::FORBIDDEN.into_response());
+        }
+        Ok(Self(session.user))
+    }
+}
+
 async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSession) -> impl IntoResponse {
     (
         [(CACHE_CONTROL, "no-store")],
@@ -456,7 +480,7 @@ impl From<(&LoggedInUser, AdminTask)> for TaskResponse {
 
 async fn create_task(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     request: Result<Json<CreateTaskRequest>, JsonRejection>,
 ) -> Result<impl IntoResponse, TaskApiError> {
     let Json(request) = request.map_err(TaskApiError::InvalidRequest)?;
@@ -477,7 +501,7 @@ async fn create_task(
 
 async fn withdraw_task(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     Path(task_id): Path<Uuid>,
     request: Result<Json<WithdrawTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
@@ -493,7 +517,7 @@ async fn withdraw_task(
 
 async fn review_task(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     Path(task_id): Path<Uuid>,
     request: Result<Json<ReviewTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
@@ -848,6 +872,7 @@ mod tests {
 mod http_tests {
     use axum::body::Body;
     use axum::body::to_bytes;
+    use axum::http::HeaderValue;
     use axum::http::Request;
     use axum::http::header;
     use chrono::TimeDelta;
@@ -1042,6 +1067,63 @@ mod http_tests {
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
+    /// Returns the request parts for [jar], supplying [csrf_token] in the CSRF token header, if any.
+    fn request_parts_with_csrf_token(jar: &CookieJar, csrf_token: Option<HeaderValue>) -> Parts {
+        let mut parts = request_parts(jar);
+        if let Some(csrf_token) = csrf_token {
+            parts.headers.insert(CSRF_TOKEN_HEADER, csrf_token);
+        }
+        parts
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn csrf_protected_admin_user_accepts_the_session_csrf_token() {
+        let (state, jar) = setup_state_with_valid_user().await;
+        let session_id = jar.get(SESSION_ID_COOKIE).unwrap().value();
+        let session = state.service.authenticated_session(session_id).await.unwrap().unwrap();
+        let csrf_token = HeaderValue::from_str(session.csrf_token.as_ref()).unwrap();
+        let mut parts = request_parts_with_csrf_token(&jar, Some(csrf_token));
+
+        let CsrfProtectedAdminUser(user) = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect("the session's CSRF token should be accepted");
+
+        assert_eq!(user.user_id, "user_id");
+    }
+
+    #[rstest::rstest]
+    #[case::missing(None)]
+    #[case::invalid(Some(HeaderValue::from_static("invalid")))]
+    #[case::other_session(Some(HeaderValue::from_str(CsrfToken::generate().as_ref()).unwrap()))]
+    #[case::not_visible_ascii(Some(HeaderValue::from_bytes(b"\xff").unwrap()))]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn csrf_protected_admin_user_rejects_other_csrf_tokens_with_403(#[case] csrf_token: Option<HeaderValue>) {
+        let (state, jar) = setup_state_with_valid_user().await;
+        let mut parts = request_parts_with_csrf_token(&jar, csrf_token);
+
+        let response = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("a request without the session's CSRF token should be rejected");
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn csrf_protected_admin_user_without_session_is_rejected_with_401() {
+        let state = setup_state().await;
+        let csrf_token = HeaderValue::from_str(CsrfToken::generate().as_ref()).unwrap();
+        let mut parts = request_parts_with_csrf_token(&CookieJar::new(), Some(csrf_token));
+
+        let response = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("a request without a session should be rejected");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn me_with_valid_session_reports_logged_in_user() {
@@ -1085,9 +1167,18 @@ mod http_tests {
     }
 
     async fn create_task_from_body(body: Value) -> Response {
-        let (state, jar) = setup_state_with_user_roles(vec!["privilege_revoke_wallet".to_string()]).await;
-        let request = post_json_request("/tasks", &session_cookie_header(&jar), &body);
-        router(Arc::clone(&state)).oneshot(request).await.unwrap()
+        let state = setup_state().await;
+        create_task(
+            State(Arc::clone(&state)),
+            CsrfProtectedAdminUser(LoggedInUser {
+                user_id: "alice".to_owned(),
+                display_name: "Alice".to_owned(),
+                privileges: vec![TaskType::RevokeWallet.to_string()],
+            }),
+            Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
+        )
+        .await
+        .into_response()
     }
 
     #[rstest::rstest]

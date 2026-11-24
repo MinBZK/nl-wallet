@@ -37,6 +37,7 @@ use wallet_provider::admin_portal::TaskResponse;
 use wallet_provider::admin_portal::WithdrawTaskRequest;
 use wallet_provider::test_support::TestState;
 use wallet_provider::test_support::post_json_request;
+use wallet_provider::test_support::post_json_request_with_csrf;
 use wallet_provider::test_support::setup_state;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
 use wallet_provider_domain::model::admin_portal_session::CsrfToken;
@@ -213,37 +214,26 @@ async fn test_concurrent_task_mutations(
     let reviewer_cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
     let task_id = seed_task(&repositories, &alice).await;
 
-    let request = |verdict: Option<ReviewVerdict>| {
-        let (action, cookie, body) = match verdict {
-            None => (
-                "withdraw",
-                &creator_cookie,
-                Body::from(
-                    serde_json::to_string(&WithdrawTaskRequest {
-                        withdrawal_comment: "concurrent withdrawal".to_string(),
-                    })
-                    .unwrap(),
-                ),
-            ),
-            Some(verdict) => (
-                "review",
-                &reviewer_cookie,
-                Body::from(
-                    serde_json::to_string(&ReviewTaskRequest {
-                        verdict,
-                        review_comment: "concurrent review".to_string(),
-                    })
-                    .unwrap(),
-                ),
-            ),
-        };
-        Request::builder()
-            .method("POST")
-            .uri(format!("/tasks/{task_id}/{action}"))
-            .header(header::COOKIE, cookie)
-            .header(header::CONTENT_TYPE, "application/json")
-            .body(body)
-            .unwrap()
+    let creator_token = csrf_token(&app, &creator_cookie).await;
+    let reviewer_token = csrf_token(&app, &reviewer_cookie).await;
+    let request = |verdict: Option<ReviewVerdict>| match verdict {
+        None => post_json_request_with_csrf(
+            &format!("/tasks/{task_id}/withdraw"),
+            &creator_cookie,
+            &creator_token,
+            &WithdrawTaskRequest {
+                withdrawal_comment: "concurrent withdrawal".to_string(),
+            },
+        ),
+        Some(verdict) => post_json_request_with_csrf(
+            &format!("/tasks/{task_id}/review"),
+            &reviewer_cookie,
+            &reviewer_token,
+            &ReviewTaskRequest {
+                verdict,
+                review_comment: "concurrent review".to_string(),
+            },
+        ),
     };
 
     // Both endpoints must wait for the same database row lock before checking its state.
@@ -391,19 +381,14 @@ async fn test_create_block_user_task_accepts_unknown_recovery_code() {
     let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
+    let token = csrf_token(&app, &cookie).await;
     // No wallet has this recovery code, which is allowed: a wallet may not have been created yet.
     let payload = block_user_payload(&[new_recovery_code()]);
 
-    let request = post_json_request(
-        "/tasks",
-        &cookie,
-        &CreateTaskRequest {
-            payload: payload.clone(),
-            task_reason: "integration test".to_string(),
-        },
-    );
-
-    let response = app.oneshot(request).await.unwrap();
+    let response = app
+        .oneshot(create_task_request(&cookie, &token, payload.clone()))
+        .await
+        .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let task: TaskResponse = json_body(response).await;
@@ -418,6 +403,8 @@ async fn test_block_user_task_approval_revokes_wallet() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::BlockUser]).await;
+    let token = csrf_token(&app, &cookie).await;
+
     let recovery_code = new_recovery_code();
     seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
     let task_id = seed_task_with_payload(
@@ -429,7 +416,7 @@ async fn test_block_user_task_approval_revokes_wallet() {
 
     let response = app
         .clone()
-        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .oneshot(review_request(task_id, &cookie, &token, ReviewVerdict::Approve))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -462,21 +449,16 @@ async fn test_create_task_succeeds() {
     let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let token = csrf_token(&app, &cookie).await;
     let wallet_id = seed_wallet(&repositories).await;
     let payload = TaskPayload::RevokeWallet(RevokeWalletParameters {
         wallet_ids: vec_nonempty![wallet_id].into(),
     });
 
-    let request = post_json_request(
-        "/tasks",
-        &cookie,
-        &CreateTaskRequest {
-            payload: payload.clone(),
-            task_reason: "integration test".to_string(),
-        },
-    );
-
-    let response = app.oneshot(request).await.unwrap();
+    let response = app
+        .oneshot(create_task_request(&cookie, &token, payload.clone()))
+        .await
+        .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
 
     let task: TaskResponse = json_body(response).await;
@@ -491,11 +473,13 @@ async fn test_withdraw_task_succeeds() {
     let (app, repositories, _db_setup) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let token = csrf_token(&app, &cookie).await;
     let task_id = seed_task(&repositories, &alice).await;
 
-    let request = post_json_request(
+    let request = post_json_request_with_csrf(
         &format!("/tasks/{task_id}/withdraw"),
         &cookie,
+        &token,
         &WithdrawTaskRequest {
             withdrawal_comment: "no longer needed".to_string(),
         },
@@ -517,6 +501,7 @@ async fn test_review_task_approve_succeeds() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
+    let token = csrf_token(&app, &cookie).await;
     let wallet_id = seed_wallet(&repositories).await;
     let payload = TaskPayload::RevokeWallet(RevokeWalletParameters {
         wallet_ids: vec_nonempty![wallet_id].into(),
@@ -524,7 +509,7 @@ async fn test_review_task_approve_succeeds() {
     let task_id = seed_task_with_payload(&repositories, &alice, payload).await;
 
     let response = app
-        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .oneshot(review_request(task_id, &cookie, &token, ReviewVerdict::Approve))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -546,10 +531,11 @@ async fn test_review_task_approve_stores_failed_execution_for_unknown_wallet() {
     let alice = TestUser::new("alice");
     let bob = TestUser::new("bob");
     let cookie = seed_session(&repositories, &bob, &[TaskType::RevokeWallet]).await;
+    let token = csrf_token(&app, &cookie).await;
     let task_id = seed_task(&repositories, &alice).await;
 
     let response = app
-        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .oneshot(review_request(task_id, &cookie, &token, ReviewVerdict::Approve))
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -561,14 +547,27 @@ async fn test_review_task_approve_stores_failed_execution_for_unknown_wallet() {
     assert!(task.execution_details.unwrap().contains("wallet ID not found"));
 }
 
-fn review_request(task_id: Uuid, cookie: &str, verdict: ReviewVerdict) -> Request<Body> {
+fn create_task_request(cookie: &str, token: &str, payload: TaskPayload) -> Request<Body> {
+    post_json_request_with_csrf(
+        "/tasks",
+        cookie,
+        token,
+        &CreateTaskRequest {
+            payload,
+            task_reason: "integration test".to_string(),
+        },
+    )
+}
+
+fn review_request(task_id: Uuid, cookie: &str, token: &str, verdict: ReviewVerdict) -> Request<Body> {
     let review_comment = match verdict {
         ReviewVerdict::Approve => "looks good",
         ReviewVerdict::Reject => "not today",
     };
-    post_json_request(
+    post_json_request_with_csrf(
         &format!("/tasks/{task_id}/review"),
         cookie,
+        token,
         &ReviewTaskRequest {
             verdict,
             review_comment: review_comment.to_string(),
