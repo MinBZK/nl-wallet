@@ -32,12 +32,14 @@ sandbox is required. See [docs/security.md](docs/security.md).
 
 ## Running locally
 
-Start Claude Code in this directory so the skills are project-scoped, then
-point them at the repository root (`../../..`):
+Start Claude Code in this directory so the skills are project-scoped, with
+the repository root (`../../..`) as an added working directory. Without
+`--add-dir`, Claude Code asks before each read outside this directory. Then
+point the skills at the repository root:
 
 ```bash
 cd deploy/qa-util/ai-security-scan
-claude
+claude --add-dir ../../..
 
 # Full scan of a workspace member, seeded by the threat model if present
 > /vuln-scan ../../../wallet_core/lib/jwt
@@ -59,7 +61,7 @@ present. Example for the Rust core:
 
 ```bash
 cd deploy/qa-util/ai-security-scan
-claude
+claude --add-dir ../../..
 > /threat-model bootstrap ../../../wallet_core
 ```
 

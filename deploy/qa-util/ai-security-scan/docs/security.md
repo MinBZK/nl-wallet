@@ -11,10 +11,10 @@
 `.claude/settings.json` declares the tool rules for every run. The skills do
 not declare `allowed-tools`: Claude Code adds those rules to the settings,
 also in `dontAsk` mode, so a broad rule in a skill opens the allowlist. The
-rules permit `Read`, `Glob`, `Grep`, subagents, writes to the output files and
-state directories only, `git diff`, `git log`, `git show`, `git rev-parse`,
-some file inspection commands (`grep`, `ls`, `wc`, `head`, `file`, `cat`),
-and `python3 .claude/skills/_lib/checkpoint.py` for state I/O. The skills
+rules permit writes to the output files and state directories only,
+`git diff`, `git log`, `git show`, `git rev-parse`, some file inspection
+commands (`grep`, `ls`, `wc`, `head`, `file`, `cat`), and
+`python3 .claude/skills/_lib/checkpoint.py` for state I/O. The skills
 never compile, run or import the wallet's own sources.
 
 The upstream project also shipped an autonomous pipeline that *does* execute
@@ -74,6 +74,9 @@ With the current rules, Claude Code denies commands like the following:
 - `Write` without a path, because the agent can then write files outside the
   repository. A changed `~/.gitconfig`, for example, can make the next git
   command run a command.
+- `Read` without a path, because the agent can then read files outside the
+  repository, for example `~/.ssh`. Reads in the working directories,
+  subagents and questions to the user need no rule.
 
 The allowed `git diff`, `git log` and `git show` accept `--output=<file>`,
 which writes a file. The `deny` rule `Bash(git * --output*)` blocks it.

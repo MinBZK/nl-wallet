@@ -1,11 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Read",
-      "Glob",
-      "Grep",
-      "Task",
-      "AskUserQuestion",
       "Edit(./VULN-FINDINGS*)",
       "Edit(./TRIAGE.*)",
       "Edit(./.triage-state/**)",
