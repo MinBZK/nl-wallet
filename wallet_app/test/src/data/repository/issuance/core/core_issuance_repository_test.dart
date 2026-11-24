@@ -1,20 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/issuance/core/core_issuance_repository.dart';
+import 'package:wallet/src/domain/model/card/wallet_card.dart';
 import 'package:wallet/src/domain/model/issuance/disclose_for_issuance_result.dart';
+import 'package:wallet/src/util/mapper/mapper.dart';
 import 'package:wallet_core/core.dart';
 
+import '../../../../mocks/core_mock_data.dart';
+import '../../../../mocks/wallet_mock_data.dart';
 import '../../../../mocks/wallet_mocks.dart';
 
 void main() {
   late CoreIssuanceRepository repository;
   late MockTypedWalletCore mockTypedWalletCore;
+  late Mapper<AttestationPresentation, WalletCard> mockAttestationMapper;
 
   setUp(() {
     mockTypedWalletCore = MockTypedWalletCore();
+    mockAttestationMapper = MockMapper<AttestationPresentation, WalletCard>();
     repository = CoreIssuanceRepository(
       mockTypedWalletCore,
-      MockMapper(),
+      mockAttestationMapper,
       MockMapper(),
       MockMapper(),
       MockMapper(),
@@ -55,6 +61,19 @@ void main() {
       expect(result, const DiscloseForIssuanceResult.previews([]));
     });
 
+    test('previews are mapped to wallet cards', () async {
+      when(mockAttestationMapper.mapList([CoreMockData.attestation])).thenReturn([WalletMockData.card]);
+      when(mockTypedWalletCore.continueDisclosureBasedIssuance(any, any)).thenAnswer(
+        (_) async => const DisclosureBasedIssuanceInstructionResult.ok(
+          DisclosureBasedIssuanceResult.previews([CoreMockData.attestation]),
+        ),
+      );
+
+      final result = await repository.discloseForIssuance('123123', [0]);
+
+      expect(result, DiscloseForIssuanceResult.previews([WalletMockData.card]));
+    });
+
     test('no issuable attestations results in empty previews', () async {
       when(mockTypedWalletCore.continueDisclosureBasedIssuance(any, any)).thenAnswer(
         (_) async => const DisclosureBasedIssuanceInstructionResult.ok(
@@ -77,6 +96,19 @@ void main() {
       final result = await repository.discloseForIssuance('123123', [0]);
 
       expect(result, const DiscloseForIssuanceResult.issuedForReview([]));
+    });
+
+    test('cards issued without previews are mapped to wallet cards', () async {
+      when(mockAttestationMapper.mapList([CoreMockData.attestation])).thenReturn([WalletMockData.card]);
+      when(mockTypedWalletCore.continueDisclosureBasedIssuance(any, any)).thenAnswer(
+        (_) async => const DisclosureBasedIssuanceInstructionResult.ok(
+          DisclosureBasedIssuanceResult.issuedForReview([CoreMockData.attestation]),
+        ),
+      );
+
+      final result = await repository.discloseForIssuance('123123', [0]);
+
+      expect(result, DiscloseForIssuanceResult.issuedForReview([WalletMockData.card]));
     });
   });
 
