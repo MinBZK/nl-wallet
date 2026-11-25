@@ -756,21 +756,28 @@ where
 
         let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
 
+        info!("Checking if there is a received PID");
+        if !matches!(
+            self.session,
+            Some(Session::Issuance(WalletIssuanceSession::PidReceived { .. }))
+        ) {
+            return Err(IssuanceError::SessionState);
+        }
+
+        // This is only done after checking the session, as it may finish an interrupted PIN change and refresh the
+        // wallet certificate.
         let instruction_client = self
             .prepare_remote_instruction_client(pin, (attested_key, registration_data, config))
             .await?;
 
-        info!("Checking if there is a received PID");
-        let (credentials, recovery_code_disclosure, purpose) = match self.session.take() {
-            Some(Session::Issuance(WalletIssuanceSession::PidReceived {
-                purpose,
-                credentials,
-                recovery_code_disclosure,
-            })) => (credentials, recovery_code_disclosure, purpose),
-            session => {
-                self.session = session;
-                return Err(IssuanceError::SessionState);
-            }
+        // Take ownership of the received PID, now that we know that it exists.
+        let Some(Session::Issuance(WalletIssuanceSession::PidReceived {
+            purpose,
+            credentials,
+            recovery_code_disclosure,
+        })) = self.session.take()
+        else {
+            return Err(IssuanceError::SessionState);
         };
 
         info!("Disclosing recovery code of the issued PID");
@@ -919,14 +926,37 @@ where
         (attested_key, registration_data, config): AttestedKeyRegistrationDataAndConfig<AKH>,
         expected_preview_mode: PreviewMode,
     ) -> Result<ReceivedCredentials<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>>, IssuanceError> {
-        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
+        info!("Checking if there is an active issuance session");
+        let session_preview_mode = match &self.session {
+            Some(Session::Issuance(issuance_session)) => match issuance_session.session_state() {
+                Some(SessionState::IssuanceAuthorized {
+                    preview_attestations: Some(_),
+                    ..
+                }) => PreviewMode::WithPreviews,
+                Some(SessionState::IssuanceAuthorized {
+                    preview_attestations: None,
+                    ..
+                }) => PreviewMode::WithoutPreviews,
+                _ => return Err(IssuanceError::SessionState),
+            },
+            _ => return Err(IssuanceError::SessionState),
+        };
+
+        // Check this before using the PIN or contacting the issuer, so that a session with or without previews that is
+        // accepted by the wrong method is left intact.
+        if session_preview_mode != expected_preview_mode {
+            return Err(IssuanceError::SessionState);
+        }
+
+        // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN. This is only done after checking the
+        // session, as it may finish an interrupted PIN change and refresh the wallet certificate.
         let instruction_client = self
             .prepare_remote_instruction_client(pin, (attested_key, registration_data, Arc::clone(&config)))
             .await?;
 
         let remote_wscd = RemoteEcdsaWscd::new(instruction_client.clone());
 
-        info!("Checking if there is an active issuance session");
+        // The session was checked above, but has to be borrowed mutably now that the instruction client is prepared.
         let Some(Session::Issuance(issuance_session)) = &mut self.session else {
             return Err(IssuanceError::SessionState);
         };
@@ -940,17 +970,6 @@ where
         else {
             return Err(IssuanceError::SessionState);
         };
-
-        let session_preview_mode = match preview_attestations {
-            Some(_) => PreviewMode::WithPreviews,
-            None => PreviewMode::WithoutPreviews,
-        };
-
-        // Check this before contacting the issuer, so that a session with or without previews that is accepted by the
-        // wrong method is left intact.
-        if session_preview_mode != expected_preview_mode {
-            return Err(IssuanceError::SessionState);
-        }
 
         info!("Signing nonce using Wallet Provider");
 
@@ -2679,10 +2698,8 @@ mod tests {
         // Prepare a registered and unlocked wallet.
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .return_once(|| Ok(None));
+        // The instruction client should not be prepared, which would check for an unfinished PIN change.
+        wallet.mut_storage().expect_fetch_data::<ChangePinData>().never();
 
         // Accepting PID issuance on a `Wallet` with a `PidIssuerClient`
         // that has no session should result in an error.
@@ -3170,10 +3187,8 @@ mod tests {
     async fn test_issuance_error_preview_mode_mismatch(#[values(true, false)] with_previews: bool) {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<ChangePinData>()
-            .returning(|| Ok(None));
+        // The instruction client should not be prepared, which would check for an unfinished PIN change.
+        wallet.mut_storage().expect_fetch_data::<ChangePinData>().never();
 
         // The issuer should not be contacted (no expectation for `accept()`).
         let (sd_jwt, sd_jwt_issued_metadata, _) = sd_jwt_pid();
@@ -3232,6 +3247,10 @@ mod tests {
     #[tokio::test]
     async fn test_commit_issued_pid_error_received_credentials() {
         let mut wallet = wallet_with_received_pid(None).await;
+
+        // The instruction client should not be prepared, which would check for an unfinished PIN change.
+        wallet.mut_storage().checkpoint();
+        wallet.mut_storage().expect_fetch_data::<ChangePinData>().never();
 
         // Committing generic credentials as a PID should fail, without disclosing anything to the Wallet Provider (no
         // expectation for instructions) or storing anything.
