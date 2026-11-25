@@ -627,7 +627,7 @@ where
         // The attestations can be paired with the credentials by position. `IssuanceSession::accept_issuance` returns
         // the credentials in the same order as the previews from which `preview_attestations` were created, and
         // `process_issued_credentials` keeps the order of the credentials.
-        self.finalize_issuance(
+        self.store_issued_credentials(
             credentials.into_iter().zip_eq(attestation_presentations),
             transfer_session_id,
         )
@@ -704,7 +704,7 @@ where
                         credentials,
                         recovery_code_disclosure: None,
                     },
-            })) => self.finalize_issuance(credentials, None).await,
+            })) => self.store_issued_credentials(credentials, None).await,
             session => {
                 self.session = session;
                 Err(IssuanceError::SessionState)
@@ -779,7 +779,7 @@ where
             }
         };
 
-        self.finalize_issuance(credentials, transfer_session_id).await?;
+        self.store_issued_credentials(credentials, transfer_session_id).await?;
 
         Ok(IssuanceResult { transfer_session_id })
     }
@@ -972,7 +972,7 @@ where
     /// Stores the transfer session ID, if any, and the issued credentials together with their attestations, then emits
     /// the updated attestations, notifications and recent history. A credential whose attestation has a fixed identity
     /// replaces the stored attestation with that identity, any other credential is stored as a new attestation.
-    async fn finalize_issuance(
+    async fn store_issued_credentials(
         &mut self,
         credentials_and_attestations: impl IntoIterator<Item = (CredentialWithMetadata, AttestationPresentation)>,
         transfer_session_id: Option<TransferSessionId>,
