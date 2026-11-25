@@ -37,6 +37,7 @@ use oauth::authorization::PushedAuthorizationResponse;
 use oauth::dpop::DPOP_HEADER_NAME;
 use oauth::dpop::DPOP_NONCE_HEADER_NAME;
 use oauth::dpop::Dpop;
+use oauth::dpop::DpopNonce;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::BodyOrRedirectErrorResponse;
 use oauth::errors::ErrorResponse;
@@ -348,8 +349,21 @@ where
     let response = state
         .issuer
         .process_credential_request(&access_token, dpop, &credential_request_jwe, &TimeGenerator)
-        .await
-        .inspect_err(|error| warn!("processing credential request failed: {}", error))?;
+        .await;
+    let response = match response {
+        Err(CredentialRequestError::MissingDpopNonce) => {
+            // Only challenge after the access token and DPoP signature/key binding have been verified.
+            let nonce = state.issuer.generate_dpop_nonce().await.map_err(|error| {
+                warn!("could not generate a DPoP nonce for the credential challenge");
+                CredentialRequestError::DpopNonceStore(Box::new(error))
+            })?;
+            return Err(CredentialErrorResponse {
+                error: CredentialRequestError::MissingDpopNonce.into(),
+                dpop_nonce: Some(nonce),
+            });
+        }
+        result => result.inspect_err(|error| warn!("processing credential request failed: {error}"))?,
+    };
 
     // According to <https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html#section-8.3-2.2>, the
     // issuer should respond with a 202 status code in case of a deferred `CredentialResponse`. As we do not support
@@ -358,23 +372,40 @@ where
     Ok(Json(response))
 }
 
-struct CredentialErrorResponse(ErrorResponse<CredentialErrorCode>);
+struct CredentialErrorResponse {
+    error: ErrorResponse<CredentialErrorCode>,
+    dpop_nonce: Option<DpopNonce>,
+}
 
 impl From<CredentialRequestError> for CredentialErrorResponse {
     fn from(error: CredentialRequestError) -> Self {
-        Self(error.into())
+        Self {
+            error: error.into(),
+            dpop_nonce: None,
+        }
     }
 }
 
 impl IntoResponse for CredentialErrorResponse {
     fn into_response(self) -> Response {
-        let invalid_dpop = self.0.error == CredentialErrorCode::InvalidDpopProof;
-        let mut response = self.0.into_response();
-        if invalid_dpop {
-            response.headers_mut().insert(
-                WWW_AUTHENTICATE,
-                HeaderValue::from_static("DPoP error=\"invalid_dpop_proof\", algs=\"ES256\""),
-            );
+        let authenticate = match self.error.error {
+            CredentialErrorCode::InvalidDpopProof => Some("DPoP error=\"invalid_dpop_proof\", algs=\"ES256\""),
+            CredentialErrorCode::UseDpopNonce => Some("DPoP error=\"use_dpop_nonce\", algs=\"ES256\""),
+            _ => None,
+        };
+        let mut response = self.error.into_response();
+        if let Some(authenticate) = authenticate {
+            response
+                .headers_mut()
+                .insert(WWW_AUTHENTICATE, HeaderValue::from_static(authenticate));
+        }
+        if let Some(nonce) = self.dpop_nonce {
+            return (
+                TypedHeader(CacheControl::new().with_no_store()),
+                [(DPOP_NONCE_HEADER_NAME, nonce.to_string())],
+                response,
+            )
+                .into_response();
         }
         response
     }

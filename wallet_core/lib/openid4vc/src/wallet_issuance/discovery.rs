@@ -35,6 +35,7 @@ use super::WalletIssuanceError;
 use super::authorization::HttpAuthorizationSession;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::credential_request_encryption::CredentialRequestEncryptionParameters;
+use super::dpop::DpopState;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use super::issuer_registration::IssuerRegistration;
@@ -799,6 +800,7 @@ where
             token_request,
             wia_client,
             authorization_server,
+            DpopState::generate(),
         )
         .await
     }

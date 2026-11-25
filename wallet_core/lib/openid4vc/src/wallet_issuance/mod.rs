@@ -3,6 +3,7 @@ mod authorization_endpoints;
 pub mod credential;
 mod credential_request_encryption;
 pub mod discovery;
+pub(crate) mod dpop;
 pub mod issuance_session;
 pub mod issuer_registration;
 
@@ -81,11 +82,32 @@ const SUPPORTED_MDOC_ISSUER_ALGORITHMS: &[iana::Algorithm] = &[
     iana::Algorithm::ESP384,
 ];
 
+/// Outcome of one request. Each endpoint specifies which challenges the wallet can answer.
+/// A challenge carries the data needed to build the next proof.
+#[derive(Debug)]
+#[must_use = "handle the response or retry the request with the supplied challenge"]
+pub enum Attempt<T, C> {
+    Success(T),
+    Challenge(C),
+}
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletIssuanceError {
     #[error("DPoP error: {0}")]
     Dpop(#[from] DpopError),
+
+    #[error("issuer rejected the DPoP nonce it supplied")]
+    #[category(critical)]
+    DpopNonceRejected,
+
+    #[error("authorization server rejected the replacement client attestation challenge")]
+    #[category(critical)]
+    AttestationChallengeRejected,
+
+    #[error("response contains multiple DPoP-Nonce headers")]
+    #[category(pd)]
+    MultipleDpopNonceHeaders,
 
     #[error("failed to convert JWK to public key: {0}")]
     JwkConversion(#[from] JwkConversionError),
