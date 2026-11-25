@@ -917,9 +917,9 @@ where
 
     /// Accepts the issuance session using the PIN and receives the issued credentials, after which the issuance session
     /// is removed. The session is only accepted if it matches `expected_preview_mode`. On an error the session is kept,
-    /// except for a PIN timeout or block during PID enrollment, which resets the wallet. That way, the user can start
-    /// over with a new PIN. The wallet doesn't contain any attestations yet, so nothing is lost. During renewal, it
-    /// does, so the wallet is only locked.
+    /// except if the wallet has been revoked, or for a PIN timeout or block during PID enrollment, which resets the
+    /// wallet. That way, the user can start over with a new PIN. The wallet doesn't contain any attestations yet, so
+    /// nothing is lost. During renewal, it does, so the wallet is only locked.
     async fn receive_credentials(
         &mut self,
         pin: Pin,
@@ -996,8 +996,10 @@ where
                 }
                 return Err(error);
             }
+            // A revoked wallet cannot continue the session, so remove it, also if the wallet is not reset.
             Err(error @ IssuanceError::Instruction(InstructionError::AccountRevoked(data))) => {
                 self.handle_wallet_revocation(data).await;
+                self.session = None;
                 return Err(error);
             }
             _ => issuance_result?,
@@ -3600,6 +3602,7 @@ mod tests {
         );
         assert!(!wallet.has_registration());
         assert!(wallet.is_locked());
+        assert!(wallet.session.is_none());
         assert_matches!(
             wallet.storage.read().await.state().await.unwrap(),
             StorageState::Uninitialized
@@ -3655,8 +3658,9 @@ mod tests {
                 can_register_new_account: true
             }))
         );
-        // After an AdminRequest revocation, the wallet remains registered.
+        // After an AdminRequest revocation, the wallet remains registered, but the session is removed.
         assert!(wallet.has_registration());
         assert!(!wallet.is_locked());
+        assert!(wallet.session.is_none());
     }
 }
