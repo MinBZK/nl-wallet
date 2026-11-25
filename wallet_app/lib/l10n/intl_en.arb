@@ -319,7 +319,7 @@
     "checkAttributesScreenChangeCardCta": "Swap card",
     "checkAttributesScreenDataIncorrectCta": "Are your details incorrect?",
     "checkAttributesScreenSubtitle": "Card issued by {issuer}",
-    "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} data from {title}} other {{count} data from {title}}}",
+    "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} from {title}} other {{count} from {title}}}",
     "confirmAgreementPageCancelCta": "No",
     "confirmAgreementPageConfirmCta": "Yes, sign",
     "confirmAgreementPageDataIncorrectCta": "Is something wrong?",
