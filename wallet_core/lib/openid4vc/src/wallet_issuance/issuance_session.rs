@@ -65,7 +65,6 @@ use utils::vec_at_least;
 use utils::vec_at_least::IntoNonEmptyIterator;
 use utils::vec_at_least::NonEmptyIterator;
 use utils::vec_at_least::VecNonEmpty;
-use utils::vec_at_least::try_join_all;
 use wscd::issuance::IssuanceKeyResult;
 use wscd::issuance::IssuanceWscd;
 use wscd::payload::key_attestation::KeyAttestationVerificationResult;
@@ -1226,7 +1225,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
         // metadata, call it for each credential in parallel in order to retrieve a proof nonce to be used in the Proof
         // of Possession of the holder key.
         let credential_count = self.session_state.offered_credentials.len();
-        let (proof_nonces, dpop_nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = try_join_all(
+        let (proof_nonces, dpop_nonces): (VecNonEmpty<_>, VecNonEmpty<_>) = vec_at_least::try_join_all(
             vec_at_least::repeat_n((), credential_count).map(async |_| -> Result<_, WalletIssuanceError> {
                 let (proof_nonce, dpop_nonce) = match self.session_state.issuer_endpoints.nonce_endpoint.as_ref() {
                     None => {
@@ -1275,7 +1274,7 @@ impl<H: VcMessageClient> IssuanceSession for HttpIssuanceSession<H> {
 
         // Fetch a set of credential copies for each credential in parallel, using the key identifiers / proofs and a
         // possible DPoP nonce.
-        let credentials = try_join_all(
+        let credentials = vec_at_least::try_join_all(
             self.session_state
                 .offered_credentials
                 .nonempty_iter()
