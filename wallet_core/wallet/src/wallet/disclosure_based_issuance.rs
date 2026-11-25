@@ -168,11 +168,14 @@ where
         match result {
             IssuanceContinueResult::Previews(previews) => Ok(DisclosureBasedIssuanceResult::Previews(previews)),
             // Without previews, the user has nothing to review before issuance, so the PIN that was just used for the
-            // disclosure is reused to issue the attestations for review.
+            // disclosure is reused to issue the attestations for review. As the disclosure cannot be repeated, this
+            // cannot be retried, so the issuance session is removed on an error. That way, every error after the
+            // disclosure leaves the wallet without a session.
             IssuanceContinueResult::NoPreviews { .. } => {
                 let attestations = self
                     .issue_credentials_for_review(pin)
                     .await
+                    .inspect_err(|_| self.session = None)
                     .map_err(DisclosureBasedIssuanceError::Issuance)?;
 
                 Ok(DisclosureBasedIssuanceResult::IssuedForReview(attestations))
@@ -225,6 +228,7 @@ mod tests {
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::wallet_issuance::WalletIssuanceError;
     use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
     use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
@@ -244,6 +248,7 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::disclosure_based_issuance::DisclosureBasedIssuanceResult;
+    use super::super::issuance::IssuanceError;
     use super::super::issuance::SessionState;
     use super::super::issuance::WalletIssuanceSession;
     use super::super::test::WalletDeviceVendor;
@@ -473,9 +478,9 @@ mod tests {
         assert_matches!(result, DisclosureBasedIssuanceResult::NoIssuableAttestations);
     }
 
-    #[tokio::test]
-    async fn test_wallet_continue_disclosure_based_issuance_without_previews() {
-        // Prepare a registered and unlocked wallet with an active disclosure session.
+    /// Prepares a registered and unlocked wallet with an active disclosure session, for which the verifier redirects to
+    /// a credential offer of `issuance_session`.
+    async fn wallet_for_disclosure_based_issuance(issuance_session: MockIssuanceSession) -> TestWalletMockStorage {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
@@ -493,21 +498,6 @@ mod tests {
             .return_once(|_| Ok(Some(credential_offer_url)));
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
-        // Setup wallet issuance state with an issuer that does not provide previews, which issues an SD-JWT PID.
-        let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
-        let issued_attestation = WithKeyIdentifier {
-            key_identifier: "key_id".to_string(),
-            data: StoredAttestation::SdJwt(sd_jwt),
-        };
-        let issued_metadata = IssuedCredentialMetadata::TypeMetadata {
-            verified: VerifiedTypeMetadataDocuments::nl_pid_example(),
-            normalized: normalized_metadata,
-        };
-        let (mut issuance_session, expected_attestations) =
-            mock_issuance_session([(issued_attestation, issued_metadata)], Some(NonZeroU8::MAX));
-        issuance_session
-            .expect_credential_previews()
-            .return_const(MockIssuanceSessionCredentialPreviews::none());
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
@@ -548,6 +538,29 @@ mod tests {
             .mut_storage()
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
+
+        wallet
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_without_previews() {
+        // Setup wallet issuance state with an issuer that does not provide previews, which issues an SD-JWT PID.
+        let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
+        let issued_attestation = WithKeyIdentifier {
+            key_identifier: "key_id".to_string(),
+            data: StoredAttestation::SdJwt(sd_jwt),
+        };
+        let issued_metadata = IssuedCredentialMetadata::TypeMetadata {
+            verified: VerifiedTypeMetadataDocuments::nl_pid_example(),
+            normalized: normalized_metadata,
+        };
+        let (mut issuance_session, expected_attestations) =
+            mock_issuance_session([(issued_attestation, issued_metadata)], Some(NonZeroU8::MAX));
+        issuance_session
+            .expect_credential_previews()
+            .return_const(MockIssuanceSessionCredentialPreviews::none());
+
+        let mut wallet = wallet_for_disclosure_based_issuance(issuance_session).await;
 
         // Have the storage contain no attestations that the issued attestation renews.
         wallet
@@ -634,5 +647,35 @@ mod tests {
                 session_state: SessionState::AuthorizationStarted { .. },
             }))
         );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_without_previews_error_issuer() {
+        // Have an issuer that does not provide previews return an error upon accepting.
+        let mut issuance_session = MockIssuanceSession::new();
+        issuance_session
+            .expect_credential_previews()
+            .return_const(MockIssuanceSessionCredentialPreviews::none());
+        issuance_session
+            .expect_issuer()
+            .return_const(IssuerRegistration::new_mock());
+        issuance_session
+            .expect_accept()
+            .return_once(|_| Err(WalletIssuanceError::PublicKeyMismatch));
+
+        let mut wallet = wallet_for_disclosure_based_issuance(issuance_session).await;
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
+            .await
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer { .. })
+        );
+
+        // As issuing cannot be retried, the issuance session should be removed.
+        assert!(wallet.session.is_none());
     }
 }
