@@ -77,6 +77,7 @@ use crate::wallet::attestations::AttestationsError;
 use crate::wallet::notifications::NotificationsError;
 use crate::wallet::recovery_code::CheckedRecoveryCodeDisclosure;
 use crate::wallet::recovery_code::RecoveryCodeError;
+use crate::wallet::state::AttestedKeyRegistrationDataAndConfig;
 use crate::wallet::state::CheckPreconditionsError;
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
@@ -300,7 +301,6 @@ struct ReceivedCredentials<IC> {
     preview_attestations: Option<VecNonEmpty<AttestationPresentation>>,
     organization: Organization,
     pid_purpose: Option<PidIssuancePurpose>,
-    config: Arc<WalletConfiguration>,
     instruction_client: IC,
 }
 
@@ -605,14 +605,21 @@ where
     {
         info!("Accepting issuance");
 
+        let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
+
         let ReceivedCredentials {
             credentials,
             preview_attestations,
             organization: _,
             pid_purpose,
-            config,
             instruction_client,
-        } = self.receive_credentials(pin, PreviewMode::WithPreviews).await?;
+        } = self
+            .receive_credentials(
+                pin,
+                (attested_key, registration_data, Arc::clone(&config)),
+                PreviewMode::WithPreviews,
+            )
+            .await?;
 
         let attestation_presentations = match preview_attestations {
             Some(preview_attestations) => preview_attestations,
@@ -663,13 +670,20 @@ where
     {
         info!("Issuing credentials for review");
 
+        let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
+
         let ReceivedCredentials {
             credentials,
             organization,
             pid_purpose,
-            config,
             ..
-        } = self.receive_credentials(pin, PreviewMode::WithoutPreviews).await?;
+        } = self
+            .receive_credentials(
+                pin,
+                (attested_key, registration_data, Arc::clone(&config)),
+                PreviewMode::WithoutPreviews,
+            )
+            .await?;
 
         let pid_purpose_and_recovery_code_disclosure = match pid_purpose {
             // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
@@ -740,7 +754,7 @@ where
     {
         info!("Committing issued PID");
 
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
 
         let instruction_client = self
             .prepare_remote_instruction_client(pin, (attested_key, registration_data, config))
@@ -902,13 +916,9 @@ where
     async fn receive_credentials(
         &mut self,
         pin: Pin,
+        (attested_key, registration_data, config): AttestedKeyRegistrationDataAndConfig<AKH>,
         expected_preview_mode: PreviewMode,
-    ) -> Result<ReceivedCredentials<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>>, IssuanceError>
-    where
-        UR: UpdateableRepository<VersionState, TlsPinningConfig, Error = UpdatePolicyError>,
-    {
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
-
+    ) -> Result<ReceivedCredentials<InstructionClient<S, AKH::AppleKey, AKH::GoogleKey, APC>>, IssuanceError> {
         // Prepare the `RemoteEcdsaWscd` for signing using the provided PIN.
         let instruction_client = self
             .prepare_remote_instruction_client(pin, (attested_key, registration_data, Arc::clone(&config)))
@@ -985,7 +995,6 @@ where
             preview_attestations,
             organization,
             pid_purpose,
-            config,
             instruction_client,
         })
     }

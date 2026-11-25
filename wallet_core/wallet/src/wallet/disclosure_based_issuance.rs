@@ -98,7 +98,7 @@ where
     ) -> Result<DisclosureBasedIssuanceResult, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
         let Some(Session::Disclosure(session)) = self.session.take() else {
