@@ -6,6 +6,7 @@ use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
+use itertools::Itertools;
 use jwt::UnverifiedJwt;
 use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
@@ -248,10 +249,11 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
         .issue_credentials_for_review(pin)
         .await
         .expect("should issue credentials for review");
-    let reviewed_attestation = reviewed_attestations
-        .iter()
-        .find(|attestation| attestation.attestation_type == "com.example.insurance")
-        .expect("the issued insurance attestation should be presented for review");
+    // Only the insurance attestation should be issued.
+    let Ok(reviewed_attestation) = reviewed_attestations.iter().exactly_one() else {
+        panic!("exactly one attestation should be presented for review");
+    };
+    assert_eq!(reviewed_attestation.attestation_type, "com.example.insurance");
     assert_eq!(reviewed_attestation.issuer, issuer);
 
     wallet
@@ -260,10 +262,13 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
         .expect("should commit issued credentials");
 
     let attestations = wallet_attestations(&mut wallet).await;
-    let attestation = attestations
+    let Ok(attestation) = attestations
         .iter()
-        .find(|attestation| attestation.attestation_type == "com.example.insurance")
-        .expect("the issued insurance attestation should be present in the wallet");
+        .filter(|attestation| attestation.attestation_type == "com.example.insurance")
+        .exactly_one()
+    else {
+        panic!("exactly one insurance attestation should be present in the wallet");
+    };
     assert_eq!(attestation.issuer, issuer);
 }
 

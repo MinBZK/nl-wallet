@@ -307,13 +307,15 @@ async fn test_disclosure_based_issuance_without_previews(#[values(Format::MsoMdo
         panic!("expected attestations issued for review");
     };
 
-    let reviewed_degrees = reviewed_attestations
-        .iter()
-        .filter(|attestation| attestation.attestation_type == "com.example.degree")
-        .collect_vec();
-    assert_eq!(reviewed_degrees.len(), 2);
-    let issuer = reviewed_degrees[0].issuer.clone();
-    assert!(reviewed_degrees.iter().all(|degree| degree.issuer == issuer));
+    // Only the two degrees should be issued, by the same issuer.
+    assert_eq!(reviewed_attestations.len().get(), 2);
+    assert!(
+        reviewed_attestations
+            .iter()
+            .all(|attestation| attestation.attestation_type == "com.example.degree")
+    );
+    let issuer = reviewed_attestations.first().issuer.clone();
+    assert!(reviewed_attestations.iter().all(|degree| degree.issuer == issuer));
 
     wallet.commit_issued_credentials().await.unwrap();
 
