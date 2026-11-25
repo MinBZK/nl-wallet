@@ -575,7 +575,7 @@ mod tests {
         assert_matches!(
             wallet.session,
             Some(Session::Issuance(WalletIssuanceSession::Generic {
-                session_state: SessionState::Received { .. }
+                session_state: SessionState::CredentialsReceived { .. }
             }))
         );
     }

@@ -744,7 +744,7 @@ mod tests {
     fn pid_issuance_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Authorization {
+            session_state: SessionState::AuthorizationStarted {
                 authorization_session: MockAuthorizationSession::new(),
             },
         })
@@ -766,7 +766,7 @@ mod tests {
         );
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Issuance {
+            session_state: SessionState::IssuanceAuthorized {
                 preview_attestations: Some(attestations),
                 protocol_state: pid_issuer,
             },

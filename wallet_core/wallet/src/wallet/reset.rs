@@ -201,7 +201,7 @@ mod tests {
         let mut wallet = TestWalletInMemoryStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Issuance {
+            session_state: SessionState::IssuanceAuthorized {
                 preview_attestations: Some(vec_nonempty![AttestationPresentation::new_mock()]),
                 protocol_state: MockIssuanceSession::default(),
             },
