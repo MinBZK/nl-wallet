@@ -263,6 +263,13 @@ impl TryFrom<Result<wallet::DisclosureBasedIssuanceResult, DisclosureBasedIssuan
                         .map_err(|error| DisclosureBasedIssuanceError::Issuance(IssuanceError::Instruction(error)))?,
                 })
             }
+            Err(DisclosureBasedIssuanceError::IssuanceForReview(IssuanceError::Instruction(instruction_error))) => {
+                Ok(DisclosureBasedIssuanceInstructionResult::InstructionError {
+                    error: instruction_error.try_into().map_err(|error| {
+                        DisclosureBasedIssuanceError::IssuanceForReview(IssuanceError::Instruction(error))
+                    })?,
+                })
+            }
             Err(error) => Err(error),
         }
     }

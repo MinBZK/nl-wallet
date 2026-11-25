@@ -49,6 +49,9 @@ pub enum DisclosureBasedIssuanceError {
     #[error("issuance failed: {0}")]
     Issuance(#[source] IssuanceError),
 
+    #[error("issuing credentials for review failed: {0}")]
+    IssuanceForReview(#[source] IssuanceError),
+
     #[error("missing redirect URI from verifier response")]
     #[category(critical)]
     MissingRedirectUri(Box<Organization>),
@@ -176,7 +179,7 @@ where
                     .issue_credentials_for_review(pin)
                     .await
                     .inspect_err(|_| self.session = None)
-                    .map_err(DisclosureBasedIssuanceError::Issuance)?;
+                    .map_err(DisclosureBasedIssuanceError::IssuanceForReview)?;
 
                 Ok(DisclosureBasedIssuanceResult::IssuedForReview(attestations))
             }
@@ -672,7 +675,7 @@ mod tests {
 
         assert_matches!(
             error,
-            DisclosureBasedIssuanceError::Issuance(IssuanceError::IssuerServer { .. })
+            DisclosureBasedIssuanceError::IssuanceForReview(IssuanceError::IssuerServer { .. })
         );
 
         // As issuing cannot be retried, the issuance session should be removed.
