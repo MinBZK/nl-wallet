@@ -1843,6 +1843,7 @@ mod tests {
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::authorization::AuthorizationServerResponse;
+    use crate::wallet_issuance::dpop::DpopState;
     use crate::wallet_issuance::issuance_session::CredentialRequestBody;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
@@ -2239,7 +2240,7 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::from_ca(wptl_ca),
             &oauth_metadata.oauth_metadata.issuer,
-            Default::default(),
+            DpopState::generate(),
         )
         .await
         .unwrap();
@@ -2312,7 +2313,7 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.oauth_metadata.issuer,
-            Default::default(),
+            DpopState::generate(),
         )
         .await
         .err()

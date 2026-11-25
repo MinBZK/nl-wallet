@@ -3,7 +3,7 @@ mod authorization_endpoints;
 pub mod credential;
 mod credential_request_encryption;
 pub mod discovery;
-mod dpop;
+pub(crate) mod dpop;
 pub mod issuance_session;
 pub mod issuer_registration;
 

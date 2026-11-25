@@ -228,7 +228,6 @@ pub struct HttpAuthorizationSessionData {
     redirect_uri: Url,
     code_verifier: String,
     state: String,
-    #[serde(default)]
     dpop: DpopState,
 }
 
@@ -284,7 +283,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
-        let mut dpop = DpopState::default();
+        let mut dpop = DpopState::generate();
         let response = AttestedRequest {
             endpoint: &auth_endpoints.par_endpoint,
             audience: &authorization_server,
@@ -523,6 +522,7 @@ mod tests {
     use super::super::WalletIssuanceError;
     use super::super::authorization_endpoints::AuthorizationEndpoints;
     use super::super::credential_request_encryption::CredentialRequestEncryptionParameters;
+    use super::super::dpop::DpopState;
     use super::super::dpop::tests::request_nonce_matches;
     use super::super::dpop::tests::wia_challenge_matches;
     use super::super::issuer_registration::IssuerRegistration;
@@ -582,7 +582,7 @@ mod tests {
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
             state: CSRF_TOKEN.to_string(),
-            dpop: Default::default(),
+            dpop: DpopState::generate(),
         }
     }
 
@@ -1012,7 +1012,7 @@ mod tests {
             code_verifier: "verifier".to_string(),
             state: CSRF_TOKEN.to_string(),
             authorization_server: ISSUER_URL.parse().unwrap(),
-            dpop: Default::default(),
+            dpop: DpopState::generate(),
         };
 
         let session = HttpAuthorizationSession {
@@ -1074,14 +1074,9 @@ mod tests {
         );
         assert_eq!(restored_persisted.dpop.nonce, persisted.dpop.nonce);
 
-        // Sessions saved before DPoP was added to PAR can still finish their authorization flow.
-        let mut legacy = serde_json::to_value(restored_persisted).unwrap();
-        legacy.as_object_mut().unwrap().remove("dpop");
-        let legacy = HttpAuthorizationSession::restore(
-            HttpClient::try_new(default_reqwest_client_builder()).unwrap(),
-            serde_json::from_value(legacy).unwrap(),
-        );
-        assert!(legacy.dpop.nonce.is_none());
+        let mut without_dpop = serde_json::to_value(restored_persisted).unwrap();
+        without_dpop.as_object_mut().unwrap().remove("dpop");
+        assert!(serde_json::from_value::<HttpAuthorizationSessionData>(without_dpop).is_err());
     }
 
     #[rstest]

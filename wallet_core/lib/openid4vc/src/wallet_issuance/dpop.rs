@@ -29,8 +29,8 @@ pub(crate) struct DpopState {
     pub nonce: Option<DpopNonce>,
 }
 
-impl Default for DpopState {
-    fn default() -> Self {
+impl DpopState {
+    pub(crate) fn generate() -> Self {
         Self {
             signing_key: SigningKey::generate(),
             nonce: None,
@@ -412,7 +412,7 @@ pub(super) mod tests {
                 challenge: mechanism,
             }
             .send_with_dpop_retry(
-                &mut DpopState::default(),
+                &mut DpopState::generate(),
                 &MockWiaClient::new(),
                 |url| client.request_challenge(url),
                 async |proof, wia| client.request_token(url.clone(), &request, &proof, &wia).await,
@@ -462,7 +462,7 @@ pub(super) mod tests {
             challenge: ClientAttestationChallengeMechanism::None,
         }
         .send_with_dpop_retry(
-            &mut DpopState::default(),
+            &mut DpopState::generate(),
             &MockWiaClient::new(),
             |url| client.request_challenge(url),
             async |proof, wia| client.request_token(url.clone(), &request, &proof, &wia).await,

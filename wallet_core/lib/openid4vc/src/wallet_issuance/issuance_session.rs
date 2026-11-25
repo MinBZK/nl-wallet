@@ -1768,7 +1768,7 @@ mod tests {
             VciTokenRequest::new_mock(),
             &wia_client,
             &oauth_metadata.oauth_metadata.issuer,
-            Default::default(),
+            DpopState::generate(),
         )
         .now_or_never()
         .unwrap()
@@ -1898,7 +1898,7 @@ mod tests {
             VciTokenRequest::new_mock(),
             &MockWiaClient::new(),
             &oauth_metadata.oauth_metadata.issuer,
-            Default::default(),
+            DpopState::generate(),
         )
         .now_or_never()
         .unwrap()
