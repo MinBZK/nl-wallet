@@ -101,8 +101,12 @@ where
         let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
-        let Some(Session::Disclosure(session)) = self.session.take() else {
-            return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
+        let session = match self.session.take() {
+            Some(Session::Disclosure(session)) => session,
+            other => {
+                self.session = other;
+                return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
+            }
         };
 
         let organization = Box::new(session.protocol_state.organization().clone());
@@ -223,6 +227,7 @@ mod tests {
     use openid4vc::verifier::PostAuthResponseError;
     use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSessionCredentialPreviews;
     use p256::ecdsa::SigningKey;
@@ -239,6 +244,7 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::disclosure_based_issuance::DisclosureBasedIssuanceResult;
+    use super::super::issuance::SessionState;
     use super::super::issuance::WalletIssuanceSession;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_example_pid_preview_data;
@@ -597,6 +603,36 @@ mod tests {
                 expected: RedirectUriPurpose::Browser,
                 found: RedirectUriPurpose::Issuance,
             })
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_error_session_state() {
+        // Prepare a registered and unlocked wallet with an active issuance session instead of a disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
+            session_state: SessionState::AuthorizationStarted {
+                authorization_session: MockAuthorizationSession::new(),
+            },
+        }));
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
+            .await
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState)
+        );
+
+        // The issuance session should be left intact.
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state: SessionState::AuthorizationStarted { .. },
+            }))
         );
     }
 }
