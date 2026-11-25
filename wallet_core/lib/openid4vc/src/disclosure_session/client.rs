@@ -242,7 +242,7 @@ where
             (result, _) => result.map_err(VpSessionError::Verifier)?,
         };
 
-        // Validate that the verifier's vp_formats_supported covers each of the requested formats and includes ES256.
+        // Each requested format must be advertised. Omitted algorithm lists default to ES256.
         let vp_formats = &auth_request.client_metadata.vp_formats_supported;
         let unsupported_format = auth_request
             .credential_requests
@@ -254,8 +254,8 @@ where
                 Format::MsoMdoc => !vp_formats
                     .mso_mdoc
                     .as_ref()
-                    .is_some_and(MsoMdocAlgValues::contains_ecdsa_p256),
-                Format::SdJwt => !vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::contains_es_256),
+                    .is_some_and(MsoMdocAlgValues::supports_ecdsa_p256),
+                Format::SdJwt => !vp_formats.sd_jwt.as_ref().is_some_and(SdJwtAlgValues::supports_es256),
             });
 
         if let Some(format) = unsupported_format {
@@ -352,7 +352,6 @@ mod tests {
     use crate::openid4vp::AuthRequestValidationError;
     use crate::openid4vp::VpAuthorizationRequest;
     use crate::openid4vp::VpAuthorizationResponse;
-    use crate::openid4vp::VpFormatsSupported;
     use crate::openid4vp::VpRequestUri;
     use crate::openid4vp::VpRequestUriMethod;
     use crate::openid4vp::VpRequestUriObject;
@@ -1359,24 +1358,47 @@ mod tests {
     }
 
     #[rstest]
+    #[case(Format::MsoMdoc, json!({"mso_mdoc": {}}))]
+    #[case(Format::MsoMdoc, json!({"mso_mdoc": {"issuerauth_alg_values": [-7]}}))]
+    #[case(Format::MsoMdoc, json!({"mso_mdoc": {"deviceauth_alg_values": [-9]}}))]
+    #[case(Format::SdJwt, json!({"dc+sd-jwt": {}}))]
+    #[case(Format::SdJwt, json!({"dc+sd-jwt": {"sd-jwt_alg_values": ["ES256"]}}))]
+    #[case(Format::SdJwt, json!({"dc+sd-jwt": {"kb-jwt_alg_values": ["ES256"]}}))]
+    fn test_vp_formats_default_to_es256(#[case] credential_format: Format, #[case] formats: serde_json::Value) {
+        start_disclosure_session_format(
+            SessionType::SameDevice,
+            DisclosureUriSource::Link,
+            VpRequestUriMethod::POST,
+            None,
+            credential_format,
+            |mut session| {
+                session.vp_formats_supported = serde_json::from_value(formats).unwrap();
+                session
+            },
+        )
+        .expect("an omitted algorithm list should allow ES256");
+    }
+
+    #[rstest]
+    #[case(Format::MsoMdoc, json!({}))]
+    #[case(Format::SdJwt, json!({}))]
+    #[case(Format::MsoMdoc, json!({"mso_mdoc": {"issuerauth_alg_values": [-35]}}))]
+    #[case(Format::MsoMdoc, json!({"mso_mdoc": {"deviceauth_alg_values": [-35]}}))]
+    #[case(Format::SdJwt, json!({"dc+sd-jwt": {"sd-jwt_alg_values": ["ES384"]}}))]
+    #[case(Format::SdJwt, json!({"dc+sd-jwt": {"kb-jwt_alg_values": ["ES384"]}}))]
     fn test_vp_disclosure_client_start_error_vp_formats_not_supported(
-        #[values(Format::MsoMdoc, Format::SdJwt)] credential_format: Format,
+        #[case] credential_format: Format,
+        #[case] formats: serde_json::Value,
     ) {
-        // Calling `VpDisclosureClient::start()` where the verifier's vp_formats_supported does not
-        // include ES256 for the required format should result in an error.
         let (error, verifier_session) = start_disclosure_session_format(
             SessionType::SameDevice,
             DisclosureUriSource::Link,
             VpRequestUriMethod::POST,
             None,
             credential_format,
-            |mut verifier_session| {
-                // Remove ES256 from vp_formats_supported for the relevant format.
-                verifier_session.vp_formats_supported = VpFormatsSupported {
-                    mso_mdoc: None,
-                    sd_jwt: None,
-                };
-                verifier_session
+            |mut session| {
+                session.vp_formats_supported = serde_json::from_value(formats).unwrap();
+                session
             },
         )
         .expect_err(
