@@ -12,7 +12,10 @@ use p256::pkcs8::DecodePrivateKey;
 use p256::pkcs8::DecodePublicKey;
 use p256::pkcs8::EncodePrivateKey;
 use p256::pkcs8::EncodePublicKey;
+use serde::Deserializer;
 use serde::Serializer;
+use serde_with::Bytes;
+use serde_with::DeserializeAs;
 use serde_with::SerializeAs;
 use zeroize::Zeroizing;
 
@@ -26,7 +29,7 @@ pub type DerSigningKey = DerPrivateKey<SigningKey>;
 /// A PKCS#8 DER adapter for a [`SecretKey`].
 pub type DerSecretKey = DerPrivateKey<SecretKey>;
 
-/// Parses owned PKCS#8 DER bytes with [`TryFrom`] and serializes a borrowed key as DER bytes with [`SerializeAs`].
+/// Serde adapter for reading and writing P-256 private keys as PKCS#8 DER bytes.
 #[derive(Debug, Clone, From)]
 pub struct DerPrivateKey<T>(T);
 
@@ -67,6 +70,15 @@ impl<T: EncodePrivateKey> SerializeAs<T> for DerPrivateKey<T> {
     fn serialize_as<S: Serializer>(key: &T, serializer: S) -> Result<S::Ok, S::Error> {
         let der = key.to_pkcs8_der().map_err(serde::ser::Error::custom)?;
         serializer.serialize_bytes(der.as_bytes())
+    }
+}
+
+impl<'de, T: PrivateKey> DeserializeAs<'de, T> for DerPrivateKey<T> {
+    fn deserialize_as<D: Deserializer<'de>>(deserializer: D) -> Result<T, D::Error> {
+        let der: Vec<u8> = Bytes::deserialize_as(deserializer)?;
+        Self::try_from(der)
+            .map(Self::into_inner)
+            .map_err(serde::de::Error::custom)
     }
 }
 
