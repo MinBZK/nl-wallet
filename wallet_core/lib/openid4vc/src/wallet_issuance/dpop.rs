@@ -162,6 +162,7 @@ fn is_nonce_error(value: &str) -> bool {
 #[cfg(test)]
 pub(super) mod tests {
     use std::assert_matches;
+    use std::collections::HashSet;
     use std::future::ready;
 
     use base64::Engine;
@@ -340,12 +341,28 @@ pub(super) mod tests {
     }
 
     #[rstest]
-    #[case::endpoint_only(None, None, "challenge_1", "challenge_2", 2)]
-    #[case::header_on_retry(None, Some("retry_header"), "challenge_1", "retry_header", 1)]
-    #[case::fallback_after_par_header(Some("par_header"), None, "par_header", "challenge_1", 1)]
-    #[case::replace_par_header(Some("par_header"), Some("retry_header"), "par_header", "retry_header", 0)]
+    #[case::endpoint_only("use_dpop_nonce", None, None, "challenge_1", "challenge_2", 2)]
+    #[case::header_on_retry("use_dpop_nonce", None, Some("retry_header"), "challenge_1", "retry_header", 1)]
+    #[case::fallback_after_par_header("use_dpop_nonce", Some("par_header"), None, "par_header", "challenge_1", 1)]
+    #[case::replace_par_header(
+        "use_dpop_nonce",
+        Some("par_header"),
+        Some("retry_header"),
+        "par_header",
+        "retry_header",
+        0
+    )]
+    #[case::rejected_par_header(
+        "use_attestation_challenge",
+        Some("par_header"),
+        Some("retry_header"),
+        "par_header",
+        "retry_header",
+        0
+    )]
     #[tokio::test]
     async fn token_retry_uses_response_header_before_challenge_endpoint(
+        #[case] error_code: &'static str,
         #[case] par_header: Option<&'static str>,
         #[case] retry_header: Option<&'static str>,
         #[case] first_challenge: &'static str,
@@ -383,7 +400,7 @@ pub(super) mod tests {
                 };
                 then.status(400)
                     .header(DPOP_NONCE_HEADER_NAME, "retry_nonce")
-                    .json_body(json!({"error":"use_dpop_nonce"}));
+                    .json_body(json!({"error":error_code}));
             })
             .await;
         let second = server
@@ -411,7 +428,7 @@ pub(super) mod tests {
                 audience: &issuer,
                 challenge: mechanism,
             }
-            .send_with_dpop_retry(
+            .send_with_challenge_retry(
                 &mut DpopState::generate(),
                 &MockWiaClient::new(),
                 |url| client.request_challenge(url),
@@ -429,16 +446,125 @@ pub(super) mod tests {
     }
 
     #[rstest]
-    #[case::repeated_challenge(400, "use_dpop_nonce", Some("retry_nonce"), 2)]
-    #[case::missing_nonce(400, "use_dpop_nonce", None, 1)]
-    #[case::invalid_nonce(400, "use_dpop_nonce", Some("invalid nonce"), 1)]
-    #[case::wrong_error(400, "invalid_grant", Some("retry_nonce"), 1)]
-    #[case::wrong_status(401, "use_dpop_nonce", Some("retry_nonce"), 1)]
+    #[case::dpop_first(false)]
+    #[case::attestation_first(true)]
+    #[tokio::test]
+    async fn token_retries_each_challenge_once(
+        #[case] attestation_first: bool,
+        #[values(false, true)] repeat_first_challenge: bool,
+    ) {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        use wscd::payload::wia::WIA_HEADER_NAME;
+
+        let server = MockServer::start_async().await;
+        let attestation = (
+            "use_attestation_challenge",
+            WIA_CLIENT_CHALLENGE_HEADER_NAME,
+            "new_challenge",
+        );
+        let dpop = ("use_dpop_nonce", DPOP_NONCE_HEADER_NAME, "new_nonce");
+        let mut challenges = if attestation_first {
+            vec![attestation, dpop]
+        } else {
+            vec![dpop, attestation]
+        };
+        if repeat_first_challenge {
+            challenges.push(challenges[0]);
+        }
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let captured = Arc::clone(&requests);
+        let token = server
+            .mock_async(|when, then| {
+                when.method(httpmock::Method::POST)
+                    .path("/token")
+                    .form_urlencoded_tuple("pre-authorized_code", "code");
+                then.respond_with(move |request| {
+                    let mut requests = captured.lock().unwrap();
+                    let challenge = challenges.get(requests.len());
+                    requests.push(request.clone());
+                    let response = http::Response::builder();
+                    if let Some(&(error_code, header, value)) = challenge {
+                        response
+                            .status(400)
+                            .header(header, value)
+                            .body(json!({"error":error_code}).to_string())
+                    } else {
+                        response.body(json!({"access_token":"token","token_type":"DPoP"}).to_string())
+                    }
+                    .unwrap()
+                    .into()
+                });
+            })
+            .await;
+        let client = HttpVcMessageClient::new(HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap());
+        let url = server.url("/token").parse().unwrap();
+        let request = VciTokenRequest::new_pre_authorized("code".to_string().into());
+        let mut dpop = DpopState::generate();
+        dpop.nonce = Some("old_nonce".parse().unwrap());
+        let result = AttestedRequest {
+            endpoint: &url,
+            audience: &server.base_url().parse().unwrap(),
+            challenge: ClientAttestationChallengeMechanism::Header(Nonce::from("old_challenge".to_string())),
+        }
+        .send_with_challenge_retry(
+            &mut dpop,
+            &MockWiaClient::new(),
+            |url| client.request_challenge(url),
+            async |proof, wia| client.request_token(url.clone(), &request, &proof, &wia).await,
+        )
+        .await;
+        match (repeat_first_challenge, attestation_first) {
+            (false, _) => assert!(result.is_ok(), "{result:?}"),
+            (true, true) => assert_matches!(result, Err(WalletIssuanceError::AttestationChallengeRejected)),
+            (true, false) => assert_matches!(result, Err(WalletIssuanceError::DpopNonceRejected)),
+        }
+
+        token.assert_calls_async(3).await;
+        let requests = requests.lock().unwrap();
+        let second = if attestation_first {
+            ("old_nonce", "new_challenge")
+        } else {
+            ("new_nonce", "old_challenge")
+        };
+        let expected = [("old_nonce", "old_challenge"), second, ("new_nonce", "new_challenge")];
+        let mut proof_ids = HashSet::new();
+        let mut attestations = HashSet::new();
+        let mut wia_pops = HashSet::new();
+        let key = PublicKey::from(*dpop.signing_key.verifying_key());
+        for (request, (nonce, challenge)) in requests.iter().zip(expected) {
+            let headers = request.headers();
+            let proof: Dpop = headers[DPOP_HEADER_NAME].to_str().unwrap().parse().unwrap();
+            assert!(proof_ids.insert(jwt_id(&proof)));
+            assert!(attestations.insert(headers[WIA_HEADER_NAME].clone()));
+            assert!(wia_pops.insert(headers[WIA_POP_HEADER_NAME].clone()));
+            let verified = proof
+                .verify_expecting_key(key.clone(), &url, &Method::POST, None)
+                .unwrap();
+            assert_eq!(verified.into_inner().unwrap().as_ref(), nonce);
+            assert!(wia_challenge_matches(request, Some(challenge)));
+            assert_eq!(request.body_ref(), requests[0].body_ref());
+        }
+    }
+
+    #[rstest]
+    #[case::repeated_dpop(400, "use_dpop_nonce", Some("nonce"), &[], 2)]
+    #[case::missing_nonce(400, "use_dpop_nonce", None, &["challenge"], 1)]
+    #[case::invalid_nonce(400, "use_dpop_nonce", Some("invalid nonce"), &[], 1)]
+    #[case::wrong_error(400, "invalid_grant", Some("nonce"), &["challenge"], 1)]
+    #[case::wrong_dpop_status(401, "use_dpop_nonce", Some("nonce"), &[], 1)]
+    #[case::repeated_attestation(400, "use_attestation_challenge", None, &["challenge"], 2)]
+    #[case::missing_attestation(400, "use_attestation_challenge", Some("nonce"), &[], 1)]
+    #[case::empty_attestation(400, "use_attestation_challenge", None, &[""], 1)]
+    #[case::duplicate_attestation(400, "use_attestation_challenge", None, &["first", "second"], 1)]
+    #[case::wrong_attestation_status(401, "use_attestation_challenge", None, &["challenge"], 1)]
     #[tokio::test]
     async fn token_http_retry_requires_a_valid_challenge(
         #[case] status: u16,
         #[case] error_code: &str,
         #[case] nonce: Option<&str>,
+        #[case] challenges: &[&str],
         #[case] expected_requests: usize,
     ) {
         let server = MockServer::start_async().await;
@@ -450,6 +576,9 @@ pub(super) mod tests {
                     Some(nonce) => then.header(DPOP_NONCE_HEADER_NAME, nonce),
                     None => then,
                 };
+                let then = challenges.iter().fold(then, |then, &value| {
+                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, value)
+                });
                 then.json_body(json!({"error": error_code}));
             })
             .await;
@@ -461,7 +590,7 @@ pub(super) mod tests {
             audience: &server.base_url().parse().unwrap(),
             challenge: ClientAttestationChallengeMechanism::None,
         }
-        .send_with_dpop_retry(
+        .send_with_challenge_retry(
             &mut DpopState::generate(),
             &MockWiaClient::new(),
             |url| client.request_challenge(url),
@@ -469,12 +598,19 @@ pub(super) mod tests {
         )
         .await
         .unwrap_err();
-        if expected_requests == 2 {
-            assert_matches!(error, WalletIssuanceError::DpopNonceRejected);
-        } else if nonce == Some("invalid nonce") {
-            assert_matches!(error, WalletIssuanceError::DpopNonce(_));
-        } else {
-            assert_matches!(error, WalletIssuanceError::VciTokenRequest(_));
+        match (expected_requests, error_code, nonce, challenges) {
+            (2, "use_dpop_nonce", _, _) => assert_matches!(error, WalletIssuanceError::DpopNonceRejected),
+            (2, "use_attestation_challenge", _, _) => {
+                assert_matches!(error, WalletIssuanceError::AttestationChallengeRejected)
+            }
+            (_, _, Some("invalid nonce"), _) => assert_matches!(error, WalletIssuanceError::DpopNonce(_)),
+            (_, _, _, [""] | [_, _]) => {
+                assert_matches!(error, WalletIssuanceError::ClientAttestationChallengeMechanism(_))
+            }
+            _ => {
+                let expected = RemoteErrorCode::Known(error_code.parse().unwrap());
+                assert_matches!(error, WalletIssuanceError::VciTokenRequest(response) if response.error == expected);
+            }
         }
         mock.assert_calls_async(expected_requests).await;
     }

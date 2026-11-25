@@ -200,6 +200,7 @@ impl VcMessageClient for HttpVcMessageClient {
                     AuthorizationServerResponse::from_http_error(
                         response,
                         VciTokenErrorCode::UseDpopNonce,
+                        VciTokenErrorCode::UseAttestationChallenge,
                         WalletIssuanceError::TokenRequestHttp,
                         |error| WalletIssuanceError::VciTokenRequest(Box::new(error)),
                     )
@@ -804,7 +805,7 @@ impl<H: VcMessageClient> HttpIssuanceSession<H> {
             audience: auth_server_identifier,
             challenge: client_auth_challenge,
         }
-        .send_with_dpop_retry(
+        .send_with_challenge_retry(
             &mut dpop,
             wia_client,
             |url| message_client.request_challenge(url),

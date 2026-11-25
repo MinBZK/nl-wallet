@@ -97,6 +97,10 @@ pub enum WalletIssuanceError {
     #[category(critical)]
     DpopNonceRejected,
 
+    #[error("authorization server rejected the replacement client attestation challenge")]
+    #[category(critical)]
+    AttestationChallengeRejected,
+
     #[error("response contains multiple DPoP-Nonce headers")]
     #[category(pd)]
     MultipleDpopNonceHeaders,

@@ -98,6 +98,10 @@ pub enum ClientAttestationChallengeMechanism {
 pub enum ClientAttestationChallengeMechanismError {
     #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
     ChallengeHeaderNonVisibleAscii,
+    #[error("OAuth-Client-Attestation-Challenge is empty")]
+    EmptyChallengeHeader,
+    #[error("response contains multiple OAuth-Client-Attestation-Challenge headers")]
+    MultipleChallengeHeaders,
 }
 
 impl ClientAttestationChallengeMechanism {
@@ -138,15 +142,20 @@ impl ClientAttestationChallengeMechanism {
 pub(crate) fn attestation_challenge_from_headers(
     headers: &HeaderMap,
 ) -> Result<Option<Nonce>, ClientAttestationChallengeMechanismError> {
-    headers
-        .get(WIA_CLIENT_CHALLENGE_HEADER_NAME)
-        .map(|value| {
-            value
-                .to_str()
-                .map(|challenge| Nonce::from(challenge.to_string()))
-                .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)
-        })
-        .transpose()
+    let mut values = headers.get_all(WIA_CLIENT_CHALLENGE_HEADER_NAME).iter();
+    let Some(value) = values.next() else {
+        return Ok(None);
+    };
+    if values.next().is_some() {
+        return Err(ClientAttestationChallengeMechanismError::MultipleChallengeHeaders);
+    }
+    let challenge = value
+        .to_str()
+        .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)?;
+    if challenge.trim().is_empty() {
+        return Err(ClientAttestationChallengeMechanismError::EmptyChallengeHeader);
+    }
+    Ok(Some(Nonce::from(challenge.to_owned())))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]

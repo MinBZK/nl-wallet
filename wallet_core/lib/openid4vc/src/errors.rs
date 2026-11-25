@@ -94,8 +94,7 @@ where
 /// <https://datatracker.ietf.org/doc/html/rfc6749#section-4.1.2.1>, i.e. the token endpoint error codes or the
 /// authorization endpoint error codes.
 ///
-/// This type represents a selection among these error codes, containing only those that this codebase's PAR
-/// endpoints return.
+/// This enum covers the errors handled by the wallet or issuer at PAR.
 #[derive(Debug, Clone, PartialEq, Eq, strum::Display, EnumString)]
 #[strum(serialize_all = "snake_case")]
 pub enum ParErrorCode {
@@ -107,6 +106,10 @@ pub enum ParErrorCode {
     ServerError,
     // RFC 9449, Section 8.
     UseDpopNonce,
+
+    /// The next WIA PoP must carry the challenge supplied in this response.
+    /// See <https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-12.html#section-6.1>.
+    UseAttestationChallenge,
 
     /// Invalid Client Attestation / WIA.
     /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
@@ -121,7 +124,7 @@ impl ErrorStatusCode for ParErrorCode {
     fn status_code(&self) -> StatusCode {
         match self {
             Self::InvalidClient => StatusCode::UNAUTHORIZED,
-            Self::InvalidRequest | Self::UseDpopNonce => StatusCode::BAD_REQUEST,
+            Self::InvalidRequest | Self::UseDpopNonce | Self::UseAttestationChallenge => StatusCode::BAD_REQUEST,
             Self::ServerError => StatusCode::INTERNAL_SERVER_ERROR,
             Self::InvalidClientAttestation | Self::UseFreshAttestation => StatusCode::UNAUTHORIZED,
         }
@@ -142,6 +145,10 @@ pub enum VciTokenErrorCode {
     InvalidScope,
     // RFC 9449, Section 8.
     UseDpopNonce,
+
+    /// The next WIA PoP must carry the challenge supplied in this response.
+    /// See <https://www.ietf.org/archive/id/draft-ietf-oauth-attestation-based-client-auth-12.html#section-6.1>.
+    UseAttestationChallenge,
 
     /// Invalid Client Attestation / WIA.
     /// See <https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-09#section-7.4-2.2.1>
@@ -165,7 +172,8 @@ impl ErrorStatusCode for VciTokenErrorCode {
             | Self::UnauthorizedClient
             | Self::UnsupportedGrantType
             | Self::InvalidScope
-            | Self::UseDpopNonce => StatusCode::BAD_REQUEST,
+            | Self::UseDpopNonce
+            | Self::UseAttestationChallenge => StatusCode::BAD_REQUEST,
             Self::InvalidClient | Self::InvalidClientAttestation | Self::UseFreshAttestation => {
                 StatusCode::UNAUTHORIZED
             }
