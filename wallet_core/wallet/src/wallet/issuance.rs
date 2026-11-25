@@ -624,9 +624,8 @@ where
             None
         };
 
-        // The attestations can be paired with the credentials by position. `IssuanceSession::accept_issuance` returns
-        // the credentials in the same order as the previews from which `preview_attestations` were created, and
-        // `process_issued_credentials` keeps the order of the credentials.
+        // The attestations can be paired with the credentials by position, as `IssuanceSession::accept_issuance`
+        // returns the credentials in the same order as the previews from which `preview_attestations` were created.
         self.store_issued_credentials(
             credentials.into_iter().zip_eq(attestation_presentations),
             transfer_session_id,
@@ -679,6 +678,8 @@ where
         self.session.replace(Session::Issuance(WalletIssuanceSession::new(
             pid_purpose,
             SessionState::CredentialsReceived {
+                // The attestations can be paired with the credentials by position, as `process_issued_credentials`
+                // keeps the order of the credentials.
                 credentials: credentials.into_nonempty_iter().zip(attestations.clone()).collect(),
                 recovery_code_disclosure,
             },
