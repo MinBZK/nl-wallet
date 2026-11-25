@@ -1840,6 +1840,7 @@ mod tests {
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
+    use crate::wallet_issuance::Attempt;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
     use crate::wallet_issuance::authorization::AuthorizationServerResponse;
@@ -2157,7 +2158,7 @@ mod tests {
             credential_request: CredentialRequestBody<'a>,
             dpop_header: &Dpop,
             access_token: &AccessToken,
-        ) -> Result<CredentialResponse, WalletIssuanceError> {
+        ) -> Result<Attempt<CredentialResponse, DpopNonce>, WalletIssuanceError> {
             let CredentialRequestBody::Encrypted(credential_request_jwe) = credential_request else {
                 panic!("credential request should be encrypted");
             };
@@ -2170,6 +2171,7 @@ mod tests {
                     &MockTimeGenerator::default(),
                 )
                 .await
+                .map(Attempt::Success)
                 .map_err(|error| {
                     let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
 

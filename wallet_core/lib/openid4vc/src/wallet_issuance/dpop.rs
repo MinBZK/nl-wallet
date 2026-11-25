@@ -16,6 +16,7 @@ use serde::Serialize;
 use serde_with::serde_as;
 use url::Url;
 
+use super::Attempt;
 use super::WalletIssuanceError;
 
 /// The wallet's DPoP key and the authorization server's nonce. Persist both across the authorization redirect
@@ -48,21 +49,20 @@ pub(super) async fn request_with_dpop_retry<T, Fut>(
     mut request: impl FnMut(Dpop) -> Fut,
 ) -> Result<(T, Option<DpopNonce>), WalletIssuanceError>
 where
-    Fut: Future<Output = Result<T, WalletIssuanceError>>,
+    Fut: Future<Output = Result<Attempt<T, DpopNonce>, WalletIssuanceError>>,
 {
-    let proof = Dpop::new(signing_key, url.clone(), &Method::POST, access_token, nonce.clone())?;
-    let response = match request(proof).await {
-        Err(WalletIssuanceError::UseDpopNonce(new_nonce)) => {
-            nonce = Some(new_nonce);
-            let proof = Dpop::new(signing_key, url.clone(), &Method::POST, access_token, nonce.clone())?;
-            request(proof).await.map_err(|error| match error {
-                WalletIssuanceError::UseDpopNonce(_) => WalletIssuanceError::DpopNonceRejected,
-                other => other,
-            })?
+    let mut retried = false;
+    loop {
+        let proof = Dpop::new(signing_key, url.clone(), &Method::POST, access_token, nonce.clone())?;
+        match request(proof).await? {
+            Attempt::Success(response) => return Ok((response, nonce)),
+            Attempt::Challenge(_) if retried => return Err(WalletIssuanceError::DpopNonceRejected),
+            Attempt::Challenge(new_nonce) => {
+                nonce = Some(new_nonce);
+                retried = true;
+            }
         }
-        result => result?,
-    };
-    Ok((response, nonce))
+    }
 }
 
 pub(super) fn nonce_from_headers(headers: &HeaderMap) -> Result<Option<DpopNonce>, WalletIssuanceError> {
@@ -249,9 +249,9 @@ pub(super) mod tests {
             |proof| {
                 proofs.push(proof);
                 ready(if proofs.len() == 1 {
-                    Err(WalletIssuanceError::UseDpopNonce("new_nonce".parse().unwrap()))
+                    Ok(Attempt::Challenge("new_nonce".parse().unwrap()))
                 } else {
-                    Ok(())
+                    Ok(Attempt::Success(()))
                 })
             },
         )
@@ -284,13 +284,17 @@ pub(super) mod tests {
         let result: Result<((), _), _> = request_with_dpop_retry(&key, &url, None, None, |_| {
             requests += 1;
             ready(if challenge {
-                Err(WalletIssuanceError::UseDpopNonce("nonce".parse().unwrap()))
+                Ok(Attempt::Challenge("nonce".parse().unwrap()))
             } else {
                 Err(WalletIssuanceError::PreAuthorizedCodeExpired)
             })
         })
         .await;
-        assert!(result.is_err());
+        if challenge {
+            assert_matches!(result, Err(WalletIssuanceError::DpopNonceRejected));
+        } else {
+            assert_matches!(result, Err(WalletIssuanceError::PreAuthorizedCodeExpired));
+        }
         assert_eq!(requests, expected_requests);
     }
 

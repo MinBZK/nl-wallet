@@ -33,6 +33,7 @@ use wscd::payload::wia::WIA_POP_HEADER_NAME;
 use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 
+use super::Attempt;
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
@@ -88,11 +89,12 @@ pub enum OAuthError {
     Denied,
 }
 
-/// Outcome of one PAR or token attempt. Each retryable OAuth error requires its own challenge header.
-/// The server can also rotate the other proof's challenge in the same response.
+pub type AuthorizationServerResponse<T> = Attempt<T, AuthorizationChallenge>;
+
+/// Each retryable PAR or token error requires its own challenge header.
+/// The authorization server can also rotate the other proof's challenge in the same response.
 #[derive(Debug)]
-pub enum AuthorizationServerResponse<T> {
-    Success(T),
+pub enum AuthorizationChallenge {
     UseDpopNonce {
         /// `DPoP-Nonce`, used in the DPoP proof's `nonce` claim.
         nonce: DpopNonce,
@@ -105,7 +107,7 @@ pub enum AuthorizationServerResponse<T> {
     },
 }
 
-impl<T> AuthorizationServerResponse<T> {
+impl AuthorizationChallenge {
     pub(super) async fn from_http_error<E: FromStr + PartialEq>(
         response: Response,
         use_dpop_nonce: E,
@@ -191,21 +193,21 @@ impl AttestedRequest<'_> {
             )?;
 
             let (nonce, attestation_challenge) = match send(proof, wia).await? {
-                AuthorizationServerResponse::Success(response) => return Ok(response),
-                AuthorizationServerResponse::UseDpopNonce {
+                Attempt::Success(response) => return Ok(response),
+                Attempt::Challenge(AuthorizationChallenge::UseDpopNonce {
                     nonce,
                     attestation_challenge,
-                } => {
+                }) => {
                     if retried_dpop {
                         return Err(WalletIssuanceError::DpopNonceRejected);
                     }
                     retried_dpop = true;
                     (Some(nonce), attestation_challenge)
                 }
-                AuthorizationServerResponse::UseAttestationChallenge {
+                Attempt::Challenge(AuthorizationChallenge::UseAttestationChallenge {
                     attestation_challenge,
                     nonce,
-                } => {
+                }) => {
                     if retried_attestation {
                         return Err(WalletIssuanceError::AttestationChallengeRejected);
                     }
@@ -341,9 +343,9 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
                     .await
                     .map_err(WalletIssuanceError::ParHttp)?;
                 if response.status().is_success() {
-                    return Ok(AuthorizationServerResponse::Success(response));
+                    return Ok(Attempt::Success(response));
                 }
-                AuthorizationServerResponse::from_http_error(
+                AuthorizationChallenge::from_http_error(
                     response,
                     ParErrorCode::UseDpopNonce,
                     ParErrorCode::UseAttestationChallenge,
@@ -351,6 +353,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
                     |error| OAuthError::PushedAuthorizationRequest(Box::new(error)).into(),
                 )
                 .await
+                .map(Attempt::Challenge)
             },
         )
         .await?;

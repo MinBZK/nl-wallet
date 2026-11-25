@@ -68,12 +68,14 @@ use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 
 use super::AcceptIssuanceTrustAnchors;
+use super::Attempt;
 use super::IssuanceSession;
 use super::OfferedCredentialMetadata;
 use super::OfferedCredentialPreview;
 use super::SUPPORTED_MDOC_ISSUER_ALGORITHMS;
 use super::WalletIssuanceError;
 use super::authorization::AttestedRequest;
+use super::authorization::AuthorizationChallenge;
 use super::authorization::AuthorizationServerResponse;
 use super::credential::CredentialWithMetadata;
 use super::credential::IssuedCredentialCopies;
@@ -130,7 +132,7 @@ pub enum CredentialRequestBody<'a> {
 #[cfg_attr(test, mockall::automock)]
 pub trait VcMessageClient {
     /// Send one token request. On success, return the token response and any new DPoP nonce.
-    /// On a DPoP nonce challenge, return both challenge headers so the caller can rebuild the request proofs.
+    /// On a DPoP or attestation challenge, return the supplied challenges so the caller can rebuild both proofs.
     async fn request_token(
         &self,
         url: Url,
@@ -151,13 +153,14 @@ pub trait VcMessageClient {
 
     async fn request_nonce(&self, url: Url) -> Result<(NonceResponse, Option<DpopNonce>), WalletIssuanceError>;
 
+    /// Send one credential request. A DPoP challenge carries the nonce for the next access-token-bound proof.
     async fn request_credential<'a>(
         &self,
         url: Url,
         credential_request: CredentialRequestBody<'a>,
         dpop_header: &Dpop,
         access_token: &AccessToken,
-    ) -> Result<CredentialResponse, WalletIssuanceError>;
+    ) -> Result<Attempt<CredentialResponse, DpopNonce>, WalletIssuanceError>;
 }
 
 #[derive(Debug)]
@@ -197,7 +200,7 @@ impl VcMessageClient for HttpVcMessageClient {
                 let status = response.status();
 
                 if status.is_client_error() || status.is_server_error() {
-                    AuthorizationServerResponse::from_http_error(
+                    AuthorizationChallenge::from_http_error(
                         response,
                         VciTokenErrorCode::UseDpopNonce,
                         VciTokenErrorCode::UseAttestationChallenge,
@@ -205,6 +208,7 @@ impl VcMessageClient for HttpVcMessageClient {
                         |error| WalletIssuanceError::VciTokenRequest(Box::new(error)),
                     )
                     .await
+                    .map(Attempt::Challenge)
                 } else {
                     let dpop_nonce = nonce_from_headers(response.headers())?;
                     let deserialized = response
@@ -212,7 +216,7 @@ impl VcMessageClient for HttpVcMessageClient {
                         .await
                         .map_err(WalletIssuanceError::TokenRequestHttp)?;
 
-                    Ok(AuthorizationServerResponse::Success((deserialized, dpop_nonce)))
+                    Ok(Attempt::Success((deserialized, dpop_nonce)))
                 }
             })
             .await
@@ -283,7 +287,7 @@ impl VcMessageClient for HttpVcMessageClient {
         credential_request: CredentialRequestBody<'a>,
         dpop_header: &Dpop,
         access_token: &AccessToken,
-    ) -> Result<CredentialResponse, WalletIssuanceError> {
+    ) -> Result<Attempt<CredentialResponse, DpopNonce>, WalletIssuanceError> {
         self.http_client
             .post(url, |builder| {
                 let builder = builder
@@ -304,7 +308,7 @@ impl VcMessageClient for HttpVcMessageClient {
 
                 if status.is_client_error() || status.is_server_error() {
                     if let Some(nonce) = resource_nonce_challenge(&response)? {
-                        return Err(WalletIssuanceError::UseDpopNonce(nonce));
+                        return Ok(Attempt::Challenge(nonce));
                     }
                     let error = response
                         .json::<RemoteErrorResponse<CredentialErrorCode>>()
@@ -313,12 +317,11 @@ impl VcMessageClient for HttpVcMessageClient {
 
                     Err(WalletIssuanceError::CredentialRequest(Box::new(error)))
                 } else {
-                    let response = response
+                    response
                         .json()
                         .await
-                        .map_err(WalletIssuanceError::CredentialRequestHttp)?;
-
-                    Ok(response)
+                        .map(Attempt::Success)
+                        .map_err(WalletIssuanceError::CredentialRequestHttp)
                 }
             })
             .await
@@ -3308,7 +3311,7 @@ mod tests {
                     access_token,
                 );
 
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             });
 
         let (wscd, wptl_trust_anchors) = create_mock_wscd();
@@ -3397,7 +3400,7 @@ mod tests {
                 };
                 let credentials = Credentials::MsoMdoc(vec_nonempty![MdocCredential::new(issuer_signed)]);
 
-                Ok(CredentialResponse::new_immediate(credentials))
+                Ok(Attempt::Success(CredentialResponse::new_immediate(credentials)))
             },
         );
 
@@ -3447,7 +3450,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -3633,7 +3636,7 @@ mod tests {
         // The credential response is only rejected once it has been received, so it is still requested.
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -3674,7 +3677,7 @@ mod tests {
             move |_url, credential_request, _dpop_header, _access_token_header| {
                 let response = signer.response_from_request(&credential_request);
 
-                Ok(response)
+                Ok(Attempt::Success(response))
             },
         );
 
@@ -3715,7 +3718,7 @@ mod tests {
             move |_url, credential_request, _dpop_header, _access_token_header| {
                 let response = signer.response_from_request(&credential_request);
 
-                Ok(response)
+                Ok(Attempt::Success(response))
             },
         );
 
@@ -3756,7 +3759,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -3799,7 +3802,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -3842,7 +3845,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -3901,7 +3904,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -4255,7 +4258,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 
@@ -4298,7 +4301,7 @@ mod tests {
                     interval: Duration::from_hours(24),
                 };
 
-                Ok(credential_response)
+                Ok(Attempt::Success(credential_response))
             },
         );
 
@@ -4537,7 +4540,7 @@ mod tests {
 
         mock_msg_client.expect_request_credential().times(1).return_once(
             move |_url, credential_request, _dpop_header, _access_token_header| {
-                Ok(signer.response_from_request(&credential_request))
+                Ok(Attempt::Success(signer.response_from_request(&credential_request)))
             },
         );
 

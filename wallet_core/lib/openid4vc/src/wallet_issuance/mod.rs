@@ -37,7 +37,6 @@ use jwt::error::JwkConversionError;
 use jwt::error::JwtParseError;
 use jwt::error::JwtX5cVerifyError;
 use oauth::dpop::DpopError;
-use oauth::dpop::DpopNonce;
 use oauth::dpop::DpopNonceInvalid;
 use oauth::errors::RemoteErrorResponse;
 use oauth::issuer_identifier::IssuerIdentifier;
@@ -83,15 +82,20 @@ const SUPPORTED_MDOC_ISSUER_ALGORITHMS: &[iana::Algorithm] = &[
     iana::Algorithm::ESP384,
 ];
 
+/// Outcome of one request. Each endpoint specifies which challenges the wallet can answer.
+/// A challenge carries the data needed to build the next proof.
+#[derive(Debug)]
+#[must_use = "handle the response or retry the request with the supplied challenge"]
+pub enum Attempt<T, C> {
+    Success(T),
+    Challenge(C),
+}
+
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(defer)]
 pub enum WalletIssuanceError {
     #[error("DPoP error: {0}")]
     Dpop(#[from] DpopError),
-
-    #[error("server requires a new DPoP nonce")]
-    #[category(expected)]
-    UseDpopNonce(DpopNonce),
 
     #[error("issuer rejected the DPoP nonce it supplied")]
     #[category(critical)]
