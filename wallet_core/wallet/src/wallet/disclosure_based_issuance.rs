@@ -239,7 +239,6 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::disclosure_based_issuance::DisclosureBasedIssuanceResult;
-    use super::super::issuance::SessionState;
     use super::super::issuance::WalletIssuanceSession;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_example_pid_preview_data;
@@ -574,9 +573,7 @@ mod tests {
         // The issued attestation can be committed from the issuance session.
         assert_matches!(
             wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::Generic {
-                session_state: SessionState::CredentialsReceived { .. }
-            }))
+            Some(Session::Issuance(WalletIssuanceSession::GenericReceived { .. }))
         );
     }
 

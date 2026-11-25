@@ -179,6 +179,16 @@ pub enum WalletIssuanceSession<AS, IS> {
     Generic {
         session_state: SessionState<AS, IS>,
     },
+    /// A PID has been received for review, but not yet committed.
+    PidReceived {
+        purpose: PidIssuancePurpose,
+        credentials: VecNonEmpty<(CredentialWithMetadata, AttestationPresentation)>,
+        recovery_code_disclosure: CheckedRecoveryCodeDisclosure,
+    },
+    /// Credentials have been received for review, but not yet committed.
+    GenericReceived {
+        credentials: VecNonEmpty<(CredentialWithMetadata, AttestationPresentation)>,
+    },
 }
 
 #[derive(Debug, IsVariant)]
@@ -189,10 +199,6 @@ pub enum SessionState<AS, IS> {
     IssuanceAuthorized {
         preview_attestations: Option<VecNonEmpty<AttestationPresentation>>,
         protocol_state: IS,
-    },
-    CredentialsReceived {
-        credentials: VecNonEmpty<(CredentialWithMetadata, AttestationPresentation)>,
-        recovery_code_disclosure: Option<CheckedRecoveryCodeDisclosure>,
     },
 }
 
@@ -206,32 +212,38 @@ impl<AS, IS> WalletIssuanceSession<AS, IS> {
 
     pub fn pid_purpose(&self) -> Option<PidIssuancePurpose> {
         match self {
-            WalletIssuanceSession::Pid { purpose, .. } => Some(*purpose),
-            WalletIssuanceSession::Generic { .. } => None,
+            WalletIssuanceSession::Pid { purpose, .. } | WalletIssuanceSession::PidReceived { purpose, .. } => {
+                Some(*purpose)
+            }
+            WalletIssuanceSession::Generic { .. } | WalletIssuanceSession::GenericReceived { .. } => None,
         }
     }
 
-    pub fn session_state(&self) -> &SessionState<AS, IS> {
+    /// Returns the state of the issuance protocol, or `None` if the credentials have already been received.
+    pub fn session_state(&self) -> Option<&SessionState<AS, IS>> {
         match self {
             WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
-                session_state
+                Some(session_state)
             }
+            WalletIssuanceSession::PidReceived { .. } | WalletIssuanceSession::GenericReceived { .. } => None,
         }
     }
 
-    fn session_state_mut(&mut self) -> &mut SessionState<AS, IS> {
+    fn session_state_mut(&mut self) -> Option<&mut SessionState<AS, IS>> {
         match self {
             WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
-                session_state
+                Some(session_state)
             }
+            WalletIssuanceSession::PidReceived { .. } | WalletIssuanceSession::GenericReceived { .. } => None,
         }
     }
 
-    fn into_session_state(self) -> SessionState<AS, IS> {
+    fn into_session_state(self) -> Option<SessionState<AS, IS>> {
         match self {
             WalletIssuanceSession::Pid { session_state, .. } | WalletIssuanceSession::Generic { session_state } => {
-                session_state
+                Some(session_state)
             }
+            WalletIssuanceSession::PidReceived { .. } | WalletIssuanceSession::GenericReceived { .. } => None,
         }
     }
 }
@@ -501,7 +513,7 @@ where
         info!("Checking if there is an active issuance session");
         if !matches!(
             &self.session,
-            Some(Session::Issuance(issuance_session)) if issuance_session.session_state().is_authorization_started()
+            Some(Session::Issuance(issuance_session)) if issuance_session.session_state().is_some_and(SessionState::is_authorization_started)
         ) {
             return Err(IssuanceError::SessionState);
         }
@@ -519,7 +531,8 @@ where
         };
 
         let purpose = issuance_session.pid_purpose();
-        let SessionState::AuthorizationStarted { authorization_session } = issuance_session.into_session_state() else {
+        let Some(SessionState::AuthorizationStarted { authorization_session }) = issuance_session.into_session_state()
+        else {
             return Err(IssuanceError::SessionState);
         };
 
@@ -658,32 +671,36 @@ where
             ..
         } = self.receive_credentials(pin, PreviewMode::WithoutPreviews).await?;
 
-        let recovery_code_disclosure = if pid_purpose.is_some() {
+        let pid_purpose_and_recovery_code_disclosure = match pid_purpose {
             // Check the recovery code in the issued PID against the one in the stored PID, if any. The issued PID is
             // not stored yet, so on a mismatch the issued credentials can simply be dropped. The disclosure is only
             // sent to the Wallet Provider when the PID is committed.
-            Some(
+            Some(purpose) => Some((
+                purpose,
                 self.checked_recovery_code_disclosure(&credentials, &config.pid_attributes)
                     .await?,
-            )
-        } else {
-            None
+            )),
+            None => None,
         };
 
         let attestations = self
             .process_issued_credentials(&credentials, &organization, pid_purpose, &config.pid_attributes)
             .await?;
 
+        // The attestations can be paired with the credentials by position, as `process_issued_credentials` keeps the
+        // order of the credentials.
+        let credentials = credentials.into_nonempty_iter().zip(attestations.clone()).collect();
+
         info!("Keeping issued credentials in session for review");
-        self.session.replace(Session::Issuance(WalletIssuanceSession::new(
-            pid_purpose,
-            SessionState::CredentialsReceived {
-                // The attestations can be paired with the credentials by position, as `process_issued_credentials`
-                // keeps the order of the credentials.
-                credentials: credentials.into_nonempty_iter().zip(attestations.clone()).collect(),
+        let issuance_session = match pid_purpose_and_recovery_code_disclosure {
+            Some((purpose, recovery_code_disclosure)) => WalletIssuanceSession::PidReceived {
+                purpose,
+                credentials,
                 recovery_code_disclosure,
             },
-        )));
+            None => WalletIssuanceSession::GenericReceived { credentials },
+        };
+        self.session.replace(Session::Issuance(issuance_session));
 
         Ok(attestations)
     }
@@ -699,13 +716,9 @@ where
 
         info!("Checking if there are received credentials");
         match self.session.take() {
-            Some(Session::Issuance(WalletIssuanceSession::Generic {
-                session_state:
-                    SessionState::CredentialsReceived {
-                        credentials,
-                        recovery_code_disclosure: None,
-                    },
-            })) => self.store_issued_credentials(credentials, None).await,
+            Some(Session::Issuance(WalletIssuanceSession::GenericReceived { credentials })) => {
+                self.store_issued_credentials(credentials, None).await
+            }
             session => {
                 self.session = session;
                 Err(IssuanceError::SessionState)
@@ -735,13 +748,10 @@ where
 
         info!("Checking if there is a received PID");
         let (credentials, recovery_code_disclosure, purpose) = match self.session.take() {
-            Some(Session::Issuance(WalletIssuanceSession::Pid {
+            Some(Session::Issuance(WalletIssuanceSession::PidReceived {
                 purpose,
-                session_state:
-                    SessionState::CredentialsReceived {
-                        credentials,
-                        recovery_code_disclosure: Some(recovery_code_disclosure),
-                    },
+                credentials,
+                recovery_code_disclosure,
             })) => (credentials, recovery_code_disclosure, purpose),
             session => {
                 self.session = session;
@@ -775,12 +785,10 @@ where
                 // Otherwise, keep the received PID, so that committing it can be retried, e.g. after entering an
                 // incorrect PIN. The Wallet Provider accepts the same disclosure again, even if it already processed it
                 // before.
-                self.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
+                self.session = Some(Session::Issuance(WalletIssuanceSession::PidReceived {
                     purpose,
-                    session_state: SessionState::CredentialsReceived {
-                        credentials,
-                        recovery_code_disclosure: Some(recovery_code_disclosure),
-                    },
+                    credentials,
+                    recovery_code_disclosure,
                 }));
                 return Err(error);
             }
@@ -915,10 +923,10 @@ where
 
         let pid_purpose = issuance_session.pid_purpose();
 
-        let SessionState::IssuanceAuthorized {
+        let Some(SessionState::IssuanceAuthorized {
             protocol_state,
             preview_attestations,
-        } = issuance_session.session_state_mut()
+        }) = issuance_session.session_state_mut()
         else {
             return Err(IssuanceError::SessionState);
         };
@@ -2437,12 +2445,7 @@ mod tests {
         // The issued credentials should be kept in the session for review, without being stored yet.
         assert_matches!(
             wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::Generic {
-                session_state: SessionState::CredentialsReceived {
-                    recovery_code_disclosure: None,
-                    ..
-                },
-            }))
+            Some(Session::Issuance(WalletIssuanceSession::GenericReceived { .. }))
         );
         assert!(inserted_attestations.lock().is_empty());
 
@@ -3213,10 +3216,7 @@ mod tests {
         // The received PID should be kept.
         assert_matches!(
             &wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::Pid {
-                session_state: SessionState::CredentialsReceived { .. },
-                ..
-            }))
+            Some(Session::Issuance(WalletIssuanceSession::PidReceived { .. }))
         );
     }
 
@@ -3236,9 +3236,7 @@ mod tests {
         // The received credentials should be kept.
         assert_matches!(
             &wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::Generic {
-                session_state: SessionState::CredentialsReceived { .. },
-            }))
+            Some(Session::Issuance(WalletIssuanceSession::GenericReceived { .. }))
         );
     }
 
@@ -3304,10 +3302,7 @@ mod tests {
         // The received PID should be kept, so that committing it can be retried.
         assert_matches!(
             &wallet.session,
-            Some(Session::Issuance(WalletIssuanceSession::Pid {
-                session_state: SessionState::CredentialsReceived { .. },
-                ..
-            }))
+            Some(Session::Issuance(WalletIssuanceSession::PidReceived { .. }))
         );
 
         wallet
