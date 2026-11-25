@@ -716,7 +716,8 @@ where
     /// its recovery code is disclosed to the Wallet Provider using the PIN, which unblocks the keys of the issued PID.
     ///
     /// On an error, the issued PID is kept so that committing it can be retried, e.g. after entering an incorrect PIN.
-    /// It is not kept if the wallet has been revoked or if the PIN times out or gets blocked, which resets the wallet.
+    /// It is not kept if the wallet has been revoked or if the PIN times out or gets blocked. In the latter case, the
+    /// wallet is reset during enrollment and locked during renewal (see [`Self::receive_credentials`]).
     #[instrument(skip_all)]
     #[sentry_capture_error]
     pub async fn commit_issued_pid(&mut self, pin: Pin) -> Result<IssuanceResult, IssuanceError>
@@ -757,9 +758,14 @@ where
                 // If we're doing PID renewal as opposed to enrolling, we don't want to transfer.
                 transfer_session_id.filter(|_| purpose == PidIssuancePurpose::Enrollment)
             }
-            // In these cases, the contents of the wallet need to be wiped and the wallet returned to its initial state.
+            // On a PIN timeout or block, reset the wallet during enrollment and lock it during renewal.
             Err(error @ IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)) => {
-                self.reset_to_initial_state().await;
+                match purpose {
+                    PidIssuancePurpose::Enrollment => {
+                        self.reset_to_initial_state().await;
+                    }
+                    PidIssuancePurpose::Renewal => self.lock.lock(),
+                }
                 return Err(error);
             }
             // The revocation has already been handled by `disclose_recovery_code()`, which may have reset the wallet.
@@ -881,7 +887,9 @@ where
 
     /// Accepts the issuance session using the PIN and receives the issued credentials, after which the issuance session
     /// is removed. The session is only accepted if it matches `expected_preview_mode`. On an error the session is kept,
-    /// unless the wallet is reset.
+    /// except for a PIN timeout or block during PID enrollment, which resets the wallet. That way, the user can start
+    /// over with a new PIN. The wallet doesn't contain any attestations yet, so nothing is lost. During renewal, it
+    /// does, so the wallet is only locked.
     async fn receive_credentials(
         &mut self,
         pin: Pin,
@@ -938,11 +946,15 @@ where
             .await
             .map_err(|error| Self::handle_accept_issuance_error(error, protocol_state));
 
-        // In some cases, the contents of the wallet need to be wiped and the wallet returned to its initial state.
         let issued_credentials_with_metadata = match issuance_result {
+            // On a PIN timeout or block, reset the wallet during PID enrollment and lock it during PID renewal.
             Err(error @ IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)) => {
-                if pid_purpose.is_some() {
-                    self.reset_to_initial_state().await;
+                match pid_purpose {
+                    Some(PidIssuancePurpose::Enrollment) => {
+                        self.reset_to_initial_state().await;
+                    }
+                    Some(PidIssuancePurpose::Renewal) => self.lock.lock(),
+                    None => {}
                 }
                 return Err(error);
             }
@@ -2674,6 +2686,7 @@ mod tests {
 
     async fn test_accept_pid_issuance_error_remote_key(
         key_error: RemoteEcdsaKeyError,
+        purpose: PidIssuancePurpose,
         expect_reset: bool,
     ) -> (TestWalletMockStorage, IssuanceError) {
         // Prepare a registered and unlocked wallet.
@@ -2710,7 +2723,7 @@ mod tests {
             client
         };
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
-            purpose: PidIssuancePurpose::Enrollment,
+            purpose,
             session_state: SessionState::Issuance {
                 preview_attestations: Some(vec_nonempty![AttestationPresentation::new_mock()]),
                 protocol_state: pid_issuer,
@@ -2734,10 +2747,18 @@ mod tests {
     #[tokio::test]
     async fn test_accept_pid_issuance_error_instruction(
         #[case] instruction_error: InstructionError,
-        #[case] expect_reset: bool,
+        #[case] is_pin_timeout_or_blocked: bool,
+        #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
     ) {
-        let (wallet, error) =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(instruction_error), expect_reset).await;
+        // Only a PIN timeout or block during enrollment should reset the wallet.
+        let expect_reset = is_pin_timeout_or_blocked && purpose == PidIssuancePurpose::Enrollment;
+
+        let (wallet, error) = test_accept_pid_issuance_error_remote_key(
+            RemoteEcdsaKeyError::from(instruction_error),
+            purpose,
+            expect_reset,
+        )
+        .await;
 
         // Test that this error is converted to the appropriate variant of `IssuanceError`.
         assert_matches!(error, IssuanceError::Instruction(_));
@@ -2751,17 +2772,21 @@ mod tests {
                 StorageState::Uninitialized
             );
         } else {
+            // During renewal, a PIN timeout or block should only lock the wallet.
             assert!(wallet.has_registration());
-            assert!(!wallet.is_locked());
+            assert_eq!(wallet.is_locked(), is_pin_timeout_or_blocked);
             assert_matches!(wallet.storage.read().await.state().await.unwrap(), StorageState::Opened);
         }
     }
 
     #[tokio::test]
     async fn test_accept_pid_issuance_error_signature() {
-        let (wallet, error) =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::from(signature::Error::default()), false)
-                .await;
+        let (wallet, error) = test_accept_pid_issuance_error_remote_key(
+            RemoteEcdsaKeyError::from(signature::Error::default()),
+            PidIssuancePurpose::Enrollment,
+            false,
+        )
+        .await;
 
         // Test that this error is converted to the appropriate variant of `IssuanceError`.
         assert_matches!(error, IssuanceError::Signature(_));
@@ -2772,9 +2797,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_accept_pid_issuance_error_key_not_found() {
-        let (wallet, error) =
-            test_accept_pid_issuance_error_remote_key(RemoteEcdsaKeyError::KeyNotFound("not found".to_string()), false)
-                .await;
+        let (wallet, error) = test_accept_pid_issuance_error_remote_key(
+            RemoteEcdsaKeyError::KeyNotFound("not found".to_string()),
+            PidIssuancePurpose::Enrollment,
+            false,
+        )
+        .await;
 
         // Test that this error is converted to the appropriate variant of `IssuanceError`.
         assert_matches!(error, IssuanceError::KeyNotFound(_));
@@ -3290,24 +3318,30 @@ mod tests {
     }
 
     #[rstest]
-    #[case::timeout(AccountError::PinTimeout(PinTimeoutData { time_left_in_ms: 10_000 }))]
+    #[case::timeout(AccountError::PinTimeout(PinTimeoutData{ time_left_in_ms: 10_000 }))]
     #[case::blocked(AccountError::AccountBlocked)]
     #[tokio::test]
-    async fn test_commit_issued_pid_error_reset(#[case] account_error: AccountError) {
-        let mut wallet = wallet_with_received_pid(Some(PidIssuancePurpose::Enrollment)).await;
+    async fn test_commit_issued_pid_error_pin_timeout_or_blocked(
+        #[case] account_error: AccountError,
+        #[values(PidIssuancePurpose::Enrollment, PidIssuancePurpose::Renewal)] purpose: PidIssuancePurpose,
+    ) {
+        let mut wallet = wallet_with_received_pid(Some(purpose)).await;
 
-        // Have the storage support resetting the wallet.
-        wallet.mut_storage().checkpoint();
-        wallet.mut_storage().expect_clear().return_const(());
-        wallet
-            .mut_storage()
-            .expect_state()
-            .returning(|| Ok(StorageState::Uninitialized));
-        wallet
-            .mut_storage()
-            .expect_fetch_data::<RegistrationData>()
-            .return_once(|| Ok(None));
-        setup_mock_instruction_storage(&mut wallet);
+        // Only during enrollment should the wallet be reset, so only then have the storage support resetting it.
+        let expect_reset = purpose == PidIssuancePurpose::Enrollment;
+        if expect_reset {
+            wallet.mut_storage().checkpoint();
+            wallet.mut_storage().expect_clear().return_const(());
+            wallet
+                .mut_storage()
+                .expect_state()
+                .returning(|| Ok(StorageState::Uninitialized));
+            wallet
+                .mut_storage()
+                .expect_fetch_data::<RegistrationData>()
+                .return_once(|| Ok(None));
+            setup_mock_instruction_storage(&mut wallet);
+        }
 
         // Have the Wallet Provider reject the disclosure. Nothing should be stored (no expectations).
         setup_mock_disclose_recovery_code(&mut wallet, [Err(account_error)]);
@@ -3322,9 +3356,9 @@ mod tests {
             IssuanceError::Instruction(InstructionError::Timeout { .. } | InstructionError::Blocked)
         );
 
-        // The wallet should be reset, which removes the received PID.
+        // The received PID should be removed and the wallet locked in both cases.
         assert!(wallet.session.is_none());
-        assert!(!wallet.has_registration());
+        assert_eq!(wallet.has_registration(), !expect_reset);
         assert!(wallet.is_locked());
     }
 
@@ -3528,6 +3562,7 @@ mod tests {
                 revocation_reason: RevocationReason::UserRequest,
                 can_register_new_account: true,
             })),
+            PidIssuancePurpose::Enrollment,
             true,
         )
         .await;
