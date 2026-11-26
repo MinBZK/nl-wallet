@@ -79,7 +79,7 @@ impl IntoResponse for TaskApiError {
             Self::InvalidRequest(rejection) => return (StatusCode::BAD_REQUEST, rejection.body_text()).into_response(),
             // The request references wallet IDs that do not exist; this is a client error, not a missing resource.
             Self::Create(CreateTaskError::WalletIdsNotFound(_)) => StatusCode::BAD_REQUEST,
-            Self::Create(CreateTaskError::RecoveryCodesAlreadyUnblocked(_)) => StatusCode::NOT_FOUND,
+            Self::Create(CreateTaskError::RecoveryCodesNotDenied(_)) => StatusCode::NOT_FOUND,
             Self::Retrieve(RetrieveTaskError::UnAuthorized)
             | Self::Create(CreateTaskError::MissingPrivilege(_))
             | Self::Review(ReviewTaskError::MissingPrivilege(_)) => StatusCode::FORBIDDEN,
@@ -727,7 +727,7 @@ mod tests {
         StatusCode::BAD_REQUEST
     )]
     #[case::create_recovery_codes_already_unblocked(
-        TaskApiError::Create(CreateTaskError::RecoveryCodesAlreadyUnblocked(vec![RecoveryCode::from(
+        TaskApiError::Create(CreateTaskError::RecoveryCodesNotDenied(vec![RecoveryCode::from(
             "recovery-code-1".to_string()
         )])),
         StatusCode::NOT_FOUND

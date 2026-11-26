@@ -64,7 +64,7 @@ pub enum CreateTaskError {
     #[error("persistence error: {0}")]
     Storage(#[source] PersistenceError),
     #[error("some recovery codes to unblock are already unblocked: {0:?}")]
-    RecoveryCodesAlreadyUnblocked(Vec<RecoveryCode>),
+    RecoveryCodesNotDenied(Vec<RecoveryCode>),
     #[error("error while auditing: {0}")]
     AuditLog(#[source] Box<dyn Error + Send + Sync>),
 }
@@ -500,8 +500,10 @@ where
         .collect();
 
     if !already_unblocked_codes.is_empty() {
-        return Err(CreateTaskError::RecoveryCodesAlreadyUnblocked(already_unblocked_codes));
+        return Err(CreateTaskError::RecoveryCodesNotDenied(already_unblocked_codes));
     }
+
+    transaction.commit().await.map_err(CreateTaskError::Storage)?;
 
     Ok(())
 }
@@ -945,7 +947,7 @@ mod tests {
 
         assert_matches!(
             result,
-            Err(CreateTaskError::RecoveryCodesAlreadyUnblocked(codes)) if codes == expected_already_unblocked
+            Err(CreateTaskError::RecoveryCodesNotDenied(codes)) if codes == expected_already_unblocked
         );
     }
 
