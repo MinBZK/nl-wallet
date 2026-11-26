@@ -323,18 +323,17 @@ enum CodeState {
 async fn create_recovery_code(db: &Db, state: CodeState) -> RecoveryCode {
     let recovery_code: RecoveryCode = random_string(64).into();
     match state {
-        CodeState::Denied => recovery_code::deny_many(db, &vec_nonempty![recovery_code.clone()].into())
-            .await
-            .expect("should insert denied recovery code"),
-        CodeState::Allowed => {
-            if recovery_code::is_denied(db, recovery_code.clone())
+        CodeState::Denied => {
+            recovery_code::deny_many(db, &vec_nonempty![recovery_code.clone()].into())
                 .await
-                .expect("should insert recovery code")
-            {
-                recovery_code::set_allowed_many(db, std::slice::from_ref(&recovery_code))
-                    .await
-                    .expect("should set recovery code to allowed");
-            }
+                .expect("should insert denied recovery code");
+        }
+        CodeState::Allowed => {
+            // Since recovery_code is just created as a random string, it should not yet exist before, so this will
+            // allow it.
+            recovery_code::is_denied(db, recovery_code.clone())
+                .await
+                .expect("should insert recovery code");
         }
         CodeState::Unknown => {}
     }
