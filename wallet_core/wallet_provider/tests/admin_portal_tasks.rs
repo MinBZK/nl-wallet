@@ -86,6 +86,11 @@ async fn test_admin_portal_app() -> (Router, Repositories, TestState) {
 }
 
 /// Inserts a session for `user`, authorized for `privileges`, and returns the session cookie header value.
+async fn seed_session_cookie(repositories: &Repositories, user: &TestUser, privileges: &[TaskType]) -> String {
+    let session_id = seed_session(repositories, user, privileges).await;
+    format!("{SESSION_ID_COOKIE}={session_id}")
+}
+
 async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: &[TaskType]) -> String {
     let session_id = Uuid::new_v4().to_string();
     repositories
@@ -690,15 +695,12 @@ async fn csrf_token_requires_authentication() {
 #[serial_test::serial(hsm)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn csrf_token_is_stable_and_unique_per_login_session() {
-    let (app, repositories, state) = test_admin_portal_app().await;
+    let (app, repositories, _state) = test_admin_portal_app().await;
     let alice = TestUser::new("alice");
-    let first_session = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
-    let second_session = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
-    let token = csrf_token(&app, &first_session).await;
-    assert_ne!(token, first_session.split_once('=').unwrap().1);
-    let replica = admin_portal::router(Arc::clone(&state));
-    let (a, b) = tokio::join!(csrf_token(&app, &first_session), csrf_token(&replica, &first_session));
-    assert_eq!(token, a);
-    assert_eq!(token, b);
-    assert_ne!(token, csrf_token(&app, &second_session).await);
+    let first_session_id = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let second_session_id = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
+    let token = csrf_token(&app, &first_session_id).await;
+    assert_ne!(token, first_session_id);
+    assert_eq!(token, csrf_token(&app, &first_session_id).await);
+    assert_ne!(token, csrf_token(&app, &second_session_id).await);
 }

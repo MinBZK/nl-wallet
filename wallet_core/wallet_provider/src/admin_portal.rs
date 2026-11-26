@@ -62,7 +62,7 @@ use crate::settings::AdminPortalSettings;
 
 /// The `__Host-` prefix makes browsers reject this cookie unless it is `Secure`, has `Path=/` and no `Domain`, so a
 /// sibling subdomain cannot set or overwrite it.
-pub const SESSION_ID_COOKIE: &str = "__Host-sid";
+pub const SESSION_ID_COOKIE: &str = "__Host-Http-sid";
 
 /// Failure of a `/tasks` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
