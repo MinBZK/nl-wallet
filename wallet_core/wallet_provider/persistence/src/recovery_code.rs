@@ -102,6 +102,7 @@ where
 {
     let result = recovery_code::Entity::update_many()
         .col_expr(recovery_code::Column::IsDenied, Expr::value(false))
+        .filter(recovery_code::Column::IsDenied.eq(true))
         .filter(recovery_code::Column::RecoveryCode.is_in(recovery_codes.iter().map(AsRef::as_ref)))
         .exec(db.connection())
         .await

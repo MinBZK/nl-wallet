@@ -369,6 +369,7 @@ async fn test_list_all_denied_in_returns_denied_codes_of_input(#[case] states: &
 #[rstest]
 #[case::denied_codes(&[CodeState::Denied, CodeState::Denied], 2)]
 #[case::unknown_code_is_not_counted(&[CodeState::Denied, CodeState::Unknown], 1)]
+#[case::already_allowed_code_is_not_counted(&[CodeState::Denied, CodeState::Allowed], 1)]
 #[case::only_unknown_codes(&[CodeState::Unknown], 0)]
 #[case::empty(&[], 0)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
@@ -380,21 +381,17 @@ async fn test_set_allowed_many_allows_requested_codes_only(#[case] states: &[Cod
     let not_requested = create_recovery_code(&db, CodeState::Denied).await;
 
     let mut requested = vec![];
-    let mut requested_denied = vec![];
     for state in states {
-        let recovery_code = create_recovery_code(&db, *state).await;
-        if matches!(state, CodeState::Denied) {
-            requested_denied.push(recovery_code.clone());
-        }
-        requested.push(recovery_code);
+        requested.push(create_recovery_code(&db, *state).await);
     }
 
     let count = recovery_code::set_allowed_many(&db, &requested)
         .await
         .expect("should allow recovery codes");
 
+    // The count is the number of changed records, so already allowed codes must not be counted.
     assert_eq!(count, expected_count);
-    for recovery_code in &requested_denied {
+    for recovery_code in &requested {
         let is_denied = recovery_code::is_denied(&db, recovery_code.clone())
             .await
             .expect("should query recovery code");
