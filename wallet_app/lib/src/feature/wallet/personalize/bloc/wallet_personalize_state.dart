@@ -1,5 +1,10 @@
 part of 'wallet_personalize_bloc.dart';
 
+// The last steps of the onboarding are based on the flow without previews: DigiD (-4), provide the PIN to retrieve the
+// PID (-3), review the retrieved PID (-2), provide the PIN to add it to the wallet (-1) and success (0). The states of
+// the flow with previews are mapped onto the same steps, so the stepper never exceeds the total while that flow is
+// still supported. See also [OnboardingHelper].
+// TODO(PVW-6531): remove the mapping of the preview states once the previews are removed.
 sealed class WalletPersonalizeState extends Equatable {
   FlowProgress? get stepperProgress => null;
 
@@ -21,7 +26,7 @@ class WalletPersonalizeInitial extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: OnboardingHelper.totalSteps - 3, totalSteps: OnboardingHelper.totalSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 4, totalSteps: OnboardingHelper.totalSteps);
 }
 
 class WalletPersonalizeLoadingIssuanceUrl extends WalletPersonalizeState {
@@ -47,7 +52,7 @@ class WalletPersonalizeConfirmPinToRetrieve extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: OnboardingHelper.totalSteps - 2, totalSteps: OnboardingHelper.totalSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 3, totalSteps: OnboardingHelper.totalSteps);
 }
 
 class WalletPersonalizeCheckData extends WalletPersonalizeState {

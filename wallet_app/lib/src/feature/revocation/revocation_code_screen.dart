@@ -25,7 +25,7 @@ class RevocationCodeScreen extends StatelessWidget {
         appBar: WalletAppBar(
           automaticallyImplyLeading: false,
           title: TitleText(context.l10n.revocationCodeScreenTitle),
-          progress: FlowProgress(currentStep: OnboardingHelper.totalSteps - 4, totalSteps: OnboardingHelper.totalSteps),
+          progress: FlowProgress(currentStep: OnboardingHelper.totalSteps - 5, totalSteps: OnboardingHelper.totalSteps),
         ),
         body: SafeArea(
           child: BlocConsumer<RevocationCodeBloc, RevocationCodeState>(
