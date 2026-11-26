@@ -1,5 +1,5 @@
 import '../../../../data/repository/issuance/issuance_repository.dart';
-import '../../../model/card/wallet_card.dart';
+import '../../../model/issuance/disclose_for_issuance_result.dart';
 import '../disclose_for_issuance_usecase.dart';
 
 class DiscloseForIssuanceUseCaseImpl extends DiscloseForIssuanceUseCase {
@@ -17,7 +17,7 @@ class DiscloseForIssuanceUseCaseImpl extends DiscloseForIssuanceUseCase {
   DiscloseForIssuanceUseCaseImpl(this._issuanceRepository, this.selectedIndices);
 
   @override
-  Future<Result<List<WalletCard>>> invoke(String pin) => tryCatch(
+  Future<Result<DiscloseForIssuanceResult>> invoke(String pin) => tryCatch(
     () => _issuanceRepository.discloseForIssuance(pin, selectedIndices),
     'Failed to disclose for issuance',
   );

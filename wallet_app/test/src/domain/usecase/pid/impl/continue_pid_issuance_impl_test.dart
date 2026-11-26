@@ -25,11 +25,13 @@ void main() {
         value: const StringValue('value'),
       );
       const samplePidIssuanceUri = 'https://example.org';
-      when(mockRepo.continuePidIssuance(samplePidIssuanceUri)).thenAnswer((_) async => [sampleAttribute]);
+      when(mockRepo.continuePidIssuance(samplePidIssuanceUri)).thenAnswer(
+        (_) async => ContinuePidIssuanceResult.previews([sampleAttribute]),
+      );
 
       final result = await usecase.invoke(samplePidIssuanceUri);
       expect(result.hasError, isFalse);
-      expect(result.value, [sampleAttribute]);
+      expect(result.value, ContinuePidIssuanceResult.previews([sampleAttribute]));
     });
 
     test('PidIssuanceError is emitted with the thrown redirectError', () async {

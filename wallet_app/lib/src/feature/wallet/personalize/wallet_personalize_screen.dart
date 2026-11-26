@@ -38,6 +38,7 @@ import '../../mock_digid/mock_digid_screen.dart';
 import '../../wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'page/wallet_personalize_check_data_offering_page.dart';
 import 'page/wallet_personalize_confirm_pin_page.dart';
+import 'page/wallet_personalize_confirm_pin_to_retrieve_page.dart';
 import 'page/wallet_personalize_intro_page.dart';
 import 'page/wallet_personalize_success_page.dart';
 
@@ -120,6 +121,7 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       ),
       WalletPersonalizeLoadInProgress() => _buildLoading(context, progress: state.stepperProgress),
       WalletPersonalizeCheckData() => _buildCheckDataOfferingPage(context, state),
+      WalletPersonalizeConfirmPinToRetrieve() => _buildConfirmPinToRetrievePage(context),
       WalletPersonalizeConfirmPin() => _buildConfirmPinPage(context, state),
       WalletPersonalizeSuccess() => _buildSuccessPage(context, state),
       WalletPersonalizeDigidCancelled() => _buildDigidCancelledPage(context),
@@ -316,8 +318,16 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
 
   Widget _buildConfirmPinPage(BuildContext context, WalletPersonalizeConfirmPin state) {
     return WalletPersonalizeConfirmPinPage(
+      issuedForReview: state.issuedForReview,
       onPidAccepted: (result) => context.bloc.add(WalletPersonalizePinConfirmed(result)),
       onAcceptPidFailed: (context, state) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: state.error)),
+    );
+  }
+
+  Widget _buildConfirmPinToRetrievePage(BuildContext context) {
+    return WalletPersonalizeConfirmPinToRetrievePage(
+      onPidRetrieved: (attributes) => context.bloc.add(WalletPersonalizePidRetrieved(attributes)),
+      onRetrievePidFailed: (context, state) => context.bloc.add(WalletPersonalizeAcceptPidFailed(error: state.error)),
     );
   }
 
@@ -366,6 +376,7 @@ class _WalletPersonalizeScreenState extends State<WalletPersonalizeScreen> with 
       case WalletPersonalizeError(:final error):
         title = ErrorPage.titleFromError(context, error);
       case WalletPersonalizeConfirmPin():
+      case WalletPersonalizeConfirmPinToRetrieve():
       case WalletPersonalizeLoadingIssuanceUrl():
       case WalletPersonalizeConnectDigid():
       case WalletPersonalizeAuthenticating():

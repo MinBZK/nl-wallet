@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueNom,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1988532183;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1643222595;
 
 // Section: executor
 
@@ -142,46 +142,6 @@ fn wire__crate__api__full__accept_pid_issuance_impl(
                 transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
                     (move || async move {
                         let output_ok = crate::api::full::accept_pid_issuance(api_pin).await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
-fn wire__crate__api__full__cancel_disclosure_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "cancel_disclosure",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::cancel_disclosure().await?;
-                        Ok(output_ok)
-                    })()
-                    .await,
-                )
-            }
-        },
-    )
-}
-fn wire__crate__api__full__cancel_issuance_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
-    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
-        flutter_rust_bridge::for_generated::TaskInfo {
-            debug_name: "cancel_issuance",
-            port: Some(port_),
-            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
-        },
-        move || {
-            move |context| async move {
-                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
-                    (move || async move {
-                        let output_ok = crate::api::full::cancel_issuance().await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -493,6 +453,50 @@ fn wire__crate__api__full__clear_version_state_stream_impl(port_: flutter_rust_b
                         let output_ok = Result::<_, ()>::Ok({
                             crate::api::full::clear_version_state_stream().await;
                         })?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__commit_issued_credentials_impl(port_: flutter_rust_bridge::for_generated::MessagePort) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "commit_issued_credentials",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::commit_issued_credentials().await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__full__commit_issued_pid_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "commit_issued_pid",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::commit_issued_pid(api_pin).await?;
                         Ok(output_ok)
                     })()
                     .await,
@@ -1053,6 +1057,30 @@ fn wire__crate__api__full__is_valid_pin_impl(
                     let output_ok = crate::api::full::is_valid_pin(api_pin)?;
                     Ok(output_ok)
                 })())
+            }
+        },
+    )
+}
+fn wire__crate__api__full__issue_credentials_for_review_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    pin: impl CstDecode<String>,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::DcoCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "issue_credentials_for_review",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let api_pin = pin.cst_decode();
+            move |context| async move {
+                transform_result_dco::<_, _, flutter_rust_bridge::for_generated::anyhow::Error>(
+                    (move || async move {
+                        let output_ok = crate::api::full::issue_credentials_for_review(api_pin).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
             }
         },
     )
@@ -2242,8 +2270,9 @@ impl SseDecode for crate::models::issuance::DisclosureBasedIssuanceResult {
                 return crate::models::issuance::DisclosureBasedIssuanceResult::Previews(var_field0);
             }
             2 => {
-                let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
-                return crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer: var_issuer };
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(var_field0);
             }
             _ => {
                 unimplemented!("");
@@ -2537,6 +2566,27 @@ impl SseDecode for crate::models::issuance::IssuanceStartResult {
             2 => {
                 let mut var_issuer = <crate::models::organization::Organization>::sse_decode(deserializer);
                 return crate::models::issuance::IssuanceStartResult::NoPreviews { issuer: var_issuer };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::models::instruction::IssueCredentialsResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_field0 =
+                    <Vec<crate::models::attestation::AttestationPresentation>>::sse_decode(deserializer);
+                return crate::models::instruction::IssueCredentialsResult::Ok(var_field0);
+            }
+            1 => {
+                let mut var_error = <crate::models::instruction::WalletInstructionError>::sse_decode(deserializer);
+                return crate::models::instruction::IssueCredentialsResult::InstructionError { error: var_error };
             }
             _ => {
                 unimplemented!("");
@@ -3691,8 +3741,8 @@ impl flutter_rust_bridge::IntoDart for crate::models::issuance::DisclosureBasedI
             crate::models::issuance::DisclosureBasedIssuanceResult::Previews(field0) => {
                 [1.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
-            crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer } => {
-                [2.into_dart(), issuer.into_into_dart().into_dart()].into_dart()
+            crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(field0) => {
+                [2.into_dart(), field0.into_into_dart().into_dart()].into_dart()
             }
             _ => {
                 unimplemented!("");
@@ -4022,6 +4072,33 @@ impl flutter_rust_bridge::IntoIntoDart<crate::models::issuance::IssuanceStartRes
     for crate::models::issuance::IssuanceStartResult
 {
     fn into_into_dart(self) -> crate::models::issuance::IssuanceStartResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::models::instruction::IssueCredentialsResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::models::instruction::IssueCredentialsResult::Ok(field0) => {
+                [0.into_dart(), field0.into_into_dart().into_dart()].into_dart()
+            }
+            crate::models::instruction::IssueCredentialsResult::InstructionError { error } => {
+                [1.into_dart(), error.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::models::instruction::IssueCredentialsResult
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::models::instruction::IssueCredentialsResult>
+    for crate::models::instruction::IssueCredentialsResult
+{
+    fn into_into_dart(self) -> crate::models::instruction::IssueCredentialsResult {
         self
     }
 }
@@ -4878,9 +4955,9 @@ impl SseEncode for crate::models::issuance::DisclosureBasedIssuanceResult {
                 <i32>::sse_encode(1, serializer);
                 <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
-            crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews { issuer } => {
+            crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(field0) => {
                 <i32>::sse_encode(2, serializer);
-                <crate::models::organization::Organization>::sse_encode(issuer, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -5156,6 +5233,25 @@ impl SseEncode for crate::models::issuance::IssuanceStartResult {
             crate::models::issuance::IssuanceStartResult::NoPreviews { issuer } => {
                 <i32>::sse_encode(2, serializer);
                 <crate::models::organization::Organization>::sse_encode(issuer, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::models::instruction::IssueCredentialsResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::models::instruction::IssueCredentialsResult::Ok(field0) => {
+                <i32>::sse_encode(0, serializer);
+                <Vec<crate::models::attestation::AttestationPresentation>>::sse_encode(field0, serializer);
+            }
+            crate::models::instruction::IssueCredentialsResult::InstructionError { error } => {
+                <i32>::sse_encode(1, serializer);
+                <crate::models::instruction::WalletInstructionError>::sse_encode(error, serializer);
             }
             _ => {
                 unimplemented!("");
@@ -6315,10 +6411,8 @@ mod io {
                     crate::models::issuance::DisclosureBasedIssuanceResult::Previews(ans.field0.cst_decode())
                 }
                 2 => {
-                    let ans = unsafe { self.kind.NoPreviews };
-                    crate::models::issuance::DisclosureBasedIssuanceResult::NoPreviews {
-                        issuer: ans.issuer.cst_decode(),
-                    }
+                    let ans = unsafe { self.kind.IssuedForReview };
+                    crate::models::issuance::DisclosureBasedIssuanceResult::IssuedForReview(ans.field0.cst_decode())
                 }
                 _ => unreachable!(),
             }
@@ -6480,6 +6574,24 @@ mod io {
                     let ans = unsafe { self.kind.NoPreviews };
                     crate::models::issuance::IssuanceStartResult::NoPreviews {
                         issuer: ans.issuer.cst_decode(),
+                    }
+                }
+                _ => unreachable!(),
+            }
+        }
+    }
+    impl CstDecode<crate::models::instruction::IssueCredentialsResult> for wire_cst_issue_credentials_result {
+        // Codec=Cst (C-struct based), see doc to use other codecs
+        fn cst_decode(self) -> crate::models::instruction::IssueCredentialsResult {
+            match self.tag {
+                0 => {
+                    let ans = unsafe { self.kind.Ok };
+                    crate::models::instruction::IssueCredentialsResult::Ok(ans.field0.cst_decode())
+                }
+                1 => {
+                    let ans = unsafe { self.kind.InstructionError };
+                    crate::models::instruction::IssueCredentialsResult::InstructionError {
+                        error: ans.error.cst_decode(),
                     }
                 }
                 _ => unreachable!(),
@@ -7267,6 +7379,19 @@ mod io {
             Self::new_with_null_ptr()
         }
     }
+    impl NewWithNullPtr for wire_cst_issue_credentials_result {
+        fn new_with_null_ptr() -> Self {
+            Self {
+                tag: -1,
+                kind: IssueCredentialsResultKind { nil__: () },
+            }
+        }
+    }
+    impl Default for wire_cst_issue_credentials_result {
+        fn default() -> Self {
+            Self::new_with_null_ptr()
+        }
+    }
     impl NewWithNullPtr for wire_cst_localized_string {
         fn new_with_null_ptr() -> Self {
             Self {
@@ -7528,16 +7653,6 @@ mod io {
     }
 
     #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_disclosure(port_: i64) {
-        wire__crate__api__full__cancel_disclosure_impl(port_)
-    }
-
-    #[unsafe(no_mangle)]
-    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_issuance(port_: i64) {
-        wire__crate__api__full__cancel_issuance_impl(port_)
-    }
-
-    #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__cancel_pin_recovery(port_: i64) {
         wire__crate__api__full__cancel_pin_recovery_impl(port_)
     }
@@ -7612,6 +7727,19 @@ mod io {
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__clear_version_state_stream(port_: i64) {
         wire__crate__api__full__clear_version_state_stream_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__commit_issued_credentials(port_: i64) {
+        wire__crate__api__full__commit_issued_credentials_impl(port_)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__commit_issued_pid(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__commit_issued_pid_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -7772,6 +7900,14 @@ mod io {
         pin: *mut wire_cst_list_prim_u_8_strict,
     ) {
         wire__crate__api__full__is_valid_pin_impl(port_, pin)
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_wallet_core_wire__crate__api__full__issue_credentials_for_review(
+        port_: i64,
+        pin: *mut wire_cst_list_prim_u_8_strict,
+    ) {
+        wire__crate__api__full__issue_credentials_for_review_impl(port_, pin)
     }
 
     #[unsafe(no_mangle)]
@@ -8439,7 +8575,7 @@ mod io {
     #[derive(Clone, Copy)]
     pub union DisclosureBasedIssuanceResultKind {
         Previews: wire_cst_DisclosureBasedIssuanceResult_Previews,
-        NoPreviews: wire_cst_DisclosureBasedIssuanceResult_NoPreviews,
+        IssuedForReview: wire_cst_DisclosureBasedIssuanceResult_IssuedForReview,
         nil__: (),
     }
     #[repr(C)]
@@ -8449,8 +8585,8 @@ mod io {
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
-    pub struct wire_cst_DisclosureBasedIssuanceResult_NoPreviews {
-        issuer: *mut wire_cst_organization,
+    pub struct wire_cst_DisclosureBasedIssuanceResult_IssuedForReview {
+        field0: *mut wire_cst_list_attestation_presentation,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -8616,6 +8752,29 @@ mod io {
     #[derive(Clone, Copy)]
     pub struct wire_cst_IssuanceStartResult_NoPreviews {
         issuer: *mut wire_cst_organization,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_issue_credentials_result {
+        tag: i32,
+        kind: IssueCredentialsResultKind,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub union IssueCredentialsResultKind {
+        Ok: wire_cst_IssueCredentialsResult_Ok,
+        InstructionError: wire_cst_IssueCredentialsResult_InstructionError,
+        nil__: (),
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssueCredentialsResult_Ok {
+        field0: *mut wire_cst_list_attestation_presentation,
+    }
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct wire_cst_IssueCredentialsResult_InstructionError {
+        error: *mut wire_cst_wallet_instruction_error,
     }
     #[repr(C)]
     #[derive(Clone, Copy)]

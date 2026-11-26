@@ -429,7 +429,7 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
           ),
           IssuanceType.authorizationCallback => IssuanceSessionContinued(argument.uri!),
         };
-        return IssuanceBloc(context.read(), context.read(), context.read())..add(event);
+        return IssuanceBloc(context.read(), context.read(), context.read(), context.read())..add(event);
       },
       child: const IssuanceScreen(),
     );

@@ -4,12 +4,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:mockito/mockito.dart';
+import 'package:mocktail/mocktail.dart' as mocktail;
 import 'package:rxdart/rxdart.dart';
 import 'package:wallet/src/data/service/announcement_service.dart';
 import 'package:wallet/src/domain/model/attribute/attribute.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/pid/accept_offered_pid_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/commit_issued_pid_usecase.dart';
+import 'package:wallet/src/domain/usecase/pid/issue_pid_for_review_usecase.dart';
 import 'package:wallet/src/domain/usecase/wallet/observe_wallet_locked_usecase.dart';
 import 'package:wallet/src/feature/common/page/generic_loading_page.dart';
 import 'package:wallet/src/feature/common/page/terminal_page.dart';
@@ -19,6 +22,7 @@ import 'package:wallet/src/feature/pin/bloc/pin_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_check_data_offering_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_confirm_pin_page.dart';
+import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_confirm_pin_to_retrieve_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_intro_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/page/wallet_personalize_success_page.dart';
 import 'package:wallet/src/feature/wallet/personalize/wallet_personalize_screen.dart';
@@ -677,6 +681,91 @@ void main() {
         ],
       );
       expect(find.byType(WalletPersonalizeConfirmPinPage), findsOneWidget);
+    });
+
+    testWidgets('Verify WalletPersonalizeConfirmPin with issuedForReview commits the issued pid', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          WalletPersonalizeConfirmPin(sampleMaleAttributes, issuedForReview: true),
+        ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<CommitIssuedPidUseCase>(create: (_) => MockCommitIssuedPidUseCase()),
+        ],
+      );
+
+      expect(find.byType(WalletPersonalizeConfirmPinPage), findsOneWidget);
+      expect(
+        tester.widget<WalletPersonalizeConfirmPinPage>(find.byType(WalletPersonalizeConfirmPinPage)).issuedForReview,
+        isTrue,
+      );
+    });
+
+    testWidgets('Verify WalletPersonalizeConfirmPinToRetrieve shows WalletPersonalizeConfirmPinToRetrievePage', (
+      tester,
+    ) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          MockWalletPersonalizeBloc(),
+          const WalletPersonalizeConfirmPinToRetrieve(),
+        ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<IssuePidForReviewUseCase>(create: (_) => MockIssuePidForReviewUseCase()),
+        ],
+      );
+
+      expect(find.byType(WalletPersonalizeConfirmPinToRetrievePage), findsOneWidget);
+      expect(find.byType(WalletPersonalizeConfirmPinPage), findsNothing);
+    });
+
+    testWidgets('WalletPersonalizeConfirmPinToRetrieve dispatches WalletPersonalizePidRetrieved with the attributes', (
+      tester,
+    ) async {
+      final bloc = MockWalletPersonalizeBloc();
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          bloc,
+          const WalletPersonalizeConfirmPinToRetrieve(),
+        ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<IssuePidForReviewUseCase>(create: (_) => MockIssuePidForReviewUseCase()),
+        ],
+      );
+
+      final page = tester.widget<WalletPersonalizeConfirmPinToRetrievePage>(
+        find.byType(WalletPersonalizeConfirmPinToRetrievePage),
+      );
+      page.onPidRetrieved(sampleMaleAttributes);
+
+      mocktail.verify(() => bloc.add(WalletPersonalizePidRetrieved(sampleMaleAttributes))).called(1);
+    });
+
+    testWidgets('WalletPersonalizeConfirmPinToRetrieve dispatches WalletPersonalizeAcceptPidFailed on failure', (
+      tester,
+    ) async {
+      final bloc = MockWalletPersonalizeBloc();
+      await tester.pumpWidgetWithAppWrapper(
+        const WalletPersonalizeScreen().withState<WalletPersonalizeBloc, WalletPersonalizeState>(
+          bloc,
+          const WalletPersonalizeConfirmPinToRetrieve(),
+        ),
+        providers: [
+          RepositoryProvider<ObserveWalletLockedUseCase>(create: (_) => MockObserveWalletLockedUseCase()),
+          RepositoryProvider<IssuePidForReviewUseCase>(create: (_) => MockIssuePidForReviewUseCase()),
+        ],
+      );
+
+      const error = GenericError('error', sourceError: 'test');
+      final page = tester.widget<WalletPersonalizeConfirmPinToRetrievePage>(
+        find.byType(WalletPersonalizeConfirmPinToRetrievePage),
+      );
+      final context = tester.element(find.byType(WalletPersonalizeConfirmPinToRetrievePage));
+      page.onRetrievePidFailed(context, const PinValidateError(error: error));
+
+      mocktail.verify(() => bloc.add(const WalletPersonalizeAcceptPidFailed(error: error))).called(1);
     });
 
     testWidgets('ltc1 Verify WalletPersonalizeSuccess shows success page', (tester) async {

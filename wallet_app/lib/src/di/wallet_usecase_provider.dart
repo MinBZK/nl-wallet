@@ -51,9 +51,13 @@ import '../domain/usecase/help/get_help_categories_usecase.dart';
 import '../domain/usecase/help/get_help_topic_blocks_usecase.dart';
 import '../domain/usecase/help/impl/get_help_categories_usecase_impl.dart';
 import '../domain/usecase/help/impl/get_help_topic_blocks_usecase_impl.dart';
+import '../domain/usecase/issuance/commit_issued_cards_usecase.dart';
 import '../domain/usecase/issuance/continue_issuance_usecase.dart';
+import '../domain/usecase/issuance/impl/commit_issued_cards_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/continue_issuance_usecase_impl.dart';
+import '../domain/usecase/issuance/impl/issue_cards_for_review_usecase_impl.dart';
 import '../domain/usecase/issuance/impl/start_issuance_usecase_impl.dart';
+import '../domain/usecase/issuance/issue_cards_for_review_usecase.dart';
 import '../domain/usecase/issuance/start_issuance_usecase.dart';
 import '../domain/usecase/maintenance/impl/observe_maintenance_state_usecase_impl.dart';
 import '../domain/usecase/maintenance/observe_maintenance_state_usecase.dart';
@@ -77,14 +81,18 @@ import '../domain/usecase/permission/impl/request_permission_usecase_impl.dart';
 import '../domain/usecase/permission/request_permission_usecase.dart';
 import '../domain/usecase/pid/accept_offered_pid_usecase.dart';
 import '../domain/usecase/pid/check_is_pid.dart';
+import '../domain/usecase/pid/commit_issued_pid_usecase.dart';
 import '../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../domain/usecase/pid/get_pid_renewal_url_usecase.dart';
 import '../domain/usecase/pid/impl/accept_offered_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/check_is_pid_impl.dart';
+import '../domain/usecase/pid/impl/commit_issued_pid_usecase_impl.dart';
 import '../domain/usecase/pid/impl/continue_pid_issuance_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_issuance_url_usecase_impl.dart';
 import '../domain/usecase/pid/impl/get_pid_renewal_url_usecase_impl.dart';
+import '../domain/usecase/pid/impl/issue_pid_for_review_usecase_impl.dart';
+import '../domain/usecase/pid/issue_pid_for_review_usecase.dart';
 import '../domain/usecase/pin/cancel_pin_recovery_usecase.dart';
 import '../domain/usecase/pin/change_pin_usecase.dart';
 import '../domain/usecase/pin/check_is_valid_pin_usecase.dart';
@@ -298,8 +306,20 @@ class WalletUseCaseProvider extends StatelessWidget {
     RepositoryProvider<ContinuePidIssuanceUseCase>(
       create: (context) => ContinuePidIssuanceUseCaseImpl(context.read()),
     ),
+    RepositoryProvider<IssuePidForReviewUseCase>(
+      create: (context) => IssuePidForReviewUseCaseImpl(context.read()),
+    ),
+    RepositoryProvider<CommitIssuedPidUseCase>(
+      create: (context) => CommitIssuedPidUseCaseImpl(context.read()),
+    ),
     RepositoryProvider<ContinueIssuanceUseCase>(
       create: (context) => ContinueIssuanceUseCaseImpl(context.read()),
+    ),
+    RepositoryProvider<IssueCardsForReviewUseCase>(
+      create: (context) => IssueCardsForReviewUseCaseImpl(context.read()),
+    ),
+    RepositoryProvider<CommitIssuedCardsUseCase>(
+      create: (context) => CommitIssuedCardsUseCaseImpl(context.read()),
     ),
     RepositoryProvider<AcceptOfferedPidUseCase>(
       create: (context) => AcceptOfferedPidUseCaseImpl(context.read()),

@@ -180,6 +180,20 @@ void main() {
     });
   });
 
+  group('issueCredentialsForReview', () {
+    test('issue credentials for review is passed on to core', () async {
+      await typedWalletCore.issueCredentialsForReview(_kSamplePin);
+      verify(core.crateApiFullIssueCredentialsForReview(pin: _kSamplePin)).called(1);
+    });
+  });
+
+  group('commitIssuedCredentials', () {
+    test('accept issued credentials is passed on to core', () async {
+      await typedWalletCore.commitIssuedCredentials();
+      verify(core.crateApiFullCommitIssuedCredentials()).called(1);
+    });
+  });
+
   group('resetWallet', () {
     test('reset wallet pid is passed on to core', () async {
       await typedWalletCore.resetWallet();
@@ -399,6 +413,11 @@ void main() {
       await typedWalletCore.acceptPidIssuance(_kSamplePin);
       verify(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).called(1);
     });
+
+    test('commitIssuedPid is passed on to core', () async {
+      await typedWalletCore.commitIssuedPid(_kSamplePin);
+      verify(core.crateApiFullCommitIssuedPid(pin: _kSamplePin)).called(1);
+    });
   });
 
   group('disclosure', () {
@@ -559,6 +578,16 @@ void main() {
     test('acceptOfferedPid', () async {
       when(core.crateApiFullAcceptIssuance(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
       expect(() async => typedWalletCore.acceptIssuance(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('issueCredentialsForReview', () async {
+      when(core.crateApiFullIssueCredentialsForReview(pin: _kSamplePin)).thenAnswer((_) async => throw ffiException);
+      expect(() async => typedWalletCore.issueCredentialsForReview(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('commitIssuedCredentials', () async {
+      when(core.crateApiFullCommitIssuedCredentials()).thenAnswer((_) async => throw ffiException);
+      expect(() async => typedWalletCore.commitIssuedCredentials(), throwsA(isA<CoreError>()));
     });
 
     test('resetWallet', () async {
@@ -725,6 +754,11 @@ void main() {
     test('acceptPidIssuance', () async {
       when(core.crateApiFullAcceptPidIssuance(pin: _kSamplePin)).thenThrow(ffiException);
       expect(() => typedWalletCore.acceptPidIssuance(_kSamplePin), throwsA(isA<CoreError>()));
+    });
+
+    test('commitIssuedPid', () async {
+      when(core.crateApiFullCommitIssuedPid(pin: _kSamplePin)).thenThrow(ffiException);
+      expect(() => typedWalletCore.commitIssuedPid(_kSamplePin), throwsA(isA<CoreError>()));
     });
 
     test('getRegistrationRevocationCode', () async {

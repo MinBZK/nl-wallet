@@ -101,6 +101,7 @@ use utils::vec_nonempty;
 use verification_server::settings::VerifierSettings;
 use wallet::AttestationPresentation;
 use wallet::DisclosureBasedIssuanceResult;
+use wallet::IssuanceContinueResult;
 use wallet::PidIssuancePurpose;
 use wallet::Pin;
 use wallet::Wallet;
@@ -1471,14 +1472,30 @@ pub async fn do_pid_issuance_with_purpose(
 
     let redirect_url = fake_pid_auth(redirect_uri, MOCK_PERSON.bsn.clone()).await;
 
-    let _attestations = wallet
+    let continue_result = wallet
         .continue_issuance(redirect_url)
         .await
         .expect("Could not continue pid issuance");
-    wallet
-        .accept_issuance(pin)
-        .await
-        .expect("Could not accept pid issuance");
+
+    match continue_result {
+        IssuanceContinueResult::Previews(_) => {
+            wallet
+                .accept_issuance(pin)
+                .await
+                .expect("Could not accept pid issuance");
+        }
+        IssuanceContinueResult::NoPreviews { .. } => {
+            let _attestations = wallet
+                .issue_credentials_for_review(pin.clone())
+                .await
+                .expect("Could not issue pid for review");
+            wallet
+                .commit_issued_pid(pin)
+                .await
+                .expect("Could not commit issued pid");
+        }
+    }
+
     wallet
 }
 

@@ -7,6 +7,7 @@ import 'package:wallet_core/core.dart';
 import '../../../../domain/model/attribute/attribute.dart';
 import '../../../../domain/model/card/wallet_card.dart';
 import '../../../../domain/model/configuration/flutter_app_configuration.dart';
+import '../../../../domain/model/issuance/continue_pid_issuance_result.dart';
 import '../../../../util/mapper/mapper.dart';
 import '../../../../util/mixin/pid_filter_mixin.dart';
 import '../../../../wallet_core/typed/typed_wallet_core.dart';
@@ -34,21 +35,40 @@ class CorePidRepository extends PidRepository with PidFilterMixin {
   Future<String> getPidRenewalUrl() => _walletCore.createPidRenewalRedirectUri();
 
   @override
-  Future<List<DataAttribute>> continuePidIssuance(String uri) async {
+  Future<ContinuePidIssuanceResult> continuePidIssuance(String uri) async {
     final result = await _walletCore.continueIssuance(uri);
-    final attestations = switch (result) {
-      core.IssuanceContinueResult_Previews(field0: final attestations) => attestations,
-      // The core rejects PID issuance without previews, so this should never happen.
-      core.IssuanceContinueResult_NoPreviews() => throw StateError('PID issuance session contains no previews'),
-    };
+    switch (result) {
+      case core.IssuanceContinueResult_Previews(field0: final attestations):
+        return ContinuePidIssuanceResult.previews(await _mapToAttributes(attestations));
+      case core.IssuanceContinueResult_NoPreviews():
+        return const ContinuePidIssuanceResult.noPreviews();
+    }
+  }
+
+  @override
+  Future<TransferState> acceptIssuance(String pin) async => _mapTransferState(await _walletCore.acceptPidIssuance(pin));
+
+  @override
+  Future<List<DataAttribute>> issuePidForReview(String pin) async {
+    final result = await _walletCore.issueCredentialsForReview(pin);
+    switch (result) {
+      case core.IssueCredentialsResult_Ok(field0: final attestations):
+        return _mapToAttributes(attestations);
+      case core.IssueCredentialsResult_InstructionError():
+        throw result.error; // Makes sure we expose the [WalletInstructionError] as an error.
+    }
+  }
+
+  @override
+  Future<TransferState> commitIssuedPid(String pin) async => _mapTransferState(await _walletCore.commitIssuedPid(pin));
+
+  Future<List<DataAttribute>> _mapToAttributes(List<AttestationPresentation> attestations) async {
     final cards = attestations.map(_cardMapper.map).toList();
     final filteredCards = await filterDuplicatePidCards(cards);
     return filteredCards.map((attestation) => attestation.attributes).flattened.toList();
   }
 
-  @override
-  Future<TransferState> acceptIssuance(String pin) async {
-    final result = await _walletCore.acceptPidIssuance(pin);
+  TransferState _mapTransferState(PidIssuanceResult result) {
     switch (result) {
       case PidIssuanceResult_Ok():
         return result.transferAvailable ? TransferState.available : TransferState.unavailable;

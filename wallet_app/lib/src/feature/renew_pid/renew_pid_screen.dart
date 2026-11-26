@@ -29,6 +29,7 @@ import '../mock_digid/mock_digid_screen.dart';
 import 'bloc/renew_pid_bloc.dart';
 import 'page/renew_pid_check_details_page.dart';
 import 'page/renew_pid_confirm_pin_page.dart';
+import 'page/renew_pid_confirm_pin_to_retrieve_page.dart';
 import 'page/renew_pid_digid_mismatch_page.dart';
 import 'page/renew_pid_initial_page.dart';
 import 'page/renew_pid_login_cancelled_page.dart';
@@ -88,6 +89,7 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidError(:final error):
         title = ErrorPage.titleFromError(context, error);
       case RenewPidConfirmPin():
+      case RenewPidConfirmPinToRetrieve():
       case RenewPidLoadingDigidUrl():
       case RenewPidAwaitingDigidAuthentication():
       case RenewPidVerifyingDigidAuthentication():
@@ -112,7 +114,8 @@ class RenewPidScreen extends StatelessWidget {
           RenewPidAwaitingDigidAuthentication() => _buildAwaitingDigidAuthenticationPage(context),
           RenewPidVerifyingDigidAuthentication() => _buildVerifyingDigidAuthenticationPage(context),
           RenewPidCheckData() => _buildCheckDataPage(context, state),
-          RenewPidConfirmPin() => _buildConfirmPinPage(context),
+          RenewPidConfirmPinToRetrieve() => _buildConfirmPinToRetrievePage(context),
+          RenewPidConfirmPin() => _buildConfirmPinPage(context, state),
           RenewPidUpdatingCards() => _buildUpdatingCardsPage(context),
           RenewPidSuccess() => _buildSuccessPage(context, state),
           RenewPidDigidMismatch() => _buildDigidMismatchPage(context),
@@ -179,8 +182,18 @@ class RenewPidScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildConfirmPinPage(BuildContext context) {
+  Widget _buildConfirmPinToRetrievePage(BuildContext context) {
+    return RenewPidConfirmPinToRetrievePage(
+      onPidRetrieved: (attributes) => context.bloc.add(RenewPidPidRetrieved(attributes)),
+      onRetrievePidFailed: (BuildContext context, ErrorState state) => context.bloc.add(
+        RenewPidPinConfirmationFailed(error: state.error),
+      ),
+    );
+  }
+
+  Widget _buildConfirmPinPage(BuildContext context, RenewPidConfirmPin state) {
     return RenewPidConfirmPinPage(
+      issuedForReview: state.issuedForReview,
       onPidAccepted: (_) => context.bloc.add(RenewPidPinConfirmed()),
       onAcceptPidFailed: (BuildContext context, ErrorState state) => context.bloc.add(
         RenewPidPinConfirmationFailed(error: state.error),
@@ -253,6 +266,7 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidVerifyingDigidAuthentication():
       case RenewPidCheckData():
       case RenewPidConfirmPin():
+      case RenewPidConfirmPinToRetrieve():
       case RenewPidUpdatingCards():
         return false;
     }
@@ -263,6 +277,7 @@ class RenewPidScreen extends StatelessWidget {
       case RenewPidAwaitingDigidAuthentication():
       case RenewPidCheckData():
       case RenewPidConfirmPin():
+      case RenewPidConfirmPinToRetrieve():
       case RenewPidSuccess():
       case RenewPidLoadingDigidUrl():
       case RenewPidVerifyingDigidAuthentication():

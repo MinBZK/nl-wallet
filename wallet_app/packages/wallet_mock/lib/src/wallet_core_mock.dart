@@ -67,12 +67,6 @@ class WalletCoreMock implements WalletCoreApi {
   }
 
   @override
-  Future<String?> crateApiFullCancelDisclosure() async {
-    await _disclosureManager.cancelDisclosure();
-    return null;
-  }
-
-  @override
   Future<AcceptDisclosureResult> crateApiFullAcceptDisclosure({
     required List<int> selectedIndices,
     required String pin,
@@ -85,6 +79,24 @@ class WalletCoreMock implements WalletCoreApi {
     /// Check if the issuance manager has an active session that should be continued
     if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.acceptIssuance(pin, []);
     throw StateError('No active issuance session');
+  }
+
+  @override
+  Future<IssueCredentialsResult> crateApiFullIssueCredentialsForReview({required String pin}) async {
+    if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.issueCredentialsForReview(pin);
+    throw StateError('No active issuance session');
+  }
+
+  @override
+  Future<void> crateApiFullCommitIssuedCredentials() async {
+    if (_issuanceManager.hasActiveIssuanceSession) return _issuanceManager.commitIssuedCredentials();
+    throw StateError('No issued credentials to commit');
+  }
+
+  /// The mock PID issuer always provides previews, so there is never an issued PID to commit.
+  @override
+  Future<PidIssuanceResult> crateApiFullCommitIssuedPid({required String pin}) async {
+    throw StateError('No issued PID to commit');
   }
 
   @override
@@ -108,9 +120,6 @@ class WalletCoreMock implements WalletCoreApi {
         return PidIssuanceResult_InstructionError(error: result.error);
     }
   }
-
-  @override
-  Future<void> crateApiFullCancelIssuance() async => _issuanceManager.cancelIssuance();
 
   @override
   Future<void> crateApiFullClearAttestationsStream() async {

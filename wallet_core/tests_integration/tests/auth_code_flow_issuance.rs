@@ -6,6 +6,7 @@ use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::HttpClient;
 use http_utils::reqwest::default_reqwest_client_builder;
+use itertools::Itertools;
 use jwt::UnverifiedJwt;
 use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
@@ -204,8 +205,8 @@ async fn test_acf_demo_issuer_wallet_issuance() {
 /// Full wallet driven issuance for the authorization-code flow demo issuer, configured without the Credential Preview
 /// Endpoint.
 ///
-/// The wallet receives no previews, only the issuer organization to show to the user, and stores the issued
-/// insurance attestation as a new attestation after acceptance.
+/// The wallet receives no previews, only the issuer organization to show to the user. The issued insurance attestation
+/// is presented for review, and stored as a new attestation once committed.
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 #[serial(hsm)]
 async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
@@ -244,13 +245,30 @@ async fn test_acf_demo_issuer_wallet_issuance_without_previews() {
         panic!("expected no previews");
     };
 
-    wallet.accept_issuance(pin).await.expect("should accept issuance");
+    let reviewed_attestations = wallet
+        .issue_credentials_for_review(pin)
+        .await
+        .expect("should issue credentials for review");
+    // Only the insurance attestation should be issued.
+    let Ok(reviewed_attestation) = reviewed_attestations.iter().exactly_one() else {
+        panic!("exactly one attestation should be presented for review");
+    };
+    assert_eq!(reviewed_attestation.attestation_type, "com.example.insurance");
+    assert_eq!(reviewed_attestation.issuer, issuer);
+
+    wallet
+        .commit_issued_credentials()
+        .await
+        .expect("should commit issued credentials");
 
     let attestations = wallet_attestations(&mut wallet).await;
-    let attestation = attestations
+    let Ok(attestation) = attestations
         .iter()
-        .find(|attestation| attestation.attestation_type == "com.example.insurance")
-        .expect("the issued insurance attestation should be present in the wallet");
+        .filter(|attestation| attestation.attestation_type == "com.example.insurance")
+        .exactly_one()
+    else {
+        panic!("exactly one insurance attestation should be present in the wallet");
+    };
     assert_eq!(attestation.issuer, issuer);
 }
 
