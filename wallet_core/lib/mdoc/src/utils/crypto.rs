@@ -40,12 +40,8 @@ pub fn cbor_digest<T: Serialize>(val: &T) -> std::result::Result<Vec<u8>, CborEr
 /// Using Diffie-Hellman and the HKDF from RFC 5869, compute a HMAC key.
 pub fn dh_hmac_key(privkey: &SecretKey, pubkey: &PublicKey, salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
     let dh = ecdh::diffie_hellman(privkey.to_nonzero_scalar(), pubkey.as_affine());
-    hmac_key(dh.raw_secret_bytes().as_ref(), salt, info, len)
-}
-
-/// Using the HKDF from RFC 5869, compute a HMAC key.
-pub fn hmac_key(input_key_material: &[u8], salt: &[u8], info: &str, len: usize) -> Result<hmac::Key> {
-    let bts = hkdf(input_key_material, sha256(salt).as_slice(), info, len).map_err(|_| CryptoError::Hkdf)?;
+    let bts =
+        hkdf(dh.raw_secret_bytes().as_ref(), sha256(salt).as_slice(), info, len).map_err(|_| CryptoError::Hkdf)?;
     let key = hmac::Key::new(hmac::HMAC_SHA256, bts.as_ref());
     Ok(key)
 }

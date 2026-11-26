@@ -447,9 +447,10 @@ where
 
         // We don't check if the wallet is blocked: PIN recovery is allowed in that case, so cancelling it is too.
 
-        let Some(Session::PinRecovery(_)) = self.session.take() else {
+        if !matches!(self.session, Some(Session::PinRecovery(_))) {
             return Err(PinRecoveryError::SessionState);
-        };
+        }
+        self.session = None;
 
         self.storage
             .write()
@@ -520,6 +521,8 @@ mod tests {
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::PersistedPinRecoverySessionData;
     use crate::wallet::Session;
+    use crate::wallet::issuance::SessionState;
+    use crate::wallet::issuance::WalletIssuanceSession;
     use crate::wallet::recovery_code::RecoveryCodeError;
     use crate::wallet::test::AUTH_URL;
     use crate::wallet::test::ISSUER_KEY;
@@ -751,7 +754,7 @@ mod tests {
     // Failing unit tests for continue_pin_recovery()
 
     #[tokio::test]
-    async fn continue_pin_recovery_no_digid_session() {
+    async fn continue_pin_recovery_no_pid_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         let err = wallet
@@ -830,19 +833,6 @@ mod tests {
     async fn complete_pin_recovery_no_issuance_session() {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
-        let err = wallet
-            .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
-            .await
-            .unwrap_err();
-
-        assert_matches!(err, PinRecoveryError::SessionState);
-    }
-
-    #[tokio::test]
-    async fn complete_pin_recovery_has_digid_session() {
-        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
-
-        // complete_pin_recovery_internal without an active issuance session should return SessionState.
         let err = wallet
             .complete_pin_recovery_internal(|_, _| MockPinWscd, "112233".into())
             .await
@@ -1038,5 +1028,32 @@ mod tests {
         fn certificates(self) -> Vec<WalletCertificate> {
             vec![UnverifiedJwt::from_str("a.b.c").unwrap()]
         }
+    }
+
+    #[tokio::test]
+    async fn test_cancel_pin_recovery_error_session_state() {
+        // Prepare a registered wallet with an active issuance session instead of a PIN recovery session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
+            session_state: SessionState::AuthorizationStarted {
+                authorization_session: MockAuthorizationSession::new(),
+            },
+        }));
+
+        let error = wallet
+            .cancel_pin_recovery()
+            .await
+            .expect_err("cancelling PIN recovery should have resulted in an error");
+
+        assert_matches!(error, PinRecoveryError::SessionState);
+
+        // The issuance session should be left intact.
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state: SessionState::AuthorizationStarted { .. },
+            }))
+        );
     }
 }

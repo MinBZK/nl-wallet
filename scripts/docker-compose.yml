@@ -14,31 +14,6 @@ services:
       - postgres:/var/lib/postgresql
       - ./sql:/docker-entrypoint-initdb.d
 
-  brpproxy:
-    container_name: brpproxy
-    image: ghcr.io/brp-api/haal-centraal-brp-bevragen-proxy:latest
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Release
-      - ASPNETCORE_URLS=http://+:5000
-      - Routes__0__DownstreamScheme=http
-      - Routes__0__DownstreamHostAndPorts__0__Host=docker-host
-      - Routes__0__DownstreamHostAndPorts__0__Port=${GBA_HC_CONV_PORT}
-    ports:
-      - "${BRP_SERVER_PORT}:5000"
-    network_mode: bridge
-    extra_hosts:
-      - "docker-host:${DOCKER_HOST_GATEWAY:-host-gateway}"
-
-  gbamock:
-    container_name: gbamock
-    image: ghcr.io/brp-api/haal-centraal-brp-bevragen-gba-mock:latest
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Release
-      - ASPNETCORE_URLS=http://+:5010
-    ports:
-      - "${GBA_HC_MOCK_PORT}:5010"
-    network_mode: bridge
-
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:latest

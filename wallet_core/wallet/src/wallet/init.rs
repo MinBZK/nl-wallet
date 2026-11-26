@@ -431,8 +431,10 @@ where
             (Some(data), None) => {
                 let authorization_session =
                     issuance_discovery.restore_authorization_session(data.authorization_session);
-                let issuance_session =
-                    WalletIssuanceSession::new(data.purpose, SessionState::Authorization { authorization_session });
+                let issuance_session = WalletIssuanceSession::new(
+                    data.purpose,
+                    SessionState::AuthorizationStarted { authorization_session },
+                );
                 Ok(Some(Session::Issuance(issuance_session)))
             }
             (None, Some(data)) => {

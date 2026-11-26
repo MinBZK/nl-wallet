@@ -120,12 +120,12 @@ class ExternalScannerError extends ApplicationError {
   const ExternalScannerError({required super.sourceError});
 }
 
-class WrongDigidError extends ApplicationError {
-  const WrongDigidError({required super.sourceError});
+class WrongIdentityError extends ApplicationError {
+  const WrongIdentityError({required super.sourceError});
 }
 
-class DeniedDigidError extends ApplicationError {
-  const DeniedDigidError({required super.sourceError});
+class DeniedPidIssuanceError extends ApplicationError {
+  const DeniedPidIssuanceError({required super.sourceError});
 }
 
 class RelyingPartyError extends ApplicationError {

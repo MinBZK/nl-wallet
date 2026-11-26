@@ -1,11 +1,41 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:wallet/src/domain/model/flow_progress.dart';
 import 'package:wallet/src/feature/issuance/bloc/issuance_bloc.dart';
+import 'package:wallet/src/util/extension/string_extension.dart';
 
 import '../../../mocks/wallet_mock_data.dart';
 
 void main() {
   final newCard = WalletMockData.card.copyWith(attestationId: null);
   final updatedCard = WalletMockData.altCard;
+
+  test('the no-preview offer advances from issuer confirmation through retrieval and review', () {
+    final states = [
+      IssuanceConfirmIssuer(organization: WalletMockData.organization),
+      IssuanceProvidePinToRetrieveCards(organization: WalletMockData.organization),
+      IssuanceReviewRetrievedCards(cards: [newCard]),
+      IssuanceCompleted(addedCards: [newCard]),
+    ];
+    expect(states.map((state) => state.stepperProgress), [
+      for (final step in [2, 3, 4, 5]) FlowProgress(currentStep: step, totalSteps: 5),
+    ]);
+  });
+
+  test('the disclosure based offer advances through the same steps as the offer without previews', () {
+    final states = [
+      IssuanceCheckOrganization(
+        organization: WalletMockData.organization,
+        cardRequests: const [],
+        purpose: 'purpose'.untranslated,
+      ),
+      const IssuanceProvidePinForDisclosure(selectedIndices: []),
+      IssuanceReviewRetrievedCards(cards: [newCard]),
+      IssuanceCompleted(addedCards: [newCard]),
+    ];
+    expect(states.map((state) => state.stepperProgress), [
+      for (final step in [2, 3, 4, 5]) FlowProgress(currentStep: step, totalSteps: 5),
+    ]);
+  });
 
   group('IssuanceReviewCards', () {
     test('ltc5 init factory selects all cards', () {

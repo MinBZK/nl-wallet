@@ -1,0 +1,98 @@
+[
+  {
+    "bsn": "999991772",
+    "family_name": "Jansen",
+    "family_name_birth": "Jansen",
+    "given_name": "Frouke",
+    "birth_date": "2000-03-24",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": [
+      "NL",
+      "BE"
+    ],
+    "address": {
+      "country": "NL",
+      "city": "Utrecht",
+      "postal_code": "3528BG",
+      "street": "Groenewoudsedijk",
+      "house_number": "51"
+    },
+    "sex": "female"
+  },
+  {
+    "bsn": "900265462",
+    "family_name": "uijt de Fruitplukker",
+    "family_name_birth": "uijt de Fruitplukker",
+    "given_name": "Lennert",
+    "birth_date": "1975-07-07",
+    "birth_place": {
+      "country": "NL",
+      "locality": "Hellevoetsluis"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Hellevoetsluis",
+      "postal_code": "3224TT",
+      "street": "Lavendelweg",
+      "house_number": "75"
+    },
+    "sex": "male"
+  },
+  {
+    "bsn": "950269049",
+    "family_name": "test-90021182",
+    "family_name_birth": "test-90021182",
+    "given_name": "Jolien",
+    "birth_date": "1979-06-21",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Den Haag",
+      "postal_code": "2563AE",
+      "street": "Laan van Meerdervoort",
+      "house_number": "300"
+    }
+  },
+  {
+    "bsn": "950273089",
+    "family_name": "test-90021561",
+    "family_name_birth": "test-90021561",
+    "given_name": "Jeroen",
+    "birth_date": "1985-03-12",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Utrecht",
+      "postal_code": "3511AX",
+      "street": "Oudegracht",
+      "house_number": "120"
+    }
+  },
+  {
+    "bsn": "999991905",
+    "family_name": "Strijps",
+    "family_name_birth": "Strijps",
+    "given_name": "Linda",
+    "birth_date": "1988-10-16",
+    "birth_place": {
+      "country": "NL"
+    },
+    "nationalities": "NL",
+    "address": {
+      "country": "NL",
+      "city": "Amsterdam",
+      "postal_code": "1103SK",
+      "street": "Glitterstraat",
+      "house_number": "301"
+    }
+  }
+]

@@ -9,23 +9,6 @@ description: >-
   to "threat model", "build a threat model", "map the attack surface", or
   "what should we be worried about in this codebase".
 argument-hint: "[bootstrap-then-interview|bootstrap|interview] <target-dir> [--vulns <file>] [--design-doc <file>] [--seed <THREAT_MODEL.md>] [--fresh]"
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Write
-  - Bash(python3 .claude/skills/_lib/checkpoint.py:*)
-  - Bash(git log:*)
-  - Bash(git diff:*)
-  - Bash(git show:*)
-  - Bash(git rev-parse:*)
-  - Bash(git remote:*)
-  - Bash(git -C:*)
-  - Bash(find:*)
-  - Bash(ls:*)
-  - Bash(cat:*)
-  - AskUserQuestion
-  - Task
 ---
 
 # /threat-model

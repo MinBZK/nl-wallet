@@ -7,6 +7,7 @@ use db_test::DbSetup;
 use hsm::test::HsmSetup;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_reqwest_client_builder;
+use pid_issuer::pid::mock::MOCK_PERSON;
 use reqwest::Client;
 use sea_orm::EntityTrait;
 use sea_orm::PaginatorTrait;
@@ -14,6 +15,7 @@ use sea_orm::QueryOrder;
 use serde_json::json;
 use serial_test::serial;
 use tests_integration::common::*;
+use tests_integration::fake_auth;
 use token_status_list::status_list::StatusType;
 use token_status_list::status_list_jwt::StatusListJwt;
 use url::Url;
@@ -227,8 +229,10 @@ async fn test_revoke_wallets_by_recovery_code() {
         .await
         .expect("Could not create pid issuance auth url");
 
+    let redirect_uri = fake_auth::fake_pid_auth(redirect_uri, MOCK_PERSON.bsn.clone()).await;
+
     let _attestations = wallet
-        .continue_issuance(follow_authorization_redirects(redirect_uri).await)
+        .continue_issuance(redirect_uri)
         .await
         .expect("Could not continue pid issuance");
     let err = wallet

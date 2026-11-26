@@ -184,36 +184,6 @@ build-pid-issuer-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pid_issuer/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-pid-issuer-migrations
 
-build-gba-hc-converter-image:
-  extends: .build-docker-image
-  needs:
-    - job: build-gba-hc-converter-binary
-      artifacts: true
-  variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/Dockerfile
-    DOCKER_IMAGE_NAME: nl-wallet-gba-hc-converter
-
-build-gba-fetch-image:
-  extends: .build-docker-image
-  needs:
-    - job: build-gba-fetch-binary
-      artifacts: true
-    - job: build-gba-encrypt-binary
-      artifacts: true
-  variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/gba_fetch.Dockerfile
-    DOCKER_IMAGE_NAME: nl-wallet-gba-fetch
-    GCR_IO_PROXY: "$HARBOR_REGISTRY/gcr-io-proxy"
-
-build-gba-fetch-frontend-image:
-  extends: .build-docker-image
-  needs:
-    - job: build-gba-fetch-frontend-binary
-      artifacts: true
-  variables:
-    DOCKER_FILE_TO_BUILD: wallet_core/gba_hc_converter/gba_fetch_frontend.Dockerfile
-    DOCKER_IMAGE_NAME: nl-wallet-gba-fetch-frontend
-
 build-revocation-portal-image:
   extends: .build-docker-image
   needs:

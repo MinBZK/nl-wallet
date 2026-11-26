@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:wallet/src/data/repository/pid/pid_repository.dart';
 import 'package:wallet/src/domain/model/flow_progress.dart';
+import 'package:wallet/src/domain/model/issuance/continue_pid_issuance_result.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/wallet/personalize/bloc/wallet_personalize_bloc.dart';
@@ -130,6 +131,76 @@ void main() {
   );
 
   blocTest(
+    'verify happy path without previews: pin to retrieve, review, pin to commit, success',
+    build: () => WalletPersonalizeBloc(
+      mockGetWalletCardsUseCase,
+      mockGetPidIssuanceUrlUseCase,
+      mockCancelSessionUseCase,
+      mockContinuePidIssuanceUseCase,
+      mockIsWalletInitializedWithPidUseCase,
+    ),
+    setUp: () {
+      when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.success(ContinuePidIssuanceResult.noPreviews()),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(WalletPersonalizePidRetrieved(WalletMockData.card.attributes));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(const WalletPersonalizePinConfirmed(TransferState.unavailable));
+    },
+    expect: () => [
+      const WalletPersonalizeAuthenticating(),
+      const WalletPersonalizeConfirmPinToRetrieve(),
+      WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes, issuedForReview: true),
+      WalletPersonalizeConfirmPin(WalletMockData.card.attributes, issuedForReview: true),
+      const WalletPersonalizeAddingCards(FlowProgress(currentStep: 7, totalSteps: 8)),
+      WalletPersonalizeSuccess(addedCards: [WalletMockData.card], userCanTransfer: false),
+    ],
+  );
+
+  blocTest(
+    'verify back from the commit pin returns to the review of the issued pid',
+    build: () => WalletPersonalizeBloc(
+      mockGetWalletCardsUseCase,
+      mockGetPidIssuanceUrlUseCase,
+      mockCancelSessionUseCase,
+      mockContinuePidIssuanceUseCase,
+      mockIsWalletInitializedWithPidUseCase,
+    ),
+    setUp: () {
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.success(ContinuePidIssuanceResult.noPreviews()),
+      );
+    },
+    act: (bloc) async {
+      bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(WalletPersonalizePidRetrieved(WalletMockData.card.attributes));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(WalletPersonalizeOfferingAccepted(WalletMockData.card.attributes));
+      await Future.delayed(const Duration(milliseconds: 10));
+      bloc.add(WalletPersonalizeBackPressed());
+    },
+    expect: () => [
+      const WalletPersonalizeAuthenticating(),
+      const WalletPersonalizeConfirmPinToRetrieve(),
+      WalletPersonalizeCheckData(availableAttributes: WalletMockData.card.attributes, issuedForReview: true),
+      WalletPersonalizeConfirmPin(WalletMockData.card.attributes, issuedForReview: true),
+      WalletPersonalizeCheckData(
+        availableAttributes: WalletMockData.card.attributes,
+        issuedForReview: true,
+        didGoBack: true,
+      ),
+    ],
+  );
+
+  blocTest(
     'ltc1 verify successful path from continuePidIssuance (i.e. deeplink back into app)',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
@@ -141,7 +212,9 @@ void main() {
     setUp: () {
       when(mockGetWalletCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
       when(mockGetPidIssuanceUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('pid_issuance_url'));
-      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer((_) async => const Result.success([]));
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.success(ContinuePidIssuanceResult.previews([])),
+      );
     },
     act: (bloc) async {
       bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
@@ -195,7 +268,9 @@ void main() {
       mockIsWalletInitializedWithPidUseCase,
     ),
     setUp: () {
-      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer((_) async => const Result.success([]));
+      when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
+        (_) async => const Result.success(ContinuePidIssuanceResult.previews([])),
+      );
     },
     act: (bloc) async {
       bloc.add(const WalletPersonalizeContinuePidIssuance('auth_url'));
@@ -221,7 +296,7 @@ void main() {
     ),
     setUp: () {
       when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
-        (_) async => Result.success(WalletMockData.card.attributes),
+        (_) async => Result.success(ContinuePidIssuanceResult.previews(WalletMockData.card.attributes)),
       );
     },
     act: (bloc) async {
@@ -241,7 +316,7 @@ void main() {
   );
 
   blocTest(
-    'ltc1 emits WalletPersonalizeDigidCancelled when a DeniedDigidError is received',
+    'ltc1 emits WalletPersonalizeDigidCancelled when a DeniedPidIssuanceError is received',
     build: () => WalletPersonalizeBloc(
       mockGetWalletCardsUseCase,
       mockGetPidIssuanceUrlUseCase,
@@ -251,7 +326,7 @@ void main() {
     ),
     setUp: () {
       when(mockContinuePidIssuanceUseCase.invoke('auth_url')).thenAnswer(
-        (_) async => const Result.error(DeniedDigidError(sourceError: 'test')),
+        (_) async => const Result.error(DeniedPidIssuanceError(sourceError: 'test')),
       );
     },
     act: (bloc) async {

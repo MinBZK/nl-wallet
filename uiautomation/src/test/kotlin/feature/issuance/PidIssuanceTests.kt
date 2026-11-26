@@ -2,13 +2,13 @@ package feature.issuance
 
 import data.TestConfigRepository.Companion.testConfig
 import domain.Platform
-import helper.GbaDataHelper
-import helper.GbaDataHelper.Field.CITY
-import helper.GbaDataHelper.Field.FIRST_NAME
-import helper.GbaDataHelper.Field.HOUSE_NUMBER
-import helper.GbaDataHelper.Field.NAME
-import helper.GbaDataHelper.Field.POSTAL_CODE
-import helper.GbaDataHelper.Field.STREET
+import helper.PidDataHelper
+import helper.PidDataHelper.Field.CITY
+import helper.PidDataHelper.Field.FIRST_NAME
+import helper.PidDataHelper.Field.HOUSE_NUMBER
+import helper.PidDataHelper.Field.NAME
+import helper.PidDataHelper.Field.POSTAL_CODE
+import helper.PidDataHelper.Field.STREET
 import helper.TestBase
 import navigator.OnboardingNavigator
 import navigator.screen.OnboardingNavigatorScreen
@@ -46,7 +46,7 @@ class PidIssuanceTests : TestBase() {
     private lateinit var noInternetErrorScreen: NoInternetErrorScreen
     private lateinit var startTransferWalletScreen: StartTransferWalletScreen
 
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
 
     fun setUp(testInfo: TestInfo) {
         startDriver(testInfo)
@@ -63,7 +63,7 @@ class PidIssuanceTests : TestBase() {
         noInternetErrorScreen = NoInternetErrorScreen()
         startTransferWalletScreen = StartTransferWalletScreen()
 
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
     }
 
     @RetryingTest(value = MAX_RETRY_COUNT, name = "{displayName} - {index}")
@@ -80,18 +80,18 @@ class PidIssuanceTests : TestBase() {
         personalizePidPreviewScreen.switchToNativeContext()
         assertAll(
             { assertTrue(personalizePidPreviewScreen.visible(), "personalize pid preview screen is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "first name is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "name is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "first name is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(NAME, DEFAULT_BSN)), "name is not visible") },
         )
         personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreview")
 
         personalizePidPreviewScreen.scrollToEndOfScreen()
         assertAll(
             { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(DEFAULT_BSN.toCharArray().joinToString(" ")), "bsn is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(POSTAL_CODE, DEFAULT_BSN)), "postal code is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(STREET, DEFAULT_BSN)), "street is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(CITY, DEFAULT_BSN)), "city is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(HOUSE_NUMBER, DEFAULT_BSN)), "house number is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(POSTAL_CODE, DEFAULT_BSN)), "postal code is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(STREET, DEFAULT_BSN)), "street is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(CITY, DEFAULT_BSN)), "city is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(HOUSE_NUMBER, DEFAULT_BSN)), "house number is not visible") },
             { assertTrue(personalizePidPreviewScreen.confirmButtonsVisible(), "confirm buttons are not visible") }
         )
         personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreviewBottom")

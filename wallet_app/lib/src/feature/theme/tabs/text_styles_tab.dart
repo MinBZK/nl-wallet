@@ -206,6 +206,21 @@ class TextStylesTab extends StatelessWidget {
       const SizedBox(height: 12),
       SecondaryButton(
         onPressed: () {
+          final request = NavigationRequest.issuance(
+            argument: const IssuanceScreenArgument(
+              uri: 'walletdebuginteraction://deeplink#%7B%22id%22%3A%22NO_PREVIEW%22%2C%22type%22%3A%22offer%22%7D',
+              isQrCode: false,
+              issuanceType: .credentialOffer,
+            ),
+          );
+          context.read<NavigationService>().handleNavigationRequest(request);
+        },
+        icon: const Icon(Icons.visibility_off_outlined),
+        text: const Text('offer (no preview)'),
+      ),
+      const SizedBox(height: 12),
+      SecondaryButton(
+        onPressed: () {
           final request = NavigationRequest.sign(
             argument: const SignScreenArgument(
               uri:

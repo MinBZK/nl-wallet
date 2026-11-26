@@ -15,7 +15,7 @@ variable "vm_base_name" {
 
 variable "vm_name" {
   type = string
-  default = "tahoe-wallet:0.4.1"
+  default = "tahoe-wallet:0.4.2"
 }
 
 source "tart-cli" "tart" {
@@ -43,8 +43,10 @@ build {
     inline = [
       "source ~/.zprofile",
       "rbenv version | grep -v system | xargs -n1 rbenv uninstall -f",
-      "rbenv install 3.3.8",
-      "rbenv global 3.3.8",
+      "brew update",
+      "brew upgrade ruby-build",
+      "rbenv install 3.3.14",
+      "rbenv global 3.3.14",
     ]
   }
 
@@ -54,7 +56,7 @@ build {
       "source ~/.zprofile",
       "set -eux",
       "git -C $FLUTTER_HOME fetch origin",
-      "git -C $FLUTTER_HOME switch --detach 3.50.0",
+      "git -C $FLUTTER_HOME switch --detach 3.50.1",
       "dart --disable-analytics",
       "flutter config --no-analytics",
       "yes | sdkmanager --licenses",

@@ -429,7 +429,7 @@ WidgetBuilder _createIssuanceScreenBuilder(RouteSettings settings) {
           ),
           IssuanceType.authorizationCallback => IssuanceSessionContinued(argument.uri!),
         };
-        return IssuanceBloc(context.read(), context.read(), context.read())..add(event);
+        return IssuanceBloc(context.read(), context.read(), context.read(), context.read())..add(event);
       },
       child: const IssuanceScreen(),
     );
@@ -760,7 +760,6 @@ WidgetBuilder _createQrPresentScreenBuilder(RouteSettings settings) {
   return (context) {
     return BlocProvider<QrPresentBloc>(
       create: (BuildContext context) => QrPresentBloc(
-        context.read(),
         context.read(),
         context.read(),
         context.read(),

@@ -15,7 +15,6 @@ import '../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../wallet_core/error/core_error.dart';
 
 part 'renew_pid_event.dart';
-
 part 'renew_pid_state.dart';
 
 class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
@@ -34,6 +33,7 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
     on<RenewPidLoginWithDigidClicked>(_onDigidLoginClicked);
     on<RenewPidLoginWithDigidFailed>(_onDigidLoginFailed);
     on<RenewPidContinuePidRenewal>(_onContinuePidRenewal);
+    on<RenewPidPidRetrieved>(_onPidRetrieved);
     on<RenewPidAttributesConfirmed>(_onAttributesConfirmed);
     on<RenewPidAttributesRejected>(_onAttributesRejected);
     on<RenewPidPinConfirmed>(_onPinConfirmed);
@@ -57,7 +57,11 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
     emit(const RenewPidVerifyingDigidAuthentication());
     final result = await _continuePidIssuanceUseCase.invoke(event.authUrl);
     await result.process(
-      onSuccess: (attributes) => emit(RenewPidCheckData(availableAttributes: attributes)),
+      onSuccess: (result) => switch (result) {
+        ContinuePidIssuancePreviews(:final attributes) => emit(RenewPidCheckData(availableAttributes: attributes)),
+        // Without previews there is nothing to check yet, the PID is retrieved after entering the PIN.
+        ContinuePidIssuanceNoPreviews() => emit(const RenewPidConfirmPinToRetrieve()),
+      },
       onError: (error) => _handleApplicationError(error, emit),
     );
   }
@@ -65,9 +69,9 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   Future<void> _handleApplicationError(ApplicationError error, Emitter<RenewPidState> emit) async {
     unawaited(_cancelSessionUseCase.invoke()); // Attempt to cancel the session, then render the specific error
     switch (error) {
-      case WrongDigidError():
+      case WrongIdentityError():
         emit(const RenewPidDigidMismatch());
-      case DeniedDigidError():
+      case DeniedPidIssuanceError():
         emit(const RenewPidDigidLoginCancelled());
       case RedirectUriError():
         if ([RedirectError.accessDenied, RedirectError.loginRequired].contains(error.redirectError)) {
@@ -80,8 +84,14 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
     }
   }
 
+  FutureOr<void> _onPidRetrieved(RenewPidPidRetrieved event, Emitter<RenewPidState> emit) {
+    emit(RenewPidCheckData(availableAttributes: event.attributes, issuedForReview: true));
+  }
+
   FutureOr<void> _onAttributesConfirmed(RenewPidAttributesConfirmed event, Emitter<RenewPidState> emit) {
-    emit(RenewPidConfirmPin(event.previewAttributes));
+    final state = this.state;
+    final issuedForReview = state is RenewPidCheckData && state.issuedForReview;
+    emit(RenewPidConfirmPin(event.previewAttributes, issuedForReview: issuedForReview));
   }
 
   FutureOr<void> _onAttributesRejected(RenewPidAttributesRejected event, Emitter<RenewPidState> emit) {
@@ -104,7 +114,15 @@ class RenewPidBloc extends Bloc<RenewPidEvent, RenewPidState> {
   FutureOr<void> _onBackPressed(RenewPidBackPressed event, Emitter<RenewPidState> emit) async {
     final state = this.state;
     if (!state.canGoBack) return;
-    if (state is RenewPidConfirmPin) emit(RenewPidCheckData(availableAttributes: state.attributes, didGoBack: true));
+    if (state is RenewPidConfirmPin) {
+      emit(
+        RenewPidCheckData(
+          availableAttributes: state.attributes,
+          didGoBack: true,
+          issuedForReview: state.issuedForReview,
+        ),
+      );
+    }
   }
 
   FutureOr<void> _onDigidLoginFailed(RenewPidLoginWithDigidFailed event, Emitter<RenewPidState> emit) async {

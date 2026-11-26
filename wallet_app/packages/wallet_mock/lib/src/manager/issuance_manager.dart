@@ -22,6 +22,7 @@ class IssuanceManager {
 
   IssuanceResponse? _activeIssuanceResponse;
   bool _itemsHaveBeenDisclosed = false;
+  bool _issuedForReview = false;
 
   bool get hasActiveIssuanceSession => _activeIssuanceResponse != null;
 
@@ -124,6 +125,28 @@ class IssuanceManager {
     }
   }
 
+  Future<IssueCredentialsResult> issueCredentialsForReview(String pin) async {
+    assert(_activeIssuanceResponse != null, 'Can not issue when no issuance is active');
+    final result = _pinManager.checkPin(pin);
+    switch (result) {
+      case WalletInstructionResult_Ok():
+        _issuedForReview = true;
+        return IssueCredentialsResult.ok(_activeIssuanceResponse!.attestations);
+      case WalletInstructionResult_InstructionError():
+        return IssueCredentialsResult.instructionError(error: result.error);
+    }
+  }
+
+  Future<void> commitIssuedCredentials() async {
+    assert(_issuedForReview, 'Can not commit when no credentials have been issued for review');
+    final attestations = _activeIssuanceResponse!.attestations;
+    _wallet.add(attestations);
+    attestations.forEach(_eventLog.logIssuance);
+    _activeIssuanceResponse = null;
+    _issuedForReview = false;
+    _itemsHaveBeenDisclosed = false;
+  }
+
   Future<String?> cancelIssuance() async {
     if (_activeIssuanceResponse != null && !_itemsHaveBeenDisclosed /* true when already logged */ ) {
       _eventLog.logDisclosureStep(
@@ -137,6 +160,7 @@ class IssuanceManager {
       );
     }
     _activeIssuanceResponse = null;
+    _issuedForReview = false;
     _itemsHaveBeenDisclosed = false;
     return null;
   }
@@ -148,6 +172,9 @@ class IssuanceManager {
       case 'PRE_AUTH':
         _activeIssuanceResponse = kIssuanceResponses.firstWhere((it) => it.id == 'PRE-AUTH-FLOW');
         return IssuanceStartResult.previews(_activeIssuanceResponse!.attestations);
+      case 'NO_PREVIEW':
+        _activeIssuanceResponse = kIssuanceResponses.firstWhere((it) => it.id == 'NO_PREVIEW');
+        return IssuanceStartResult.noPreviews(issuer: _activeIssuanceResponse!.attestations.first.issuer);
       case 'AUTH':
         _activeIssuanceResponse = kIssuanceResponses.firstWhere((it) => it.id == 'AUTH-FLOW');
         return const IssuanceStartResult.authorizationUrl('mock://auth_url');

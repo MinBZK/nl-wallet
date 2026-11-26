@@ -94,10 +94,11 @@ pub mod test {
         // Concurrent attempts to consume one nonce must have exactly one winner, including on PostgreSQL.
         let nonce = Nonce::new_random();
         store.store_nonce(nonce.clone()).await.unwrap();
-        let (first, second) = tokio::join!(
+        let (first, second) = futures::future::join(
             store.check_nonce_status_and_remove([&nonce]),
             store.check_nonce_status_and_remove([&nonce]),
-        );
+        )
+        .await;
         assert_eq!(
             [first.unwrap(), second.unwrap()]
                 .into_iter()

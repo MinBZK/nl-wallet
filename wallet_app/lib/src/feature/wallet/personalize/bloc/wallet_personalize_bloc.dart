@@ -15,6 +15,7 @@ import '../../../../domain/usecase/pid/continue_pid_issuance_usecase.dart';
 import '../../../../domain/usecase/pid/get_pid_issuance_url_usecase.dart';
 import '../../../../domain/usecase/session/cancel_session_usecase.dart';
 import '../../../../domain/usecase/wallet/is_wallet_initialized_with_pid_usecase.dart';
+import '../../../../util/cast_util.dart';
 import '../../../../util/helper/onboarding_helper.dart';
 import '../../../../wallet_core/error/core_error.dart';
 
@@ -47,6 +48,7 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     on<WalletPersonalizeRetryPressed>(_onRetryPressed);
     on<WalletPersonalizeUpdateState>(_onStateUpdate);
     on<WalletPersonalizeContinuePidIssuance>(_continuePidIssuance);
+    on<WalletPersonalizePidRetrieved>(_onPidRetrieved);
 
     // PID sanity check (PVW-2742)
     isWalletInitializedWithPidUseCase.invoke().then((initialized) async {
@@ -61,10 +63,14 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     emit(const WalletPersonalizeAuthenticating());
     final continueResult = await continuePidIssuanceUseCase.invoke(event.authUrl);
     await continueResult.process(
-      onSuccess: (previewAttributes) => add(WalletPersonalizeLoginWithDigidSucceeded(previewAttributes)),
+      onSuccess: (result) => switch (result) {
+        ContinuePidIssuancePreviews(:final attributes) => add(WalletPersonalizeLoginWithDigidSucceeded(attributes)),
+        // Without previews there is nothing to check yet, the PID is retrieved after entering the PIN.
+        ContinuePidIssuanceNoPreviews() => emit(const WalletPersonalizeConfirmPinToRetrieve()),
+      },
       onError: (error) {
         switch (error) {
-          case DeniedDigidError():
+          case DeniedPidIssuanceError():
             add(WalletPersonalizeLoginWithDigidFailed(cancelledByUser: true, error: error));
           case RedirectUriError():
             // Currently seeing 'accessDenied/loginRequired' when pressing cancel in the digid connector. Verify on prod. (PVW-2352)
@@ -110,6 +116,10 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     emit(WalletPersonalizeCheckData(availableAttributes: event.previewAttributes));
   }
 
+  Future<void> _onPidRetrieved(WalletPersonalizePidRetrieved event, Emitter<WalletPersonalizeState> emit) async {
+    emit(WalletPersonalizeCheckData(availableAttributes: event.attributes, issuedForReview: true));
+  }
+
   Future<void> _onLoginWithDigidFailed(
     WalletPersonalizeLoginWithDigidFailed event,
     Emitter<WalletPersonalizeState> emit,
@@ -134,7 +144,8 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     WalletPersonalizeOfferingAccepted event,
     Emitter<WalletPersonalizeState> emit,
   ) async {
-    emit(WalletPersonalizeConfirmPin(event.previewAttributes));
+    final issuedForReview = tryCast<WalletPersonalizeCheckData>(state)?.issuedForReview ?? false;
+    emit(WalletPersonalizeConfirmPin(event.previewAttributes, issuedForReview: issuedForReview));
   }
 
   Future<void> _onOfferingRejected(
@@ -156,7 +167,13 @@ class WalletPersonalizeBloc extends Bloc<WalletPersonalizeEvent, WalletPersonali
     final state = this.state;
     if (state.canGoBack) {
       if (state is WalletPersonalizeConfirmPin) {
-        emit(WalletPersonalizeCheckData(didGoBack: true, availableAttributes: state.attributes));
+        emit(
+          WalletPersonalizeCheckData(
+            didGoBack: true,
+            availableAttributes: state.attributes,
+            issuedForReview: state.issuedForReview,
+          ),
+        );
       }
     }
   }

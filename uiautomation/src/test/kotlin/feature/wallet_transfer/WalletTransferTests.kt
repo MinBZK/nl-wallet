@@ -1,8 +1,8 @@
 package feature.wallet_transfer
 
-import helper.GbaDataHelper
-import helper.GbaDataHelper.Field.FIRST_NAME
-import helper.GbaDataHelper.Field.NAME
+import helper.PidDataHelper
+import helper.PidDataHelper.Field.FIRST_NAME
+import helper.PidDataHelper.Field.NAME
 import helper.TasDataHelper
 import helper.TwoDeviceTestBase
 import navigator.OnboardingNavigator
@@ -27,7 +27,7 @@ import screen.wallet_transfer.WalletTransferTargetScreen
 @DisplayName("UC 9.10 Transfer Wallet")
 class WalletTransferTests : TwoDeviceTestBase() {
 
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
     private lateinit var tasData: TasDataHelper
 
     // Source device
@@ -47,7 +47,7 @@ class WalletTransferTests : TwoDeviceTestBase() {
 
     fun setUp(testInfo: TestInfo) {
         startDrivers(testInfo)
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
         tasData = TasDataHelper()
 
         useSourceDevice {
@@ -109,8 +109,8 @@ class WalletTransferTests : TwoDeviceTestBase() {
             targetDashboard.clickCard(tasData.getPidDisplayName())
             targetCardDetailScreen.clickCardDataButton()
             assertAll(
-                { assertTrue(targetCardDataScreen.dataAttributeVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
-                { assertTrue(targetCardDataScreen.dataAttributeVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
+                { assertTrue(targetCardDataScreen.dataAttributeVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "data attribute are not visible") },
+                { assertTrue(targetCardDataScreen.dataAttributeVisible(pidData.getValueByField(NAME, DEFAULT_BSN)), "data attribute are not visible") },
             )
         }
     }

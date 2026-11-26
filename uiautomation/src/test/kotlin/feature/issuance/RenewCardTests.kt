@@ -1,9 +1,9 @@
 package feature.issuance
 
 import com.codeborne.selenide.WebDriverRunner
-import helper.GbaDataHelper
-import helper.GbaDataHelper.Field.FIRST_NAME
-import helper.GbaDataHelper.Field.NAME
+import helper.PidDataHelper
+import helper.PidDataHelper.Field.FIRST_NAME
+import helper.PidDataHelper.Field.NAME
 import helper.IssuanceDataHelper
 import helper.LocalizationHelper
 import helper.OrganizationMetadataHelper
@@ -40,7 +40,7 @@ class RenewCardTests : TestBase() {
     private lateinit var l10n: LocalizationHelper
     private lateinit var tasData: TasDataHelper
     private lateinit var issuanceData : IssuanceDataHelper
-    private lateinit var gbaData: GbaDataHelper
+    private lateinit var pidData: PidDataHelper
 
     private lateinit var indexWebPage: DemoIndexWebPage
     private lateinit var issuerWebPage: IssuerWebPage
@@ -60,7 +60,7 @@ class RenewCardTests : TestBase() {
 
         l10n = LocalizationHelper()
         tasData = TasDataHelper()
-        gbaData = GbaDataHelper()
+        pidData = PidDataHelper()
         issuanceData = IssuanceDataHelper()
 
         indexWebPage = DemoIndexWebPage()
@@ -138,8 +138,8 @@ class RenewCardTests : TestBase() {
         personalizePidPreviewScreen.switchToNativeContext()
         assertAll(
             { assertTrue(personalizePidPreviewScreen.renewPidCardTitleVisible(), "Renew pid preview screen is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
-            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(gbaData.getValueByField(NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(FIRST_NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
+            { assertTrue(personalizePidPreviewScreen.humanReadableCardDataVisible(pidData.getValueByField(NAME, DEFAULT_BSN)), "human readable pid data is not visible") },
         )
         personalizePidPreviewScreen.captureA11ySnapshot("PersonalizePidPreviewRenew")
 

@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:material_ui/material_ui.dart';
 
-import '../../../domain/model/card/wallet_card.dart';
+import '../../../domain/model/issuance/disclose_for_issuance_result.dart';
 import '../../../domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import '../../../util/extension/build_context_extension.dart';
 import '../../common/widget/pin_header.dart';
@@ -9,7 +9,7 @@ import '../../pin/bloc/pin_bloc.dart';
 import '../../pin/pin_page.dart';
 
 class IssuanceConfirmPinForDisclosurePage extends StatelessWidget {
-  final OnPinValidatedCallback<List<WalletCard>> onPinValidated;
+  final OnPinValidatedCallback<DiscloseForIssuanceResult> onPinValidated;
   final OnPinErrorCallback onConfirmWithPinFailed;
   final VoidCallback? onForgotPinPressed;
   final String? title;
@@ -34,7 +34,7 @@ class IssuanceConfirmPinForDisclosurePage extends StatelessWidget {
         headerBuilder: (context, attempts, isFinalRound) {
           return PinHeader(title: title ?? context.l10n.issuanceConfirmPinPageTitle);
         },
-        onPinValidated: (result) => onPinValidated.call(result as List<WalletCard>),
+        onPinValidated: (result) => onPinValidated.call(result as DiscloseForIssuanceResult),
         onPinError: onConfirmWithPinFailed,
         onForgotPinPressed: onForgotPinPressed,
       ),

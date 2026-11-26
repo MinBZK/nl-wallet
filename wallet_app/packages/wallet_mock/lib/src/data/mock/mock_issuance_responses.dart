@@ -72,6 +72,13 @@ final kIssuanceResponses = [
     requestPurpose: [const LocalizedString(language: 'nl', value: 'Authenticatie')],
     attestations: [kMockLoyaltyCard],
   ),
+  IssuanceResponse(
+    id: 'NO_PREVIEW',
+    relyingParty: kOrganizations[kSupermarketId]!,
+    requestedAttributes: [],
+    requestPurpose: [const LocalizedString(language: 'nl', value: 'Geen Preview')],
+    attestations: [kMockLoyaltyCard],
+  ),
 ];
 
 // region RequestedAttributes

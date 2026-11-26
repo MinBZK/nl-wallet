@@ -220,7 +220,7 @@ struct CredentialConfigurationsSettings {
 
     /// Type metadata is optional for mdocs.
     #[serde(default)]
-    #[serde_as(as = "Option<TryFromInto<Vec<String>>>")]
+    #[serde_as(as = "Option<TryFromInto<Vec<PathBuf>>>")]
     type_metadata: Option<TypeMetadataByVct>,
 }
 
@@ -245,7 +245,7 @@ enum CredentialFormatSettings {
         attestation_type: String,
 
         /// Path to the JSON file with the Credential Metadata published for this credential configuration.
-        #[serde_as(as = "TryFromInto<String>")]
+        #[serde_as(as = "TryFromInto<PathBuf>")]
         credential_metadata: JsonFile<CredentialMetadata>,
     },
     #[serde(rename = "dc+sd-jwt")]
@@ -254,7 +254,7 @@ enum CredentialFormatSettings {
 
         /// Path to the JSON file with the Credential Metadata published for this credential configuration. Not to
         /// be combined with SD-JWT VC Type Metadata for the same attestation type.
-        #[serde_as(as = "Option<TryFromInto<String>>")]
+        #[serde_as(as = "Option<TryFromInto<PathBuf>>")]
         credential_metadata: Option<JsonFile<CredentialMetadata>>,
     },
 }
@@ -316,14 +316,14 @@ impl<T> JsonFile<T> {
     }
 }
 
-impl<T> TryFrom<String> for JsonFile<T>
+impl<T> TryFrom<PathBuf> for JsonFile<T>
 where
     T: DeserializeOwned,
 {
     type Error = JsonFileParseError;
 
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        let path = prefix_local_path(PathBuf::from(value));
+    fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
+        let path = prefix_local_path(value);
         let json = fs::read(&path).map_err(|error| JsonFileParseError::Read(path.clone().into_owned(), error))?;
         let contents =
             serde_json::from_slice(&json).map_err(|error| JsonFileParseError::Deserialize(path.into_owned(), error))?;
@@ -332,10 +332,10 @@ where
     }
 }
 
-impl TryFrom<Vec<String>> for TypeMetadataByVct {
+impl TryFrom<Vec<PathBuf>> for TypeMetadataByVct {
     type Error = JsonFileParseError;
 
-    fn try_from(value: Vec<String>) -> Result<Self, Self::Error> {
+    fn try_from(value: Vec<PathBuf>) -> Result<Self, Self::Error> {
         // Map the contents of each JSON file by the `vct` field by decoding the JSON and extracting just that field.
         let documents = value
             .into_iter()

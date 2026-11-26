@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
+import 'package:wallet/src/domain/model/issuance/continue_pid_issuance_result.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/model/result/result.dart';
 import 'package:wallet/src/feature/renew_pid/bloc/renew_pid_bloc.dart';
@@ -54,7 +55,9 @@ void main() {
         when(getPidRenewalUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('mock_auth_url'));
         when(
           continuePidIssuanceUseCase.invoke('mock_auth_url'),
-        ).thenAnswer((_) async => Result.success([WalletMockData.textDataAttribute]));
+        ).thenAnswer(
+          (_) async => Result.success(ContinuePidIssuanceResult.previews([WalletMockData.textDataAttribute])),
+        );
         when(getPidCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
         when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
         return RenewPidBloc(
@@ -80,6 +83,46 @@ void main() {
         const RenewPidVerifyingDigidAuthentication(),
         RenewPidCheckData(availableAttributes: [WalletMockData.textDataAttribute]),
         RenewPidConfirmPin([WalletMockData.textDataAttribute]),
+        const RenewPidUpdatingCards(),
+        RenewPidSuccess([WalletMockData.card]),
+      ],
+    );
+
+    blocTest<RenewPidBloc, RenewPidState>(
+      'happy path without previews: pin to retrieve, review, pin to commit, succeed',
+      build: () {
+        when(getPidRenewalUrlUseCase.invoke()).thenAnswer((_) async => const Result.success('mock_auth_url'));
+        when(
+          continuePidIssuanceUseCase.invoke('mock_auth_url'),
+        ).thenAnswer((_) async => const Result.success(ContinuePidIssuanceResult.noPreviews()));
+        when(getPidCardsUseCase.invoke()).thenAnswer((_) async => Result.success([WalletMockData.card]));
+        when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
+        return RenewPidBloc(
+          getPidRenewalUrlUseCase,
+          continuePidIssuanceUseCase,
+          cancelActiveSessionUseCase,
+          getPidCardsUseCase,
+          continueFromDigiD: false,
+        );
+      },
+      act: (bloc) async {
+        bloc.add(const RenewPidLoginWithDigidClicked());
+        await Future.delayed(const Duration(milliseconds: 10));
+        bloc.add(const RenewPidContinuePidRenewal('mock_auth_url'));
+        await Future.delayed(const Duration(milliseconds: 10));
+        bloc.add(RenewPidPidRetrieved([WalletMockData.textDataAttribute]));
+        await Future.delayed(const Duration(milliseconds: 10));
+        bloc.add(RenewPidAttributesConfirmed([WalletMockData.textDataAttribute]));
+        await Future.delayed(const Duration(milliseconds: 10));
+        bloc.add(RenewPidPinConfirmed());
+      },
+      expect: () => [
+        const RenewPidLoadingDigidUrl(),
+        const RenewPidAwaitingDigidAuthentication('mock_auth_url'),
+        const RenewPidVerifyingDigidAuthentication(),
+        const RenewPidConfirmPinToRetrieve(),
+        RenewPidCheckData(availableAttributes: [WalletMockData.textDataAttribute], issuedForReview: true),
+        RenewPidConfirmPin([WalletMockData.textDataAttribute], issuedForReview: true),
         const RenewPidUpdatingCards(),
         RenewPidSuccess([WalletMockData.card]),
       ],
@@ -222,11 +265,11 @@ void main() {
     );
 
     blocTest<RenewPidBloc, RenewPidState>(
-      'ltc66 emits RenewPidDigidMismatch when a WrongDigidError is received',
+      'ltc66 emits RenewPidDigidMismatch when a WrongIdentityError is received',
       build: () {
         when(
           continuePidIssuanceUseCase.invoke(any),
-        ).thenAnswer((_) async => const Result.error(WrongDigidError(sourceError: 'test')));
+        ).thenAnswer((_) async => const Result.error(WrongIdentityError(sourceError: 'test')));
         when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
         return RenewPidBloc(
           getPidRenewalUrlUseCase,
@@ -244,11 +287,11 @@ void main() {
     );
 
     blocTest<RenewPidBloc, RenewPidState>(
-      'ltc66 emits RenewPidDigidLoginCancelled when a DeniedDigidError is received',
+      'ltc66 emits RenewPidDigidLoginCancelled when a DeniedPidIssuanceError is received',
       build: () {
         when(
           continuePidIssuanceUseCase.invoke(any),
-        ).thenAnswer((_) async => const Result.error(DeniedDigidError(sourceError: 'test')));
+        ).thenAnswer((_) async => const Result.error(DeniedPidIssuanceError(sourceError: 'test')));
         when(cancelActiveSessionUseCase.invoke()).thenAnswer((_) async => const Result.success(null));
         return RenewPidBloc(
           getPidRenewalUrlUseCase,

@@ -1,6 +1,5 @@
 use std::hash::Hash;
 use std::hash::Hasher;
-use std::sync::LazyLock;
 use std::time::Duration;
 
 use derive_more::AsRef;
@@ -24,7 +23,6 @@ use x509_parser::error::X509Error;
 use x509_parser::prelude::FromDer;
 use x509_parser::prelude::X509Certificate;
 
-use crate::error::APPLICATION_PROBLEM_JSON;
 use crate::urls::BaseUrl;
 
 const CLIENT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
@@ -190,10 +188,6 @@ pub fn parse_content_type(response: &Response) -> Option<Mime> {
         .and_then(|content_type| content_type.parse().ok())
 }
 
-pub fn is_problem_json_response(response: &Response) -> bool {
-    parse_content_type(response).as_ref() == Some(LazyLock::force(&APPLICATION_PROBLEM_JSON))
-}
-
 /// Create a [`ClientBuilder`] with sensible defaults that should be applied project-wide.
 pub fn default_reqwest_client_builder() -> ClientBuilder {
     // Enable gzip compression by default, but explicitly disable any other compression algorithm,
@@ -209,6 +203,7 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .min_tls_version(Version::TLS_1_2)
         // Force `rustls`, which only supports strong ciphers <https://docs.rs/rustls/latest/rustls/crypto/ring/cipher_suite/index.html>
         .use_rustls_tls()
+        .user_agent("eudi-wallet")
 }
 
 /// Create a [`ClientBuilder`] with sensible defaults that is TLS-only.

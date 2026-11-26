@@ -27,20 +27,17 @@ use status_lists::serve::create_serve_router;
 use tokio::net::TcpListener;
 use utils::vec_at_least::VecNonEmpty;
 
-use crate::pid::auth_code_flow::UpstreamOidcAuthorizationCodeFlow;
-use crate::pid::brp::client::BrpClient;
-use crate::pid::brp::client::HttpBrpClient;
-use crate::pid::digid::DigidClient;
-use crate::pid::digid::HttpDigidClient;
-use crate::pid::digid_mock::MockLoginState;
+use crate::pid::auth_code_flow::LoginAuthorizationCodeFlow;
+use crate::pid::auth_code_flow::login_router;
+use crate::pid::login_page::LoginPage;
 
-pub type PidIssuer<B = HttpBrpClient, O = HttpDigidClient> = AuthorizingIssuer<
+pub type PidIssuer = AuthorizingIssuer<
     PrivateKeyVariant,
     PostgresStatusListService<PrivateKeyVariant, NoRevokeAll>,
     SessionStoreVariant<IssuanceData>,
     ProofNonceStore,
     IssuerParStore,
-    UpstreamOidcAuthorizationCodeFlow<B, O>,
+    LoginAuthorizationCodeFlow,
 >;
 
 pub async fn serve(
@@ -48,7 +45,7 @@ pub async fn serve(
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
-    mock_login: Option<MockLoginState>,
+    login_page: LoginPage,
 ) -> Result<()> {
     serve_with_listeners(
         create_wallet_listener(&server_settings.wallet_server).await?,
@@ -57,28 +54,21 @@ pub async fn serve(
         server_settings,
         serve_status_lists,
         health_checkers,
-        mock_login,
+        login_page,
     )
     .await
 }
 
-#[expect(
-    clippy::too_many_arguments,
-    reason = "server wiring, including the optional mock login page"
-)]
-pub async fn serve_with_listeners<B, O>(
+#[expect(clippy::too_many_arguments, reason = "server wiring, including the login page")]
+pub async fn serve_with_listeners(
     wallet_listener: TcpListener,
     internal_listener: Option<TcpListener>,
-    authorizing_issuer: Arc<PidIssuer<B, O>>,
+    authorizing_issuer: Arc<PidIssuer>,
     server_settings: Settings,
     serve_status_lists: bool,
     health_checkers: impl IntoIterator<Item = Box<dyn HealthChecker + Send + Sync>>,
-    mock_login: Option<MockLoginState>,
-) -> Result<()>
-where
-    B: BrpClient + Send + Sync + 'static,
-    O: DigidClient + Send + Sync + 'static,
-{
+    login_page: LoginPage,
+) -> Result<()> {
     let status_list_services =
         VecNonEmpty::try_from(authorizing_issuer.issuer().status_lists().cloned().collect_vec())?;
 
@@ -88,14 +78,12 @@ where
 
     let issuance_router = create_issuance_router(Arc::clone(authorizing_issuer.issuer()));
     let authorization_router = create_authorization_router(Arc::clone(&authorizing_issuer));
-    let callback_router = UpstreamOidcAuthorizationCodeFlow::callback_router(Arc::clone(&authorizing_issuer));
+    let login_router = login_router(authorizing_issuer, login_page.path());
 
-    let mut wallet_router = issuance_router.merge(authorization_router).merge(callback_router);
-
-    if let Some(mock_login) = mock_login {
-        wallet_router = wallet_router.merge(mock_login.router());
-    }
-
+    let wallet_router = issuance_router
+        .merge(authorization_router)
+        .merge(login_router)
+        .merge(login_page.router());
     let mut router = add_cache_control_no_store_layer(wallet_router);
 
     if serve_status_lists {

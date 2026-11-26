@@ -114,19 +114,11 @@
 | ----------- | ------------------------------------------------------------------ | ----- |
 | `batchSize` | The maximum amount of credentials a holder will be able to request | `4`   |
 
-### DigiD parameters
+### Login page
 
-| Name            | Description                     | Value |
-| --------------- | ------------------------------- | ----- |
-| `digidClientId` | Client ID for the DigiD service | `nil` |
-| `digidBaseUrl`  | Base URL for the DigiD service  | `nil` |
-
-### Mock DigiD login
-
-| Name            | Description                                          | Value   |
-| --------------- | ---------------------------------------------------- | ------- |
-| `mockSubjects`  | Selectable mock identities, as a `bsn: name` map     | `{}`    |
-| `mockCustomBsn` | Whether the mock DigiD login has a custom bsn option | `false` |
+| Name             | Description                                    | Value   |
+| ---------------- | ---------------------------------------------- | ------- |
+| `loginCustomBsn` | Whether the login page has a custom bsn option | `false` |
 
 ### Wallet redirect uris
 

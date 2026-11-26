@@ -31,8 +31,8 @@ extension CoreErrorExtension on CoreError {
       ),
       CoreCloseProximityDisconnectedError() => CloseProximityDisconnectedError(sourceError: error),
       CoreRelyingPartyError() => _mapRelyingPartyError(error),
-      CoreWrongDigidError() => WrongDigidError(sourceError: error),
-      CoreDeniedDigidError() => DeniedDigidError(sourceError: error),
+      CoreWrongIdentityError() => WrongIdentityError(sourceError: error),
+      CoreDeniedPidIssuanceError() => DeniedPidIssuanceError(sourceError: error),
       CoreStateError() => _handleStateError(error),
       CoreAccountRevokedError() => AccountRevokedError(
         sourceError: error,

@@ -30,7 +30,6 @@ class IssuanceConfirmIssuerPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return TerminalPage(
       title: resolveTitle(context, organization),
-      // TODO(PVW-5559): update the copy to the Figma design once the issued cards are reviewed before being added.
       description: context.l10n.issuanceConfirmIssuerPageDescription,
       primaryButton: PrimaryButton(
         key: kConfirmIssuerAcceptButtonKey,

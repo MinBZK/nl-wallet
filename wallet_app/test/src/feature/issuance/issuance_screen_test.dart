@@ -12,6 +12,7 @@ import 'package:wallet/src/domain/model/organization.dart';
 import 'package:wallet/src/domain/model/result/application_error.dart';
 import 'package:wallet/src/domain/usecase/app/check_is_app_initialized_usecase.dart';
 import 'package:wallet/src/domain/usecase/biometrics/is_biometric_login_enabled_usecase.dart';
+import 'package:wallet/src/domain/usecase/issuance/issue_cards_for_review_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/disclose_for_issuance_usecase.dart';
 import 'package:wallet/src/domain/usecase/pin/unlock_wallet_with_pin_usecase.dart';
 import 'package:wallet/src/feature/common/widget/button/icon/close_icon_button.dart';
@@ -323,6 +324,29 @@ void main() {
         ],
       );
       await screenMatchesGolden('provide_pin.issuance.dark.landscape');
+    });
+
+    testGoldens('IssuanceProvidePinToRetrieveCards Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceProvidePinToRetrieveCards(organization: WalletMockData.organization),
+        ),
+        providers: [
+          RepositoryProvider<IssueCardsForReviewUseCase>(create: (c) => MockIssueCardsForReviewUseCase()),
+        ],
+      );
+      await screenMatchesGolden('provide_pin.retrieve_cards.light');
+    });
+
+    testGoldens('IssuanceReviewRetrievedCards Light', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewRetrievedCards(cards: [WalletMockData.card.copyWith(attestationId: null)]),
+        ),
+      );
+      await screenMatchesGolden('review_retrieved_cards.light');
     });
 
     testGoldens('ltc5 IssuanceCompleted Light - Single card', (tester) async {
@@ -698,6 +722,39 @@ void main() {
       await tester.pumpAndSettle();
 
       mocktail.verify(() => bloc.add(const IssuanceIssuerApproved())).called(1);
+    });
+
+    testWidgets('When user accepts on the review retrieved cards page, IssuanceRetrievedCardsApproved is added', (
+      tester,
+    ) async {
+      final bloc = MockIssuanceBloc();
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          bloc,
+          IssuanceReviewRetrievedCards(cards: [WalletMockData.card.copyWith(attestationId: null)]),
+        ),
+      );
+
+      await tester.tap(find.byKey(kReviewCardsAcceptButtonKey));
+      await tester.pumpAndSettle();
+
+      mocktail.verify(() => bloc.add(const IssuanceRetrievedCardsApproved())).called(1);
+    });
+
+    testWidgets('When user declines on the review retrieved cards page, the stop sheet is shown', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        const IssuanceScreen().withState<IssuanceBloc, IssuanceState>(
+          MockIssuanceBloc(),
+          IssuanceReviewRetrievedCards(cards: [WalletMockData.card.copyWith(attestationId: null)]),
+        ),
+      );
+
+      await tester.tap(find.byKey(kReviewCardsDeclineButtonKey));
+      await tester.pumpAndSettle();
+
+      final l10n = await TestUtils.englishLocalizations;
+      final organizationName = WalletMockData.organization.displayName;
+      expect(find.text(l10n.issuanceStopSheetDescription(organizationName), findRichText: true), findsOneWidget);
     });
 
     testWidgets('When user declines on confirm issuer page, the stop sheet is shown', (tester) async {

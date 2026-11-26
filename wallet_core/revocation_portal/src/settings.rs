@@ -5,15 +5,17 @@ use config::Config;
 use config::ConfigError;
 use config::Environment;
 use config::File;
-use crypto::keys::SymmetricKey;
 use http_utils::client::HttpServiceConfig;
 use serde::Deserialize;
+use serde_with::serde_as;
 use utils::path::prefix_local_path;
 
+#[serde_as]
 #[derive(Deserialize, Clone)]
 pub struct Settings {
     pub webserver: Server,
-    pub cookie_encryption_key: SymmetricKey,
+    #[serde_as(as = "serde_with::hex::Hex")]
+    pub cookie_encryption_key: Vec<u8>,
     pub csrf_cookie_salt: String,
     pub revocation_endpoint: HttpServiceConfig,
     pub structured_logging: bool,

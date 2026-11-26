@@ -19,7 +19,6 @@ DEMO_INDEX_DIR="${WALLET_CORE_DIR}/demo/demo_index"
 REVOCATION_PORTAL_DIR="${WALLET_CORE_DIR}/revocation_portal"
 export STATIC_SERVER_DIR="${WALLET_CORE_DIR}/static_server"
 UPS_DIR="${WALLET_CORE_DIR}/update_policy/server"
-GBA_HC_CONVERTER_DIR="${WALLET_CORE_DIR}/gba_hc_converter"
 
 DEVENV="${SCRIPTS_DIR}/devenv"
 TARGET_DIR="${SCRIPTS_DIR}/devenv/target"
@@ -27,12 +26,6 @@ DOCKER_COMPOSE_FILE="${SCRIPTS_DIR}/docker-compose.yml"
 
 # source user variables
 [[ -f "${SCRIPTS_DIR}/.env" ]] && . "${SCRIPTS_DIR}/.env"
-
-# Path and repository of the nl-rdo-max repository
-export DIGID_CONNECTOR_APPNAME=${DIGID_CONNECTOR_APPNAME:-"max"}
-export DIGID_CONNECTOR_PATH=${DIGID_CONNECTOR_PATH:-"${BASE_DIR}/nl-rdo-max"}
-export DIGID_CONNECTOR_REPOSITORY=${DIGID_CONNECTOR_REPOSITORY:-"https://github.com/minvws/nl-rdo-max.git"}
-export DIGID_CONNECTOR_VERSION=${DIGID_CONNECTOR_VERSION:-"v4.0.3"}
 
 export KC_USERNAME="${KC_USERNAME:-keycloak}"
 export KC_PASSWORD="${KC_PASSWORD:-keycloak}"
@@ -59,16 +52,12 @@ export DEMO_ISSUER_IS_PORT=3007
 export ISSUANCE_SERVER_PORT=3008
 export ISSUANCE_SERVER_IS_PORT=3009
 
-export PACF_ISSUANCE_SERVER_PORT=3015
-export PACF_ISSUANCE_SERVER_IS_PORT=3016
-
 export DEMO_RP_PORT=3010
 export VERIFICATION_SERVER_PORT=3011
 export VERIFICATION_SERVER_IS_PORT=3012
 
-export BRP_SERVER_PORT=3013
-export GBA_HC_CONV_PORT=3014
-export GBA_HC_MOCK_PORT=5010
+export PACF_ISSUANCE_SERVER_PORT=3015
+export PACF_ISSUANCE_SERVER_IS_PORT=3016
 
 export REVOCATION_PORTAL_PORT=3020
 
@@ -84,14 +73,8 @@ if command -v docker > /dev/null && command -v ip > /dev/null && docker info 2>/
     export DOCKER_HOST_GATEWAY
 fi
 
-export RDO_MAX_PORT=8006
-
 PID_ISSUER_API_KEY=$(echo $RANDOM | shasum -a1 | head -c 40)
 export PID_ISSUER_API_KEY
-GBA_HC_CONV_ENCRYPTION_KEY=$(openssl rand -hex 32)
-export GBA_HC_CONV_ENCRYPTION_KEY
-GBA_HC_CONV_HMAC_KEY=$(openssl rand -hex 64)
-export GBA_HC_CONV_HMAC_KEY
 
 # Google Cloud project number for Play Integrity. This number is not secret. In
 # our case, this is currently a test throw-away project on one of our Google
@@ -116,11 +99,6 @@ export HSM_USER_PIN=${HSM_USER_PIN:-12345678}
 export DEFAULT_HSM_TOKEN_DIR="${HOME}/.softhsm2/tokens"
 export HSM_TOKEN_DIR=${HSM_TOKEN_DIR:-$DEFAULT_HSM_TOKEN_DIR}
 export HSM_TOKEN=${HSM_TOKEN:-test_token}
-
-# DIGID_CLIENT_ID=$(uuidgen)
-# export DIGID_CLIENT_ID
-# OAuth client_id used by the pid_issuer when authenticating to nl-rdo-max (DigiD); must match clients.json.
-export DIGID_CLIENT_ID=3e58016e-bc2e-40d5-b4b1-a3e25f6193b9
 
 # Wallet's OAuth client_id (PAR) and iss claim in credential proof JWTs (matches Rust constant NL_WALLET_CLIENT_ID)
 export NL_WALLET_CLIENT_ID="https://wallet.edi.rijksoverheid.nl"

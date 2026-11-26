@@ -27,7 +27,7 @@ required-features = ["integration_test"]
 # Allow Credential Issuer Identifiers to contain "http://".
 allow_insecure_url = ["openid4vc/allow_insecure_url"]
 # Enable mock PID issuance
-mock = ["attestation_data/mock", "oauth/mock", "openid4vc/mock"]
+mock = []
 # Enable integration tests
 integration_test = ["allow_insecure_url", "server_utils/parsed_key_pair_conversion"]
 # Enable test API endpoints and Swagger UI for the management API. This should not be used in production.
@@ -40,23 +40,17 @@ askama_web = { workspace = true, features = ["axum-0.8"] }
 axum.workspace = true
 chrono = { workspace = true, features = ["serde"] }
 config = { workspace = true, features = ["toml", "preserve_order"] }
-derive_more = { workspace = true, features = ["debug", "constructor"] }
-futures.workspace = true
+derive_more = { workspace = true, features = ["as_ref", "debug", "constructor"] }
 hex.workspace = true
 indexmap = { workspace = true, features = ["serde"] }
 itertools.workspace = true
-jwk-simple.workspace = true
 p256 = { workspace = true, features = ["pkcs8"] }
-reqwest.workspace = true
-ring.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-serde_qs.workspace = true
-serde_with = { workspace = true, features = ["base64", "json"] }
+serde_with.workspace = true
 strum = { workspace = true, features = ["derive"] }
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
-trait-variant.workspace = true
 tracing.workspace = true
 url = { workspace = true, features = ["serde"] }
 
@@ -69,8 +63,6 @@ issuer_common.path = "../issuer_common"
 health_checkers.path = "../../lib/health_checkers"
 hsm.path = "../../lib/hsm"
 http_utils = { path = "../../lib/http_utils", features = ["server"] }
-jwe = { path = "../../lib/jwe", features = ["rsa"] }
-jwt.path = "../../lib/jwt"
 oauth.path = "../../lib/oauth"
 openid4vc = { path = "../../lib/openid4vc", features = ["axum"] }
 openid4vc_server = { path = "../../lib/openid4vc_server", features = ["issuance"] }
@@ -81,15 +73,11 @@ utils.path = "../../lib/utils"
 web_utils.path = "../../lib/web_utils"
 
 [dev-dependencies]
-httpmock.workspace = true
-josekit.workspace = true
-jsonwebtoken.workspace = true
 rstest.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tower = { workspace = true, features = ["util"] }
 
 attestation_data = { path = "../../lib/attestation_data", features = ["mock"] }
-http_utils = { path = "../../lib/http_utils", features = ["httpmock"] }
 oauth = { path = "../../lib/oauth", features = ["mock"] }
 openid4vc = { path = "../../lib/openid4vc", features = ["mock", "test"] }
 sd_jwt_vc_metadata = { path = "../../lib/sd_jwt_vc_metadata", features = ["example_constructors"] }

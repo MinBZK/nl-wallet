@@ -2,7 +2,6 @@
 # This script allows one to manage the individual services that are needed
 # to run a completely local NL Wallet development environment.
 #
-# - nl-rdo-max (digid-connector)
 # - demo_index
 # - demo_relying_party
 # - demo_issuer
@@ -55,13 +54,9 @@ Where:
     di, demo_issuer:            Start the demo_issuer
     dx, demo_index:             Start the demo_index
     rvp, revocation_portal:     Start the revocation_portal
-    digid, digid_connector:     Start the digid_connector and a redis instance
     kc, keycloak:               Start the keycloak server
     static, static_server:      Start the static server
     ups, update_policy_server:  Start the update policy server
-    brp:                        Start the HC BRP proxy with GBA HC converter
-    brpproxy:                   Start the Haal-Centraal BRP proxy
-    gba, gba_hc_converter:      Start the GBA Haal-Centraal converter
     postgres:                   Start a PostgreSQL database
 
   OPTIONS is any of:
@@ -97,12 +92,9 @@ PACF_ISSUANCE_SERVER=1
 PID_ISSUER=1
 ACF_DEMO_ISSUER=1
 WALLET=1
-DIGID_CONNECTOR=1
 KEYCLOAK=1
 STATIC_SERVER=1
 UPDATE_POLICY_SERVER=1
-BRP_PROXY=1
-GBA_HC=1
 POSTGRES=1
 
 USAGE=1
@@ -168,10 +160,6 @@ do
             REVOCATION_PORTAL=0
             shift # past argument
             ;;
-        digid|digid_connector)
-            DIGID_CONNECTOR=0
-            shift # past argument
-            ;;
         kc|keycloak)
             KEYCLOAK=0
             shift # past argument
@@ -184,25 +172,11 @@ do
             UPDATE_POLICY_SERVER=0
             shift
             ;;
-        brp)
-            BRP_PROXY=0
-            GBA_HC=0
-            shift
-            ;;
-        brpproxy)
-            BRP_PROXY=0
-            shift
-            ;;
-        gba|gba_hc_converter)
-            GBA_HC=0
-            shift
-            ;;
         postgres)
             POSTGRES=0
             shift # past argument
             ;;
         --default)
-            DIGID_CONNECTOR=0
             KEYCLOAK=0
             DEMO_RELYING_PARTY=0
             DEMO_INDEX=0
@@ -216,12 +190,9 @@ do
             WALLET_PROVIDER=0
             STATIC_SERVER=0
             UPDATE_POLICY_SERVER=0
-            BRP_PROXY=0
-            GBA_HC=0
             shift # past argument
             ;;
         --all)
-            DIGID_CONNECTOR=0
             KEYCLOAK=0
             POSTGRES=0
             DEMO_RELYING_PARTY=0
@@ -237,8 +208,6 @@ do
             WALLET=0
             STATIC_SERVER=0
             UPDATE_POLICY_SERVER=0
-            BRP_PROXY=0
-            GBA_HC=0
             shift # past argument
             ;;
         -h|--help)
@@ -268,34 +237,11 @@ fi
 # Check special prerequisites
 ########################################################################
 
-if [[ $DIGID_CONNECTOR == '0' || $KEYCLOAK == '0' || $POSTGRES == '0' || $BRP_PROXY == '0' ]]; then
+if [[ $KEYCLOAK == '0' || $POSTGRES == '0' ]]; then
     have docker
 fi
 if [[ $WALLET == '0' ]]; then
     have flutter
-fi
-
-########################################################################
-# Manage digid-connector
-########################################################################
-
-if [[ $DIGID_CONNECTOR == '0' ]]
-then
-    echo
-    echo -e "${SECTION}Manage digid-connector${NC}"
-
-    cd "${DIGID_CONNECTOR_PATH}"
-
-    if [[ $STOP == '0' ]]
-    then
-        echo -e "${INFO}Stopping ${ORANGE}digid-connector${NC}"
-        docker compose down || true
-    fi
-    if [[ $START == '0' ]]
-    then
-        echo -e "Starting ${ORANGE}digid-connector${NC}"
-        docker compose up --detach
-    fi
 fi
 
 ########################################################################
@@ -696,54 +642,6 @@ then
         RUST_LOG=debug cargo run --package revocation_portal --bin revocation_portal > "${TARGET_DIR}/revocation_portal.log" 2>&1 &
 
         echo -e "revocation_portal logs can be found at ${CYAN}${TARGET_DIR}/revocation_portal.log${NC}"
-    fi
-fi
-
-########################################################################
-# Manage brpproxy
-########################################################################
-
-if [[ $BRP_PROXY == '0' ]]
-then
-    echo
-    echo -e "${SECTION}Manage brpproxy${NC}"
-
-    if [[ $STOP == '0' ]]
-    then
-        echo -e "${INFO}Stopping ${ORANGE}brpproxy${NC}"
-        docker compose --file "${DOCKER_COMPOSE_FILE}" down brpproxy || true
-    fi
-    if [[ $START == '0' ]]
-    then
-        echo -e "Starting ${ORANGE}brpproxy${NC}"
-        docker compose --file "${DOCKER_COMPOSE_FILE}" up --detach brpproxy
-    fi
-fi
-
-########################################################################
-# Manage gba_hc_converter
-########################################################################
-
-if [[ $GBA_HC == '0' ]]
-then
-    echo
-    echo -e "${SECTION}Manage gba_hc_converter${NC}"
-
-    cd "${GBA_HC_CONVERTER_DIR}"
-
-    if [[ $STOP == '0' ]]
-    then
-        echo -e "${INFO}Stopping ${ORANGE}gba_hc_converter${NC}"
-        pkill -f 'gba_hc_converter$' || true
-    fi
-    if [[ $START == '0' ]]
-    then
-        echo -e "Starting ${ORANGE}gba_hc_converter${NC}"
-
-        encrypt_gba_v_responses
-        RUST_LOG=debug cargo run --package gba_hc_converter --bin gba_hc_converter > "${TARGET_DIR}/gba_hc_converter.log" 2>&1 &
-
-        echo -e "gba_hc_converter logs can be found at ${CYAN}${TARGET_DIR}/gba_hc_converter.log${NC}"
     fi
 fi
 
