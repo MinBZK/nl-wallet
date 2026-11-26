@@ -1,5 +1,10 @@
 part of 'issuance_bloc.dart';
 
+// TODO(PVW-6531): remove the mapping of the preview states once the previews are removed.
+// The steps are based on the flow without previews: authenticate (1), confirm the issuer or the requested attributes
+// (2), provide the PIN to retrieve the cards (3), review the retrieved cards (4) and completed (5). Disclosure based
+// issuance has no authentication step, so it starts at step 2. The states of the flow with previews are mapped onto
+// the same steps, so the stepper never exceeds the total while that flow is still supported.
 const int kIssuanceSteps = 5;
 
 sealed class IssuanceState extends Equatable {
@@ -84,7 +89,7 @@ class IssuanceCheckOrganization extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 1, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, cardRequests, purpose, ...super.props];
@@ -120,12 +125,14 @@ class IssuanceProvidePinForDisclosure extends IssuanceState {
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [selectedIndices, ...super.props];
 }
 
+// TODO(PVW-6531): remove this state, together with [IssuanceProvidePinForIssuance], once the previews are removed.
+// Shows the previews of the cards on offer, before they are issued.
 class IssuanceReviewCards extends IssuanceState {
   /// A map of all cards available for selection, where the key is the [WalletCard]
   /// and the value represents whether the card is selected.
@@ -163,7 +170,7 @@ class IssuanceReviewCards extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [selectableCards, ...super.props];
@@ -180,12 +187,14 @@ class IssuanceConfirmIssuer extends IssuanceState {
   bool get didGoBack => afterBackPressed;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 2, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, ...super.props];
 }
 
+// TODO(PVW-6531): remove this state, together with [IssuanceReviewCards], once the previews are removed.
+/// Asks the user for their PIN to issue the cards that were previewed in [IssuanceReviewCards].
 class IssuanceProvidePinForIssuance extends IssuanceState {
   final List<WalletCard> cards;
 
@@ -211,7 +220,7 @@ class IssuanceProvidePinToRetrieveCards extends IssuanceState {
   bool get canGoBack => true;
 
   @override
-  FlowProgress get stepperProgress => const FlowProgress(currentStep: 4, totalSteps: kIssuanceSteps);
+  FlowProgress get stepperProgress => const FlowProgress(currentStep: 3, totalSteps: kIssuanceSteps);
 
   @override
   List<Object?> get props => [organization, ...super.props];
