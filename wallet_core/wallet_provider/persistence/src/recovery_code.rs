@@ -110,9 +110,9 @@ where
     Ok(result.rows_affected)
 }
 
-pub async fn list_all_denied_in<S, T>(
+pub async fn find_denied_recovery_codes<S, T>(
     db: &T,
-    recovery_codes: HashSet<RecoveryCode>,
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
 ) -> Result<HashSet<RecoveryCode>, PersistenceError>
 where
     S: ConnectionTrait,

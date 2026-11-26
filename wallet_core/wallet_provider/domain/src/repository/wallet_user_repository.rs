@@ -288,10 +288,10 @@ pub trait WalletUserRepository {
         recovery_code: &RecoveryCode,
     ) -> Result<bool>;
 
-    async fn list_denied_recovery_codes_in(
+    async fn find_denied_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_codes: HashSet<RecoveryCode>,
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     ) -> Result<HashSet<RecoveryCode>>;
 
     async fn list_denied_recovery_codes(&self, transaction: &Self::TransactionType) -> Result<Vec<RecoveryCode>>;
@@ -700,10 +700,10 @@ pub mod mock {
             Ok(0)
         }
 
-        async fn list_denied_recovery_codes_in(
+        async fn find_denied_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_codes: HashSet<RecoveryCode>,
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<HashSet<RecoveryCode>> {
             Ok(Default::default())
         }

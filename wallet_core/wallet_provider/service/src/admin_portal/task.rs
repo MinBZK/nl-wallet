@@ -488,7 +488,7 @@ where
 
     let all_denied = user_state
         .repositories
-        .list_denied_recovery_codes_in(&transaction, parameters.recovery_codes.iter().cloned().collect())
+        .find_denied_recovery_codes(&transaction, &parameters.recovery_codes)
         .await
         .map_err(CreateTaskError::Storage)?;
 
@@ -780,11 +780,12 @@ mod tests {
             .expect_begin_transaction()
             .returning(|| Ok(MockTransaction));
         wallet_user_repo
-            .expect_list_denied_recovery_codes_in()
+            .expect_find_denied_recovery_codes()
             .returning(move |_, recovery_codes| {
                 Ok(recovery_codes
-                    .into_iter()
+                    .iter()
                     .filter(|code| denied_recovery_codes.contains(&code.as_ref().as_str()))
+                    .cloned()
                     .collect())
             });
         wallet_user_repo

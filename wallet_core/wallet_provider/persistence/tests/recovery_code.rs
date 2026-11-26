@@ -6,6 +6,7 @@ use db_test::DbSetup;
 use rstest::rstest;
 use tokio::time::Duration;
 use tokio::time::sleep;
+use utils::vec_at_least::VecNonEmptyUnique;
 use utils::vec_nonempty;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
@@ -344,23 +345,22 @@ async fn create_recovery_code(db: &Db, state: CodeState) -> RecoveryCode {
 #[case::only_denied(&[CodeState::Denied])]
 #[case::mixed(&[CodeState::Denied, CodeState::Allowed, CodeState::Unknown, CodeState::Denied])]
 #[case::none_denied(&[CodeState::Allowed, CodeState::Unknown])]
-#[case::empty(&[])]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_list_all_denied_in_returns_denied_codes_of_input(#[case] states: &[CodeState]) {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
 
-    let mut input = HashSet::new();
+    let mut input = Vec::new();
     let mut expected = HashSet::new();
     for state in states {
         let recovery_code = create_recovery_code(&db, *state).await;
         if matches!(state, CodeState::Denied) {
             expected.insert(recovery_code.clone());
         }
-        input.insert(recovery_code);
+        input.push(recovery_code);
     }
 
-    let denied = recovery_code::list_all_denied_in(&db, input)
+    let denied = recovery_code::find_denied_recovery_codes(&db, &VecNonEmptyUnique::try_from(input).unwrap())
         .await
         .expect("should list denied recovery codes");
 
