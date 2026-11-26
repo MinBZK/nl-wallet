@@ -56,6 +56,7 @@
   --color-surface-tint: #f3f4fb;
   --color-text-muted: #6b7280;
   --color-error: #ab0065;
+  --color-warning: #ab6100;
 
   --width-sidebar: 15.6875em;
   --width-task-log: 15.75rem;

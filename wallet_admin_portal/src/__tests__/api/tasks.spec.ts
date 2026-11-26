@@ -125,9 +125,30 @@ describe('tasks api', () => {
       expect(task?.targetSummary).toBe('1 Wallet-ID')
     })
 
+    it('resolves the target summary of a block user task', async () => {
+      stubFetch({
+        reviewable: [
+          {
+            ...reviewableTask,
+            taskType: TaskActionType.BlockUser,
+            taskParameters: { recoveryCodes: ['rc-1', 'rc-2'] },
+          },
+          {
+            ...reviewableTask,
+            taskType: TaskActionType.BlockUser,
+            taskParameters: { recoveryCodes: ['rc-1'] },
+          },
+        ],
+      })
+
+      const tasks = await fetchOpenTasks()
+
+      expect(tasks.map((task) => task.targetSummary)).toEqual(['2 gebruikers', '1 gebruiker'])
+    })
+
     it('resolves the target summary of a revoke solution task and falls back to a dash for other tasks', async () => {
       stubFetch({
-        reviewable: [reviewableTask, { ...reviewableTask, taskType: TaskActionType.BlockUser }],
+        reviewable: [reviewableTask, { ...reviewableTask, taskType: TaskActionType.UnblockUser }],
       })
 
       const tasks = await fetchOpenTasks()
@@ -255,6 +276,25 @@ describe('tasks api', () => {
       )
 
       await expect(fetchTaskDetail('unknown')).rejects.toThrow('404')
+    })
+
+    it('lists the recovery codes of a block user task', async () => {
+      stubFetch(
+        {},
+        {
+          ...createdTask,
+          taskType: TaskActionType.BlockUser,
+          taskParameters: { recoveryCodes: ['rc-1', 'rc-2'] },
+        },
+      )
+
+      const detail = await fetchTaskDetail(createdTask.taskId)
+
+      expect(detail.details).toEqual([
+        { label: 'Doel:', value: '2 gebruikers' },
+        { label: 'Herstelcodes', value: ['rc-1', 'rc-2'] },
+        { label: 'Reden', value: 'Suspicious activity' },
+      ])
     })
 
     it('uses the singular for a task with one wallet', async () => {
