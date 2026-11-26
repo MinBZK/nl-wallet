@@ -535,7 +535,7 @@ async fn test_unblock_user_task_approval_allows_recovery_code() {
 
     let transaction = repositories.begin_transaction().await.unwrap();
     let is_denied = repositories
-        .recovery_code_is_denied(&transaction, RecoveryCode::from(recovery_code))
+        .find_recovery_code_is_denied(&transaction, &RecoveryCode::from(recovery_code))
         .await
         .unwrap();
     transaction.commit().await.unwrap();
