@@ -95,7 +95,10 @@ where
         .map_err(PersistenceError::Execution)
 }
 
-pub async fn set_allowed_many<S, T>(db: &T, recovery_codes: &[RecoveryCode]) -> Result<u64, PersistenceError>
+pub async fn set_allowed_many<S, T>(
+    db: &T,
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+) -> Result<u64, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

@@ -27,6 +27,7 @@ use sea_orm::sea_query::OnConflict;
 use sea_orm::sea_query::Query;
 use sea_orm::sea_query::SelectStatement;
 use sea_orm::sea_query::SimpleExpr;
+use utils::vec_at_least::VecNonEmptyUnique;
 use uuid::Uuid;
 use wallet_account::messages::errors::RevocationReason;
 use wallet_provider_domain::model::QueryResult;
@@ -498,7 +499,10 @@ where
 
 /// Returns the wallet user IDs per recovery code. The map contains an entry for every requested recovery code, with an
 /// empty `Vec` for codes without wallet users.
-pub async fn find_wallet_user_ids_by_recovery_codes<S, T>(db: &T, recovery_codes: &[RecoveryCode]) -> Result<Vec<Uuid>>
+pub async fn find_wallet_user_ids_by_recovery_codes<S, T>(
+    db: &T,
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+) -> Result<Vec<Uuid>>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,

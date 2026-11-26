@@ -170,7 +170,7 @@ where
 
     let wallet_user_ids = user_state
         .repositories
-        .find_wallet_user_ids_by_recovery_codes(&tx, recovery_codes.as_slice())
+        .find_wallet_user_ids_by_recovery_codes(&tx, recovery_codes)
         .await?;
 
     let revoked = user_state
@@ -338,7 +338,7 @@ where
     let tx = user_state.repositories.begin_transaction().await?;
     let removed = user_state
         .repositories
-        .allow_recovery_codes(&tx, std::slice::from_ref(recovery_code))
+        .allow_recovery_codes(&tx, &vec_nonempty![recovery_code.clone()].into())
         .await?;
 
     tx.commit().await?;
@@ -352,7 +352,7 @@ where
 
 pub async fn remove_denied_recovery_codes<T, R, F, H>(
     user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
-    recovery_codes: &[RecoveryCode],
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
 ) -> Result<u64, RevocationError>
 where
     T: Committable,

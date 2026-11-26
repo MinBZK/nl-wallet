@@ -969,12 +969,12 @@ async fn test_remove_denied_recovery_codes_service() {
     let publish_dir = PublishDir::try_new(temp_dir.path().to_path_buf()).unwrap();
     let (user_state, _) = setup_state(&db_setup, publish_dir).await;
 
-    let recovery_codes: Vec<RecoveryCode> = vec![random_string(64).into(), random_string(64).into()];
+    let recovery_codes = vec_nonempty![random_string(64).into(), random_string(64).into()].into();
 
     let tx = user_state.repositories.begin_transaction().await.unwrap();
     user_state
         .repositories
-        .deny_recovery_codes(&tx, &recovery_codes.clone().try_into().unwrap())
+        .deny_recovery_codes(&tx, &recovery_codes)
         .await
         .unwrap();
     tx.commit().await.unwrap();

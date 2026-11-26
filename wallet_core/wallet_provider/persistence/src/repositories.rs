@@ -254,7 +254,7 @@ impl WalletUserRepository for Repositories {
     async fn find_wallet_user_ids_by_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_codes: &[RecoveryCode],
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     ) -> Result<Vec<Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_ids_by_recovery_codes(transaction, recovery_codes).await
     }
@@ -709,7 +709,7 @@ impl WalletUserRepository for Repositories {
     async fn allow_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_codes: &[RecoveryCode],
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     ) -> Result<u64, PersistenceError> {
         recovery_code::set_allowed_many(transaction, recovery_codes).await
     }
@@ -900,7 +900,7 @@ pub mod mock {
             async fn find_wallet_user_ids_by_recovery_codes(
                 &self,
                 transaction: &MockTransaction,
-                recovery_codes: &[RecoveryCode],
+                recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
             ) -> Result<Vec<Uuid>, PersistenceError>;
 
             async fn find_wallet_user_states_by_recovery_code(
@@ -1154,7 +1154,7 @@ pub mod mock {
             async fn allow_recovery_codes(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: &[RecoveryCode],
+                recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
             ) -> Result<u64, PersistenceError>;
         }
 
@@ -1309,7 +1309,7 @@ pub mod mock {
         async fn find_wallet_user_ids_by_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_codes: &[RecoveryCode],
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<Vec<Uuid>, PersistenceError> {
             Ok(vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")])
         }
@@ -1662,7 +1662,7 @@ pub mod mock {
         async fn allow_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &[RecoveryCode],
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<u64, PersistenceError> {
             Ok(0)
         }

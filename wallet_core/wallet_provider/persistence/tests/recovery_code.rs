@@ -216,18 +216,19 @@ async fn test_remove_recovery_code() {
     let db_setup = DbSetup::create().await;
     let db = db_from_setup(&db_setup).await;
 
-    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
+    let single_recovery_code = vec_nonempty![recovery_code.clone()].into();
+    recovery_code::set_allowed_many(&db, &single_recovery_code)
         .await
         .expect("should be able to set non-denied recovery code to allowed");
 
-    recovery_code::deny_many(&db, &vec_nonempty![recovery_code.clone()].into())
+    recovery_code::deny_many(&db, &single_recovery_code)
         .await
         .expect("should be able to insert denied recovery code");
 
     let is_denied = recovery_code::is_denied(&db, recovery_code.clone()).await.unwrap();
     assert!(is_denied);
 
-    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
+    recovery_code::set_allowed_many(&db, &single_recovery_code)
         .await
         .expect("should be able to set denied recovery code to allowed");
 
@@ -235,7 +236,7 @@ async fn test_remove_recovery_code() {
     assert!(!is_denied);
 
     // verify idempotency
-    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
+    recovery_code::set_allowed_many(&db, &single_recovery_code)
         .await
         .expect("should be able to set non-denied recovery code to allowed");
 
@@ -282,7 +283,7 @@ async fn test_list_recovery_code() {
     );
 
     // removing the first should result in only the second being listed
-    recovery_code::set_allowed_many(&db, std::slice::from_ref(&recovery_code))
+    recovery_code::set_allowed_many(&db, &vec_nonempty![recovery_code.clone()].into())
         .await
         .expect("should be able to set denied recovery code to allowed");
 
@@ -293,7 +294,7 @@ async fn test_list_recovery_code() {
     assert!(recovery_codes.contains(&another_recovery_code));
 
     // removing the second should result in an empty list
-    recovery_code::set_allowed_many(&db, std::slice::from_ref(&another_recovery_code))
+    recovery_code::set_allowed_many(&db, &vec_nonempty![another_recovery_code.clone()].into())
         .await
         .expect("should be able to set another denied recovery code to allowed");
 
@@ -371,7 +372,6 @@ async fn test_list_all_denied_in_returns_denied_codes_of_input(#[case] states: &
 #[case::unknown_code_is_not_counted(&[CodeState::Denied, CodeState::Unknown], 1)]
 #[case::already_allowed_code_is_not_counted(&[CodeState::Denied, CodeState::Allowed], 1)]
 #[case::only_unknown_codes(&[CodeState::Unknown], 0)]
-#[case::empty(&[], 0)]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
 async fn test_set_allowed_many_allows_requested_codes_only(#[case] states: &[CodeState], #[case] expected_count: u64) {
     let db_setup = DbSetup::create().await;
@@ -385,7 +385,7 @@ async fn test_set_allowed_many_allows_requested_codes_only(#[case] states: &[Cod
         requested.push(create_recovery_code(&db, *state).await);
     }
 
-    let count = recovery_code::set_allowed_many(&db, &requested)
+    let count = recovery_code::set_allowed_many(&db, &VecNonEmptyUnique::try_from(requested.clone()).unwrap())
         .await
         .expect("should allow recovery codes");
 

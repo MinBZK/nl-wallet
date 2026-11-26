@@ -73,5 +73,5 @@ where
     T: Committable,
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
-    remove_denied_recovery_codes(user_state, recovery_codes.as_slice()).await
+    remove_denied_recovery_codes(user_state, recovery_codes).await
 }
