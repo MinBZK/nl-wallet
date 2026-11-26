@@ -1,6 +1,11 @@
+use std::fmt;
+use std::fmt::Debug;
+use std::fmt::Formatter;
+
 use chrono::DateTime;
 use chrono::Utc;
 use crypto::utils::random_string;
+use nutype::nutype;
 use subtle::ConstantTimeEq;
 
 /// State kept between issuing a Keycloak authorization redirect and handling its callback.
@@ -27,38 +32,26 @@ const CSRF_TOKEN_LENGTH: usize = 43;
 
 /// An independent random secret for one login session, submitted explicitly on task mutations.
 /// Keep it out of debug logs; only the authenticated token endpoint exposes its value.
-#[derive(Clone, derive_more::Debug, derive_more::Into)]
-#[debug("<redacted>")]
+#[nutype(
+    derive(Clone, AsRef, TryFrom, Into),
+    validate(predicate = |token| token.len() == CSRF_TOKEN_LENGTH && token.bytes().all(|byte| byte.is_ascii_alphanumeric()))
+)]
 pub struct CsrfToken(String);
 
 impl CsrfToken {
     pub fn generate() -> Self {
-        Self(random_string(CSRF_TOKEN_LENGTH))
+        Self::try_new(random_string(CSRF_TOKEN_LENGTH))
+            .expect("random_string only produces alphanumeric characters of the requested length")
     }
 
     pub fn verify(&self, supplied: &str) -> bool {
-        self.0.as_bytes().ct_eq(supplied.as_bytes()).into()
+        self.as_ref().as_bytes().ct_eq(supplied.as_bytes()).into()
     }
 }
 
-impl AsRef<str> for CsrfToken {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-#[error("invalid CSRF token")]
-pub struct InvalidCsrfToken;
-
-impl TryFrom<String> for CsrfToken {
-    type Error = InvalidCsrfToken;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        if value.len() != CSRF_TOKEN_LENGTH || !value.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
-            return Err(InvalidCsrfToken);
-        }
-        Ok(Self(value))
+impl Debug for CsrfToken {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        f.write_str("<redacted>")
     }
 }
 
