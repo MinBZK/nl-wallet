@@ -122,5 +122,6 @@ rstest.workspace = true
 serial_test.workspace = true
 tempfile.workspace = true
 tower = { workspace = true, features = ["util"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 
 http_utils = { path = "../lib/http_utils", features = ["test"] }

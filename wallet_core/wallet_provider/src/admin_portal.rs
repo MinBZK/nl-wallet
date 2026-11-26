@@ -7,11 +7,14 @@ use axum::Router;
 use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
+use axum::extract::Request;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
 use axum::http::StatusCode;
 use axum::http::header::CACHE_CONTROL;
 use axum::http::request::Parts;
+use axum::middleware;
+use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
@@ -197,9 +200,9 @@ impl AdminPortalState {
 }
 
 pub fn router(state: Arc<AdminPortalState>) -> Router {
-    Router::new()
+    // Routes that are only reached from our own origin.
+    let same_origin = Router::new()
         .route("/auth/login", get(login))
-        .route("/auth/callback", get(callback))
         .route("/auth/logout", get(logout))
         .route("/api/me", get(me))
         .route("/api/csrf-token", get(csrf_token))
@@ -213,7 +216,12 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
         )
         .route("/wallets/check", post(check_wallet))
         .route("/recovery-codes/check", post(check_recovery_code))
-        .with_state(state)
+        .layer(middleware::from_fn(fetch_metadata));
+
+    // Keycloak redirects the browser here, so this is a cross-site navigation by design.
+    let oidc_callback = Router::new().route("/auth/callback", get(callback));
+
+    same_origin.merge(oidc_callback).with_state(state)
 }
 
 /// Returns a session cookie with [session_id].
@@ -410,6 +418,15 @@ async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSessio
             csrf_token: session.csrf_token.into(),
         }),
     )
+}
+
+pub async fn fetch_metadata(req: Request, next: Next) -> Result<Response, StatusCode> {
+    match req.headers().get("sec-fetch-site").map(AsRef::as_ref) {
+        // old browser, same-origin or user originated: allowed
+        None | Some(b"same-origin") | Some(b"none") => Ok(next.run(req).await),
+        // same-site or cross-site: forbidden
+        Some(_) => Err(StatusCode::FORBIDDEN),
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -868,6 +885,40 @@ mod tests {
     fn recovery_code_api_error_status_codes(#[case] error: RecoveryCodeApiError, #[case] status: StatusCode) {
         assert_eq!(error.into_response().status(), status);
     }
+
+    /// Sends a GET request to `/` through a router that applies [fetch_metadata], with the optional
+    /// `Sec-Fetch-Site` header set to `sec_fetch_site`, and returns the response status.
+    async fn fetch_metadata_status(sec_fetch_site: Option<&str>) -> StatusCode {
+        let router = Router::new()
+            .route("/", get(|| async { StatusCode::OK }))
+            .layer(middleware::from_fn(fetch_metadata));
+
+        let mut request = axum::http::Request::builder().uri("/");
+        if let Some(value) = sec_fetch_site {
+            request = request.header("sec-fetch-site", value);
+        }
+        let request = request.body(axum::body::Body::empty()).unwrap();
+
+        tower::ServiceExt::oneshot(router, request).await.unwrap().status()
+    }
+
+    #[rstest]
+    #[case::no_header_from_old_browser(None)]
+    #[case::same_origin(Some("same-origin"))]
+    #[case::user_initiated_navigation(Some("none"))]
+    #[tokio::test]
+    async fn fetch_metadata_allows_same_origin_and_user_initiated_requests(#[case] sec_fetch_site: Option<&str>) {
+        assert_eq!(fetch_metadata_status(sec_fetch_site).await, StatusCode::OK);
+    }
+
+    #[rstest]
+    #[case::same_site("same-site")]
+    #[case::cross_site("cross-site")]
+    #[case::unknown_value("some-future-value")]
+    #[tokio::test]
+    async fn fetch_metadata_rejects_same_site_and_cross_site_requests(#[case] sec_fetch_site: &str) {
+        assert_eq!(fetch_metadata_status(Some(sec_fetch_site)).await, StatusCode::FORBIDDEN);
+    }
 }
 
 #[cfg(all(test, feature = "db_test", feature = "hsm_test"))]
@@ -1260,5 +1311,60 @@ mod http_tests {
         let response = check_wallet_with("wallet-1", vec![TaskType::RevokeWallet.to_string()]).await;
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    fn with_sec_fetch_site(mut request: Request<Body>, sec_fetch_site: &'static str) -> Request<Body> {
+        request
+            .headers_mut()
+            .insert("sec-fetch-site", HeaderValue::from_static(sec_fetch_site));
+        request
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn cross_site_oidc_callback_is_not_blocked_by_fetch_metadata() {
+        let state = setup_state().await;
+        let request = Request::builder().uri("/auth/callback").body(Body::empty()).unwrap();
+
+        let response = router(Arc::clone(&state))
+            .oneshot(with_sec_fetch_site(request, "cross-site"))
+            .await
+            .unwrap();
+
+        // Reaching the handler shows the request got past Fetch Metadata; it then rejects the missing `state`.
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            response.headers().get(header::LOCATION).unwrap(),
+            "https://portal.example.org/error?reason=invalid_state"
+        );
+    }
+
+    /// Every route except the OIDC callback must reject cross-site requests. No session is supplied, so without
+    /// Fetch Metadata each handler would answer with 401 (or a redirect for login/logout): a 403 can only come from
+    /// the Fetch Metadata layer. Add new routes here.
+    #[rstest::rstest]
+    #[case::login("GET", "/auth/login")]
+    #[case::logout("GET", "/auth/logout")]
+    #[case::me("GET", "/api/me")]
+    #[case::csrf_token("GET", "/api/csrf-token")]
+    #[case::list_tasks("GET", "/tasks?view=open")]
+    #[case::create_task("POST", "/tasks")]
+    #[case::retrieve_task("GET", "/tasks/00000000-0000-0000-0000-000000000000")]
+    #[case::withdraw_task("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
+    #[case::review_task("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
+    #[case::check_wallet("POST", "/wallets/check")]
+    #[case::check_recovery_code("POST", "/recovery-codes/check")]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn cross_site_requests_are_forbidden(#[case] method: &str, #[case] uri: &str) {
+        let state = setup_state().await;
+        let request = Request::builder().method(method).uri(uri).body(Body::empty()).unwrap();
+
+        let response = router(Arc::clone(&state))
+            .oneshot(with_sec_fetch_site(request, "cross-site"))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
     }
 }
