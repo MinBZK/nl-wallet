@@ -66,7 +66,12 @@ mod tests {
         assert!(!token.verify(CsrfToken::generate().as_ref()));
         assert!(!token.verify(""));
         assert!(!token.verify(&format!("{}extra", token.as_ref())));
-        assert!(!format!("{token:?}").contains(token.as_ref()));
+    }
+
+    #[test]
+    fn csrf_token_debug_output_is_redacted() {
+        let token = CsrfToken::generate();
+        assert_eq!(format!("{token:?}"), "<redacted>");
     }
 
     #[test]
