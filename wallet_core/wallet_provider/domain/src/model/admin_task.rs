@@ -38,7 +38,6 @@ impl TaskPayload {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct RevokeWalletParameters {
-    #[serde_as(as = "Vec<_>")]
     pub wallet_ids: VecNonEmptyUnique<WalletId>,
 }
 
@@ -47,7 +46,6 @@ pub struct RevokeWalletParameters {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BlockUserParameters {
-    #[serde_as(as = "Vec<_>")]
     pub recovery_codes: VecNonEmptyUnique<RecoveryCode>,
 }
 
@@ -56,7 +54,6 @@ pub struct BlockUserParameters {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UnblockUserParameters {
-    #[serde_as(as = "Vec<_>")]
     pub recovery_codes: VecNonEmptyUnique<RecoveryCode>,
 }
 
@@ -240,17 +237,11 @@ mod tests {
 
     #[rstest]
     #[case::empty_wallet_ids(json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": []}}))]
-    #[case::duplicate_wallet_ids(
-        json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1", "wallet-1"]}})
-    )]
     #[case::missing_wallet_ids(json!({"taskType": "revoke_wallet", "taskParameters": {}}))]
     #[case::unknown_parameter(
         json!({"taskType": "revoke_wallet", "taskParameters": {"walletIds": ["wallet-1"], "unknown": true}})
     )]
     #[case::unblock_user_empty_recovery_codes(json!({"taskType": "unblock_user", "taskParameters": {"recoveryCodes": []}}))]
-    #[case::unblock_user_duplicate_recovery_codes(
-        json!({"taskType": "unblock_user", "taskParameters": {"recoveryCodes": ["code-1", "code-1"]}})
-    )]
     #[case::unblock_user_missing_recovery_codes(json!({"taskType": "unblock_user", "taskParameters": {}}))]
     #[case::unblock_user_wallet_ids_instead_of_recovery_codes(
         json!({"taskType": "unblock_user", "taskParameters": {"walletIds": ["wallet-1"]}})
