@@ -7,9 +7,10 @@ export type TaskPayload =
       taskParameters: { walletIds: string[] }
     }
   | {
-      taskType:
-        | TaskActionType.BlockUser
-        | TaskActionType.UnblockUser
-        | TaskActionType.RevokeSolution
+      taskType: TaskActionType.BlockUser
+      taskParameters: { recoveryCodes: string[] }
+    }
+  | {
+      taskType: TaskActionType.UnblockUser | TaskActionType.RevokeSolution
       taskParameters: Record<string, never>
     }
