@@ -10,6 +10,7 @@ use axum::extract::Query;
 use axum::extract::Request;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
+use axum::http::HeaderValue;
 use axum::http::StatusCode;
 use axum::http::header::CACHE_CONTROL;
 use axum::http::request::Parts;
@@ -32,6 +33,7 @@ use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::warn;
 use url::Url;
 use utils::generator::TimeGenerator;
@@ -221,7 +223,14 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
     // Keycloak redirects the browser here, so this is a cross-site navigation by design.
     let oidc_callback = Router::new().route("/auth/callback", get(callback));
 
-    same_origin.merge(oidc_callback).with_state(state)
+    same_origin
+        .merge(oidc_callback)
+        // Admin portal responses carry personal data, secrets or session cookies: never store them in any cache.
+        .layer(SetResponseHeaderLayer::if_not_present(
+            CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        ))
+        .with_state(state)
 }
 
 /// Returns a session cookie with [session_id].
@@ -411,13 +420,12 @@ impl FromRequestParts<Arc<AdminPortalState>> for CsrfProtectedAdminUser {
     }
 }
 
-async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSession) -> impl IntoResponse {
-    (
-        [(CACHE_CONTROL, "no-store")],
-        Json(CsrfTokenResponse {
-            csrf_token: session.csrf_token.into(),
-        }),
-    )
+/// Returns the session's CSRF token. Like every admin portal response, it is sent with `Cache-Control: no-store`
+/// (see [router]), so the token is never written to any cache.
+async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSession) -> Json<CsrfTokenResponse> {
+    Json(CsrfTokenResponse {
+        csrf_token: session.csrf_token.into(),
+    })
 }
 
 pub async fn fetch_metadata(req: Request, next: Next) -> Result<Response, StatusCode> {
@@ -1313,6 +1321,11 @@ mod http_tests {
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
+    /// Asserts the headers that the admin portal router adds to every response.
+    fn assert_security_headers(response: &Response) {
+        assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+    }
+
     fn with_sec_fetch_site(mut request: Request<Body>, sec_fetch_site: &'static str) -> Request<Body> {
         request
             .headers_mut()
@@ -1337,6 +1350,7 @@ mod http_tests {
             response.headers().get(header::LOCATION).unwrap(),
             "https://portal.example.org/error?reason=invalid_state"
         );
+        assert_security_headers(&response);
     }
 
     /// Every route except the OIDC callback must reject cross-site requests. No session is supplied, so without
@@ -1366,5 +1380,6 @@ mod http_tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_security_headers(&response);
     }
 }
