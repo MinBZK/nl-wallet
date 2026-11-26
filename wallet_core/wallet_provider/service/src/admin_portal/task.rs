@@ -414,7 +414,12 @@ where
             TaskPayload::UnblockUser(parameters) => {
                 let recovery_codes = &parameters.recovery_codes;
                 match unblock_users(task.id, approver, recovery_codes, user_state, audit_log).await {
-                    Ok(unblocked_codes) => (true, format!("unblocked {unblocked_codes} recovery code(s) excluding those that were already allowed")),
+                    Ok(unblocked_codes) => (
+                        true,
+                        format!(
+                            "unblocked {unblocked_codes} recovery code(s) excluding those that were already allowed"
+                        ),
+                    ),
                     Err(error) => (false, error.to_string()),
                 }
             }
