@@ -184,6 +184,15 @@ build-pid-issuer-migrations-image:
     DOCKER_FILE_TO_BUILD: wallet_core/wallet_server/pid_issuer/migrations/Dockerfile
     DOCKER_IMAGE_NAME: nl-wallet-pid-issuer-migrations
 
+build-verify-wallet-config-image:
+  extends: .build-docker-image
+  needs:
+    - job: build-verify-wallet-config-binary
+      artifacts: true
+  variables:
+    DOCKER_FILE_TO_BUILD: wallet_core/wallet/configuration/Dockerfile
+    DOCKER_IMAGE_NAME: nl-wallet-verify-wallet-config
+
 build-revocation-portal-image:
   extends: .build-docker-image
   needs:
