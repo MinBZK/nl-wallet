@@ -13,6 +13,7 @@ use itertools::Itertools;
 use moka::Expiry;
 use moka::future::Cache;
 use reqwest::Client;
+use reqwest::header::ACCEPT;
 use url::Url;
 use utils::generator::Generator;
 use webpki::CertRevocationList;
@@ -155,6 +156,7 @@ impl CrlFetcher for HttpCrlFetcher {
         let mut response = self
             .client
             .get(url.clone())
+            .header(ACCEPT, "application/pkix-crl, */*")
             .send()
             .await
             .map_err(CrlFetchError::Http)?

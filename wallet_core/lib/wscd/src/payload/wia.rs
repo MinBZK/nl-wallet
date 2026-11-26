@@ -141,6 +141,7 @@ pub struct WiaPopClaims {
     pub aud: String,
     pub iat: DateTimeSeconds,
     pub jti: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub challenge: Option<Nonce>,
 }
 
@@ -334,6 +335,24 @@ mod tests {
             ),
             make_pop(holder_key, nonce, AUD),
         )
+    }
+
+    #[rstest]
+    #[case::absent(None)]
+    #[case::present(Some("issuer-challenge"))]
+    fn serialize_wia_pop_challenge(#[case] challenge: Option<&str>) {
+        let claims = WiaPopClaims {
+            iss: WALLET_CLIENT_ID.to_string(),
+            aud: AUD.to_string(),
+            iat: Utc::now().into(),
+            jti: "jti".to_string(),
+            challenge: challenge.map(|value| Nonce::from(value.to_string())),
+        };
+        let payload = serde_json::to_value(claims).unwrap();
+        assert_eq!(
+            payload.get("challenge"),
+            challenge.map(serde_json::Value::from).as_ref()
+        );
     }
 
     #[rstest]

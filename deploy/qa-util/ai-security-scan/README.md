@@ -18,11 +18,10 @@ Supporting pieces:
 - `.claude/skills/_lib/checkpoint.py` — shared checkpoint helper; lets
   `/threat-model` and `/triage` resume after an interruption instead of
   starting over.
-- `.claude/settings.json` — the tool allowlist governing every run. It
-  permits only read-only operations (Read/Glob/Grep/Write/Task plus a narrow
-  set of Bash commands the skills need) and uses `defaultMode: default`, so
-  anything not on the list — `kubectl`, `curl`, `env`, arbitrary `python3` —
-  is denied. This is the enforcement point for the isolation described below.
+- `.claude/settings.json`: the tool allowlist for every run. See
+  [Isolation](#isolation).
+- `run-skill.sh`: runs one skill headless in CI, with a clean environment
+  and a cost limit. See [Isolation](#isolation).
 - `false-positives.md` — reviewed-and-accepted findings that `/triage`
   should suppress instead of re-raising (see below).
 - `docs/` — background on the security model and the triage methodology.
@@ -33,23 +32,25 @@ sandbox is required. See [docs/security.md](docs/security.md).
 
 ## Running locally
 
-Start Claude Code in this directory so the skills are project-scoped, then
-point them at the repository root (`../../..`):
+Start Claude Code in this directory so the skills are project-scoped, with
+the repository root (`../../..`) as an added working directory. Without
+`--add-dir`, Claude Code asks before each read outside this directory. Then
+point the skills at the repository root:
 
 ```bash
 cd deploy/qa-util/ai-security-scan
-claude
+claude --add-dir ../../..
 
 # Full scan of a workspace member, seeded by the threat model if present
 > /vuln-scan ../../../wallet_core/lib/jwt
-# → writes ../../../wallet_core/lib/jwt/VULN-FINDINGS.json + .md
+# → writes ./VULN-FINDINGS.json + .md
 
 # Scan only what a branch changed
 > /vuln-scan-diff ../../.. main..HEAD
-# → writes ../../../VULN-FINDINGS-DIFF.json + .md
+# → writes ./VULN-FINDINGS-DIFF.json + .md
 
 # Verify, dedupe and rank the findings
-> /triage ../../../wallet_core/lib/jwt/VULN-FINDINGS.json --repo ../../../wallet_core/lib/jwt
+> /triage VULN-FINDINGS.json --repo ../../../wallet_core/lib/jwt
 ```
 
 `/threat-model bootstrap <dir>` should be run locally **before every
@@ -60,16 +61,17 @@ present. Example for the Rust core:
 
 ```bash
 cd deploy/qa-util/ai-security-scan
-claude
+claude --add-dir ../../..
 > /threat-model bootstrap ../../../wallet_core
 ```
 
 Then commit `wallet_core/THREAT_MODEL.md` as part of the release preparation.
 
-Scan outputs (`VULN-FINDINGS*`, `TRIAGE*`) are written into the target
-directory (`/vuln-scan`, `/vuln-scan-diff`) or alongside the input findings
-file (`/triage`), and are gitignored — they are review input, not repository
-content.
+Scan outputs (`VULN-FINDINGS*`, `TRIAGE*`) are written into this directory
+and are gitignored. They are review input, not repository content. The
+allowlist permits writes only to these files and to the skills' state
+directories. Claude Code asks before it writes `THREAT_MODEL.md` into the
+target directory.
 
 ## Running in CI (GitLab)
 
@@ -86,8 +88,9 @@ select the branch, and add:
 |---|---|
 | `SCHEDULED` | `ai-security-scan-diff` to run the diff scan, or `ai-security-scan-full` to run the full scan (required — selects which scan job and the token fetch job are included) |
 | `TRIAGE` | `true` to also verify, dedupe and rank the findings. Defaults to `true` for `ai-security-scan-diff` and `false` for `ai-security-scan-full`. |
-| `SCAN_MODEL` | Claude model ID to use for all scan and triage invocations (default `claude-sonnet-4-6`). Use `claude-haiku-4-5-20251001` for a faster, cheaper run or `claude-opus-4-8` for maximum thoroughness. Avoid `claude-fable-5` for security scanning — its safety classifiers target cybersecurity content and may refuse scan requests. |
-| `CLAUDE_CODE_MAX_TURNS` | Maximum number of agentic turns per `claude` invocation (default `50`). Acts as a safety ceiling — a normal scan completes well within this. Raise it if a large full scan is cut short; lower it to constrain cost on narrow diff scans. |
+| `SCAN_MODEL` | Claude model ID for all scan and triage runs (default `claude-opus-5-5`). Use `claude-sonnet-5-5` for a cheaper run. Current models have safety classifiers for cybersecurity content, which can refuse a scan request. If a run writes no output, look for a refusal in the job log. |
+| `SCAN_MAX_BUDGET_USD` | Cost limit for each `claude` run, at API prices (default `25`, and `100` for `ai-security-scan-full`). The run stops when it reaches the limit. |
+| `CLAUDE_CODE_MAX_TURNS` | Maximum number of agent turns for each `claude` run (default `50`). Increase it if a large full scan stops too early. |
 | plus any per-job variable below | |
 
 Both jobs run the scan headless via `claude -p` and collect the reports as
@@ -108,36 +111,50 @@ human-readable end product, sorted by what actually needs attention.
 > deliberately review a large merged chunk, use `ai-security-scan-full` with a
 > scoped `SCAN_TARGET` instead.
 
-The Claude Code CLI is installed in the job with
-`npm i -g @anthropic-ai/claude-code` on the standard `ci-node` image.
+The job installs the Claude Code CLI version in `CLAUDE_CODE_VERSION` on the
+standard `ci-node` image. The allowlist was tested with this version. When you
+change the version, test the allowlist again (see
+[docs/security.md](docs/security.md)). The image installs only npm versions
+that are at least 7 days old (`min-release-age` in
+`deploy/docker-images/ci/skel/.npmrc`).
 
 ### Isolation
 
-The scan jobs run untrusted repository content through the agent (the
-prompt-injection surface), so they are deliberately kept away from cluster
-secrets:
+The scan jobs give repository content to the agent, so a prompt injection in
+the scanned code is possible. These controls limit what such an injection can
+do:
 
-- **Only `ai-security-scan-fetch-token` touches the cluster.** It extends
-  `.env-k8s`, reads the Anthropic API key from the `nl-wallet-anthropic`
-  secret (key `claude_code_oauth_token`), and passes it to the scan jobs as a
-  `dotenv` variable (`CLAUDE_CODE_OAUTH_TOKEN`). The scan jobs do **not** extend
-  `.env-k8s`, so they have no kubeconfig and cannot enumerate namespace
-  secrets.
-- **The agent's tools are restricted** by `.claude/settings.json`
-  (`defaultMode: default`, no `bypassPermissions`): only read-only operations
-  are allowed, so even with the key present the agent cannot invoke
-  `kubectl`, `curl`, `env`, or arbitrary `python3` to move a secret.
-- **The key authenticates to Claude only**, not to any wallet
-  infrastructure. It is org-billed and usage-metered, so scope it minimally
-  in the Anthropic Console (single workspace) and set a spend cap — a leaked
-  key can run up billing but cannot reach wallet systems. Rotate it
-  periodically. The `dotenv` value is not auto-masked, so the scan steps must
-  never echo it.
+- **Only `ai-security-scan-fetch-token` has cluster access.** It extends
+  `.env-k8s`, reads the token from the `nl-wallet-anthropic` secret (key
+  `claude_code_oauth_token`), and gives it to the scan jobs as a `dotenv`
+  variable (`CLAUDE_CODE_OAUTH_TOKEN`). The scan jobs have no kubeconfig.
+- **The agent does not get the CI variables.** The project and group CI
+  variables are not protected, so the scan jobs receive all of them, for
+  example Renovate and Harbor credentials. `run-skill.sh` starts `claude` with
+  only `HOME`, `PATH`, `LANG`, the token and `CLAUDE_CODE_MAX_TURNS`. Claude
+  Code blocks reads of `/proc/*/environ`, so the agent cannot read the
+  variables of the job shell.
+- **The agent cannot run commands.** `run-skill.sh` uses
+  `--permission-mode dontAsk`, so Claude Code denies each tool call that
+  `.claude/settings.json` does not allow. The allowlist permits only commands
+  that cannot run other commands, and writes only to the output files. See
+  [docs/security.md](docs/security.md).
+- **Only developers can download the reports** (`artifacts:access:
+  developer`).
+- **The token gives access to Claude only.** It is a Claude subscription
+  token, made with `claude setup-token`. It is not a Console API key, so a
+  Console spend limit does not apply. `SCAN_MAX_BUDGET_USD` limits the cost of
+  each run. The `dotenv` value is not masked, so do not write it to the job
+  log.
 
 ### When to run
 
-Trigger them at the cadence below via **Build → Pipelines → Run pipeline**
-and set the variables per the table.
+Do not run the scans in merge request or `main` pipelines. Each run costs
+money, the output needs a human review, and two runs on the same code do not
+give the same findings. Start the scans by hand at the cadence below, with
+**Build → Pipelines → Run pipeline** and the variables in the table. When the
+cost and the quality of the findings are known after some sprints, add a
+pipeline schedule.
 
 | Cadence | Where | `SCHEDULED` / action | Additional variables | Purpose |
 |---|---|---|---|---|
@@ -145,9 +162,19 @@ and set the variables per the table.
 | **Every sprint** | CI | `ai-security-scan-diff` | `SCAN_COMMIT_RANGE` covering the sprint's commits (triage runs by default) | Review what changed during the sprint and get a verified, ranked list to act on. |
 | **Every release** | CI | `ai-security-scan-full` | `TRIAGE=false` (default) | A full-tree sweep before shipping; leave the raw findings for a reviewer to go through (run `/triage` manually on the artifact if a pass is warranted). |
 
-For the sprint run, set `SCAN_COMMIT_RANGE` to the range of the sprint — for
-example the previous release tag (or the commit at the start of the sprint)
-up to `HEAD`, such as `v1.2.0..HEAD`.
+For example, at the end of each sprint, one team member runs the sprint scan
+on `main`. Set `SCAN_COMMIT_RANGE` to the last commit on `main` before the
+sprint, up to `HEAD`. On `main`, this range contains only the changes of the
+sprint. To find the commit:
+
+```bash
+git log --first-parent -1 --format=%H --until=<start-date-of-sprint> origin/main
+```
+
+For each HIGH or MEDIUM finding in the "Act on these" section of `TRIAGE.md`,
+create a Jira issue with the label `security_bevinding`. For a finding that is
+not valid, add a rule to `false-positives.md` in a merge request (see
+[Suppressing accepted findings](#suppressing-accepted-findings)).
 
 ## Reading the results
 

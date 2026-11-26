@@ -496,7 +496,7 @@ open class MobileActions {
     }
 
     protected fun waitForWebShadowElement(dataTestId: String) {
-        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_ELEMENT_MAX_WAIT_MILLIS))
+        val wait = WebDriverWait(driver, Duration.ofMillis(WAIT_FOR_WEB_WINDOW_MAX_WAIT_MILLIS))
         wait.until(ExpectedConditions.presenceOfElementLocated(By.tagName("nl-wallet-button")))
         val js = driver as JavascriptExecutor
         wait.until {

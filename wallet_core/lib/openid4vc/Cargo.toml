@@ -32,7 +32,7 @@ mock = [
     "wscd/mock",
 ]
 # Include miscellaneous test utilities
-test = ["dep:parking_lot", "jwt/test", "oauth/test", "tokio/test-util", "utils/mock_time", "wscd/mock"]
+test = ["dep:parking_lot", "jwt/test", "oauth/test", "tokio/macros", "tokio/test-util", "utils/mock_time", "wscd/mock"]
 # All features needed to run the integration test
 integration = ["mock", "test"]
 # Credential payload examples

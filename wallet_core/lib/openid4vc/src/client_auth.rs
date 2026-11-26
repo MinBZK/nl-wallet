@@ -1,4 +1,5 @@
 use error_category::ErrorCategory;
+use http::HeaderMap;
 use http::header::ACCEPT;
 use http_utils::reqwest::HttpClient;
 use indexmap::IndexSet;
@@ -77,63 +78,84 @@ pub fn check_client_attestation_metadata(
     Ok(())
 }
 
-/// The Attestation-Based Client Authentication challenge mechanism to be used during the Token Request.
+/// Source of the signed `challenge` claim in a wallet instance attestation proof of possession (WIA PoP).
+/// The wallet can use this source for a PAR or token request and persists it across the authorization redirect.
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClientAttestationChallengeMechanism {
     ChallengeEndpoint(Url),
     Header(Nonce),
     None,
+    /// Use this response header for the next PoP, then fetch from the endpoint unless another header arrives.
+    HeaderWithEndpoint {
+        header: Nonce,
+        endpoint: Url,
+    },
 }
 
 #[derive(Debug, thiserror::Error, ErrorCategory)]
 #[category(critical)]
 pub enum ClientAttestationChallengeMechanismError {
-    #[error("cannot use both a challenge endpoint and a header value for attestation-based client authentication")]
-    DoubleChallengeMechanism,
-
     #[error("OAuth-Client-Attestation-Challenge contained non-visible-ASCII bytes")]
     ChallengeHeaderNonVisibleAscii,
+    #[error("OAuth-Client-Attestation-Challenge is empty")]
+    EmptyChallengeHeader,
+    #[error("response contains multiple OAuth-Client-Attestation-Challenge headers")]
+    MultipleChallengeHeaders,
 }
 
 impl ClientAttestationChallengeMechanism {
-    /// Construct a new `ClientAttestationChallengeMechanism` during the Authorization Code Flow (ACF).
+    /// Select the token request's challenge source from server metadata and the successful PAR response.
     pub fn try_new_acf(
         challenge_endpoint: Option<Url>,
         http_response: &Response,
     ) -> Result<Self, ClientAttestationChallengeMechanismError> {
-        let header_value = http_response
-            .headers()
-            .get(WIA_CLIENT_CHALLENGE_HEADER_NAME)
-            .map(|value| {
-                Ok::<_, ClientAttestationChallengeMechanismError>(Nonce::from(
-                    value
-                        .to_str()
-                        .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)?
-                        .to_string(),
-                ))
-            })
-            .transpose()?;
+        let mechanism = challenge_endpoint.map_or(Self::None, Self::ChallengeEndpoint);
+        Ok(mechanism.after_response(attestation_challenge_from_headers(http_response.headers())?))
+    }
 
-        match (challenge_endpoint, header_value) {
-            (Some(_), Some(_)) => Err(ClientAttestationChallengeMechanismError::DoubleChallengeMechanism),
-            (None, None) => Ok(Self::None),
-            (None, Some(challenge)) => Ok(Self::Header(challenge)),
-            (Some(url), None) => Ok(Self::ChallengeEndpoint(url)),
+    /// A response header supplies the challenge for the next WIA PoP, even when the server advertises an endpoint.
+    /// After using that header, fetch from the endpoint again unless the server sends a replacement.
+    /// With header-only delivery, the last value is the only one available for a retry.
+    /// See [Attestation-Based Client Authentication §6](https://datatracker.ietf.org/doc/html/draft-ietf-oauth-attestation-based-client-auth-10#section-6).
+    pub(crate) fn after_response(self, header: Option<Nonce>) -> Self {
+        match (self, header) {
+            (Self::ChallengeEndpoint(endpoint) | Self::HeaderWithEndpoint { endpoint, .. }, Some(header)) => {
+                Self::HeaderWithEndpoint { header, endpoint }
+            }
+            (Self::HeaderWithEndpoint { endpoint, .. }, None) => Self::ChallengeEndpoint(endpoint),
+            (_, Some(header)) => Self::Header(header),
+            (mechanism, None) => mechanism,
         }
     }
 
-    /// Construct a new `ClientAttestationChallengeMechanism` during the Pre-Authorized Code Flow.
-    ///
-    /// In the Pre-Authorized Code Flow, no PAR request was sent whose response might have included a
-    /// challenge for Attestation-Based Client Authentication. So we can either use the challenge_endpoint,
-    /// if the issuer has one, or the issuer does not use WIA PoP challenges so we don't use one.
+    /// A pre-authorized token request has no preceding PAR response. Its first attempt can only obtain
+    /// a WIA challenge from the endpoint in server metadata.
     pub fn new_pre_authorized(challenge_endpoint: Option<Url>) -> Self {
         match challenge_endpoint {
             None => ClientAttestationChallengeMechanism::None,
             Some(url) => ClientAttestationChallengeMechanism::ChallengeEndpoint(url),
         }
     }
+}
+
+pub(crate) fn attestation_challenge_from_headers(
+    headers: &HeaderMap,
+) -> Result<Option<Nonce>, ClientAttestationChallengeMechanismError> {
+    let mut values = headers.get_all(WIA_CLIENT_CHALLENGE_HEADER_NAME).iter();
+    let Some(value) = values.next() else {
+        return Ok(None);
+    };
+    if values.next().is_some() {
+        return Err(ClientAttestationChallengeMechanismError::MultipleChallengeHeaders);
+    }
+    let challenge = value
+        .to_str()
+        .map_err(|_| ClientAttestationChallengeMechanismError::ChallengeHeaderNonVisibleAscii)?;
+    if challenge.trim().is_empty() {
+        return Err(ClientAttestationChallengeMechanismError::EmptyChallengeHeader);
+    }
+    Ok(Some(Nonce::from(challenge.to_owned())))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -236,15 +258,16 @@ mod tests {
     }
 
     #[test]
-    fn try_new_acf_double_challenge_mechanism() {
+    fn try_new_acf_preserves_header_and_endpoint_when_serialized() {
         let url: Url = "https://issuer.example.com/challenge".parse().unwrap();
-
-        let error =
-            ClientAttestationChallengeMechanism::try_new_acf(Some(url), &http_response(Some("the-nonce"))).unwrap_err();
-
+        let mechanism =
+            ClientAttestationChallengeMechanism::try_new_acf(Some(url.clone()), &http_response(Some("par-challenge")))
+                .unwrap();
+        let restored = serde_json::from_value(serde_json::to_value(mechanism).unwrap()).unwrap();
         assert_matches!(
-            error,
-            ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
+            restored,
+            ClientAttestationChallengeMechanism::HeaderWithEndpoint { header, endpoint }
+                if header.as_ref() == "par-challenge" && endpoint == url
         );
     }
 

@@ -2700,6 +2700,13 @@ class MockBluetooth extends _i1.Mock implements _i57.Bluetooth {
   ) as _i9.Future<bool>);
 
   @override
+  _i9.Stream<bool> observeEnabled() => (super.noSuchMethod(
+    Invocation.method(#observeEnabled, []),
+    returnValue: _i9.Stream<bool>.empty(),
+    returnValueForMissingStub: _i9.Stream<bool>.empty(),
+  ) as _i9.Stream<bool>);
+
+  @override
   _i9.Future<void> enable() => (super.noSuchMethod(
     Invocation.method(#enable, []),
     returnValue: _i9.Future<void>.value(),

@@ -13,7 +13,7 @@ vuln table, cluster vulns into threat classes, gap-fill with STRIDE, emit
 This mode is read-only static analysis. It is language-agnostic: the same five
 stages apply to C/C++, Rust, Go, Python, Java/Kotlin, JavaScript/TypeScript, or
 any combination. Do not build, run, or probe the target. The Bash tool is
-permitted only for `git` (history inspection), `find`/`ls` (layout), and `cat`
+permitted only for `git` (history inspection, without `-C`), `ls` (layout), and `cat`
 (reloading skill files when Read is evicted). Do not execute anything from
 inside `<target-dir>`. Pass this restriction verbatim in every subagent prompt.
 
@@ -104,7 +104,7 @@ is not worth it.
 | **Surface mapper** | Grep for entry-point signatures (table below). For each hit record: surface name, `file:function`, what crosses the boundary. Include supply-chain surfaces (lockfiles, vendored deps, `curl \| sh` in build scripts). Exclude `vendor/`, `node_modules/`, `third_party/`, generated code. Cap at ~5 representative hits per surface row. | Candidate section 3 rows: `{entry_point, description, trust_boundary, file_refs}`. |
 | **Infra reader** | Read deploy configuration: `*.tf` / `*.tfvars`, k8s manifests under `k8s/` / `deploy/` / `manifests/`, `Dockerfile*`, CI workflow files, and IAM / service-account / ACL files. For each: (a) the identity the workload runs as and what it can reach, (b) any grant not managed in this tree, (c) credentials that survive a teardown or migration. | Candidate section 3 rows for infra surfaces, plus candidate section 4 rows where a configuration is itself a finding. |
 | **Asset finder** | Identify what the code protects: secrets/keys, user records, databases, process integrity (always include for native code), service availability, and downstream embedder assets if the target is a library. | Candidate section 2 rows: `{asset, description, sensitivity}`. |
-| **History miner** | (a) Glance at the build manifest and file extensions to identify language and domain. Derive 6–10 commit-message search terms specific to that stack, on top of the base set `CVE- security vuln fix exploit`. Derive from what the code does, not from a lookup table. (b) Run: `git -C <target-dir> log --all -i --grep='<terms, \|-joined>' --oneline`, then read the full message and diff of each hit. Also grep any `issues/` or `bugs/` export present in the tree. | Vuln rows: `{id (commit hash), title, component, class, vector}`. |
+| **History miner** | (a) Glance at the build manifest and file extensions to identify language and domain. Derive 6–10 commit-message search terms specific to that stack, on top of the base set `CVE- security vuln fix exploit`. Derive from what the code does, not from a lookup table. (b) Run: `git log --all -i --grep='<terms, \|-joined>' --oneline`, then read the full message and diff of each hit. Also grep any `issues/` or `bugs/` export present in the tree. | Vuln rows: `{id (commit hash), title, component, class, vector}`. |
 | **Vuln-file parser** | Only spawn if `--vulns <path>` was provided. Parse the file into normalised rows from any of the four accepted formats. | Vuln rows: `{id, title, component, class, vector}`. |
 
 Surface-mapper grep targets — pass this table in the agent's prompt. Treat the
@@ -354,7 +354,7 @@ Set the `## 7. Provenance` section to:
 ```
 - mode: bootstrap
 - date: <today>
-- target: <target-dir> @ <git -C <target-dir> rev-parse --short HEAD, or "not a git repo">
+- target: <target-dir> @ <git rev-parse --short HEAD, or "not a git repo">
 - inputs: <--vulns path, or "git log mined">
 - owner: unset
 ```

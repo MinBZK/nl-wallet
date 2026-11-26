@@ -181,7 +181,7 @@ Write `<target-dir>/THREAT_MODEL.md` per `schema.md`. Set `## 7. Provenance`:
 ```
 - mode: interview
 - date: <today>
-- target: <target-dir> @ <git -C <target-dir> rev-parse HEAD, if available>
+- target: <target-dir> @ <git rev-parse HEAD, if available>
 - inputs: <design-doc path, or "none">; <seed path, or "none">
 - owner: <name the user gave, or "present, unnamed">
 ```

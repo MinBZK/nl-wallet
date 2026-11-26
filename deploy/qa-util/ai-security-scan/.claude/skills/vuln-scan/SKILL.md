@@ -8,18 +8,6 @@ description: >-
   "review this code for security issues", "find bugs in <dir>", or as the
   step between /threat-model and /triage.
 argument-hint: "<target-dir> [--focus <area>] [--exclude <path>] [--single] [--extra <file>] [--no-score]"
-allowed-tools:
-  - Read
-  - Glob
-  - Grep
-  - Write
-  - Task
-  - Bash(rg:*)
-  - Bash(grep:*)
-  - Bash(ls:*)
-  - Bash(wc:*)
-  - Bash(head:*)
-  - Bash(file:*)
 ---
 
 # /vuln-scan
@@ -32,9 +20,8 @@ reproduction or build-time verification is out of scope; that belongs in a
 controlled manual test by a human.
 
 **Tool fallbacks.** Prefer the built-in Glob and Grep tools. When they are
-unavailable, use the Bash fallbacks listed in `allowed-tools`: `rg --files`
-or `ls -R` to enumerate, `rg -n` or `grep -rn` to search, `wc`/`head`/`file`
-to inspect. Do not write helper scripts or pipe target content into a shell
+unavailable, use the Bash fallbacks that `.claude/settings.json` allows: `ls -R` to
+enumerate, `grep -rn` to search, `wc`/`head`/`file` to inspect. Do not write helper scripts or pipe target content into a shell
 interpreter.
 
 ## Arguments
@@ -215,7 +202,7 @@ file, line) and reassign ids `F-001..`. Track `low_confidence_count`
 
 ## Step 4 — Write output
 
-Write both files to `<target-dir>/`:
+Write both files to the current directory (`./`):
 
 **`VULN-FINDINGS.json`**
 
@@ -254,7 +241,7 @@ Report to the user:
 1. Counts: N findings (H/M/L split, X low-confidence), across K focus areas,
    from M source files. Name any excluded paths and the files they skipped.
 2. Top 3 by confidence, one line each.
-3. Suggested next step: `/triage <target-dir>/VULN-FINDINGS.json --repo <target-dir>`
+3. Suggested next step: `/triage VULN-FINDINGS.json --repo <target-dir>`
 4. Reminder: findings are static candidates, not verified.
 
 ## Constraints

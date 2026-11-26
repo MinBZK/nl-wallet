@@ -58,7 +58,7 @@ use web_utils::headers::set_static_cache_control;
 use web_utils::language::LANGUAGE_JS_SHA256;
 use web_utils::language::Language;
 
-use crate::settings::IssuableDocumentTemplates;
+use crate::settings::IssuableDocumentTemplate;
 use crate::settings::Settings;
 use crate::settings::Usecase;
 use crate::translations::TRANSLATIONS;
@@ -340,7 +340,7 @@ async fn pre_authorized_usecase(
     pacf_issuance_server_url: &BaseUrl,
     usecase: &str,
     selected_lang: Language,
-    data: &IssuableDocumentTemplates,
+    data: &VecNonEmpty<IssuableDocumentTemplate>,
     help_base_url: Url,
 ) -> Result<Response> {
     let documents = data
@@ -420,18 +420,16 @@ async fn attestation(
 
     let documents: Vec<IssuableDocument> = data
         .get(attribute_text.as_str())
-        .map(|docs| {
-            docs.iter()
-                .cloned()
-                .map(|doc| {
-                    let (credential_kind, attribute) = doc.into();
-                    IssuableDocument::try_new_with_random_id(credential_kind, attribute)
-                        .map_err(|err| anyhow::Error::from(err).into())
-                })
-                .collect::<Result<Vec<_>>>()
+        .or_else(|| data.get("default"))
+        .into_iter()
+        .flatten()
+        .cloned()
+        .map(|doc| {
+            let (credential_kind, attributes) = doc.into();
+            IssuableDocument::try_new_with_random_id(credential_kind, attributes)
+                .map_err(|err| anyhow::Error::from(err).into())
         })
-        .transpose()?
-        .unwrap_or_default();
+        .collect::<Result<_>>()?;
 
     Ok(Json(documents).into_response())
 }
