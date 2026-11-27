@@ -7,11 +7,10 @@
   />
   <TaskCard class="reason-card">
     <ReasonInput
-      :model-value="modelValue"
+      v-model="reason"
       placeholder="Leg uit waarom deze taak nodig is."
       required
       autofocus
-      @update:model-value="emit('update:modelValue', $event)"
     />
   </TaskCard>
 </template>
@@ -21,14 +20,11 @@ import TaskStepHeader from './TaskStepHeader.vue'
 import TaskCard from '@/components/tasks/TaskCard.vue'
 import ReasonInput from '@/components/ui/ReasonInput.vue'
 
+const reason = defineModel<string>({ required: true })
+
 defineProps<{
   stepNumber: number
   totalSteps: number
-  modelValue: string
-}>()
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
 }>()
 </script>
 
