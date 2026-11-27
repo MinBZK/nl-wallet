@@ -98,8 +98,9 @@
   opens it, for example "5 from Address" instead of "5 data from Address".
 - The card details of the PID no longer show a large gap between the "Replace
   card via DigiD" and "Back" buttons.
-- The NL Wallet logo on the revocation portal, the demo pages and the admin
-  portal is no longer blurry in Safari on iOS.
+- The NL Wallet logo on the revocation portal, the admin portal, the demo pages
+  and `wallet_web` (on high-resolution screens) is no longer blurry in Safari
+  on iOS.
 
 ## Wallet app improvements
 
