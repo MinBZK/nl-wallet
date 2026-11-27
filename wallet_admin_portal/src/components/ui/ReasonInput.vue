@@ -8,24 +8,24 @@
       id="reason"
       ref="reasonInput"
       class="reason-input"
-      :value="modelValue"
+      v-model="reason"
       maxlength="500"
       :placeholder="placeholder"
       :required="required"
       :disabled="disabled"
       aria-describedby="reason-counter"
-      @input="emit('update:modelValue', ($event.target as HTMLTextAreaElement).value)"
     />
-    <p id="reason-counter" class="counter" aria-live="polite">{{ modelValue.length }}/500</p>
+    <p id="reason-counter" class="counter" aria-live="polite">{{ reason.length }}/500</p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
+const reason = defineModel<string>({ required: true })
+
 const props = withDefaults(
   defineProps<{
-    modelValue: string
     placeholder?: string
     required?: boolean
     autofocus?: boolean
@@ -38,10 +38,6 @@ const props = withDefaults(
     disabled: false,
   },
 )
-
-const emit = defineEmits<{
-  'update:modelValue': [value: string]
-}>()
 
 const reasonInput = ref<HTMLTextAreaElement | null>(null)
 
