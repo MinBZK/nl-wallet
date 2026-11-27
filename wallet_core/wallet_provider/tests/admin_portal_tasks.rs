@@ -37,7 +37,6 @@ use wallet_provider::admin_portal::SESSION_ID_COOKIE;
 use wallet_provider::admin_portal::TaskResponse;
 use wallet_provider::admin_portal::WithdrawTaskRequest;
 use wallet_provider::test_support::TestState;
-use wallet_provider::test_support::post_json_request;
 use wallet_provider::test_support::post_json_request_with_csrf;
 use wallet_provider::test_support::setup_state;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
@@ -287,15 +286,9 @@ async fn test_check_wallet_succeeds() {
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
     let wallet_id = seed_wallet(&repositories).await;
 
-    let request = Request::builder()
-        .method("POST")
-        .uri("/wallets/check")
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(
-            serde_json::to_string(&CheckWalletRequest { wallet_id }).unwrap(),
-        ))
-        .unwrap();
+    let token = csrf_token(&app, &cookie).await;
+
+    let request = post_json_request_with_csrf("/wallets/check", &cookie, &token, &CheckWalletRequest { wallet_id });
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -311,13 +304,9 @@ async fn test_check_wallet_bad_request() {
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::RevokeWallet]).await;
 
-    let request = Request::builder()
-        .method("POST")
-        .uri("/wallets/check")
-        .header(header::COOKIE, cookie)
-        .header(header::CONTENT_TYPE, "application/json")
-        .body(Body::from(json!({ "walletId": 3 }).to_string()))
-        .unwrap();
+    let token = csrf_token(&app, &cookie).await;
+
+    let request = post_json_request_with_csrf("/wallets/check", &cookie, &token, &json!({ "walletId": 3 }));
 
     let response = app.oneshot(request).await.unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
@@ -334,9 +323,12 @@ async fn test_check_recovery_code_counts_active_and_inactive_wallets() {
     let revoked_wallet = seed_wallet_with_recovery_code(&repositories, &recovery_code).await;
     revoke_wallet(&repositories, &revoked_wallet).await;
 
-    let request = post_json_request(
+    let token = csrf_token(&app, &cookie).await;
+
+    let request = post_json_request_with_csrf(
         "/recovery-codes/check",
         &cookie,
+        &token,
         &CheckRecoveryCodeRequest {
             recovery_code: RecoveryCode::from(recovery_code),
         },
@@ -358,9 +350,12 @@ async fn test_check_recovery_code_unknown_returns_unknown_status() {
     let alice = TestUser::new("alice");
     let cookie = seed_session(&repositories, &alice, &[TaskType::BlockUser]).await;
 
-    let request = post_json_request(
+    let token = csrf_token(&app, &cookie).await;
+
+    let request = post_json_request_with_csrf(
         "/recovery-codes/check",
         &cookie,
+        &token,
         &CheckRecoveryCodeRequest {
             recovery_code: RecoveryCode::from(new_recovery_code()),
         },
@@ -427,9 +422,10 @@ async fn test_block_user_task_approval_revokes_wallet() {
     assert_eq!(task.execution_details, Some("revoked 1 wallet(s)".to_string()));
 
     // The wallet is now revoked, so the recovery code has no active wallets left.
-    let request = post_json_request(
+    let request = post_json_request_with_csrf(
         "/recovery-codes/check",
         &cookie,
+        &token,
         &CheckRecoveryCodeRequest {
             recovery_code: RecoveryCode::from(recovery_code),
         },

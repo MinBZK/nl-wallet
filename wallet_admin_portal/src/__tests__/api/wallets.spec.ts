@@ -1,29 +1,39 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { clearCsrfToken } from '@/api/csrf.ts'
 import { findWallet } from '@/api/wallets.ts'
 
+const CSRF_TOKEN = 'csrf-token'
+
+/** Stubs fetch to answer the CSRF token request, and the wallet check with [status] and [body]. */
 function stubFetch(status: number, body?: unknown) {
   const fetchMock = vi.fn<(input: string | URL | Request, init?: RequestInit) => Promise<unknown>>(
-    async () => ({ status, ok: status >= 200 && status < 300, json: async () => body }),
+    async (input) => {
+      if (String(input) === '/admin-portal/api/csrf-token') {
+        return { status: 200, ok: true, json: async () => ({ csrfToken: CSRF_TOKEN }) }
+      }
+      return { status, ok: status >= 200 && status < 300, json: async () => body }
+    },
   )
   vi.stubGlobal('fetch', fetchMock)
   return fetchMock
 }
 
 afterEach(() => {
+  clearCsrfToken()
   vi.unstubAllGlobals()
 })
 
 describe('wallets api', () => {
-  it('posts the wallet ID and returns a revokable wallet', async () => {
+  it('posts the wallet ID with the CSRF token and returns a revokable wallet', async () => {
     const fetchMock = stubFetch(200, { status: 'revokable' })
 
     const wallet = await findWallet('a/b c')
 
-    expect(fetchMock.mock.calls[0]).toEqual([
+    expect(fetchMock.mock.calls.at(-1)).toEqual([
       '/admin-portal/wallets/check',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': CSRF_TOKEN },
         body: JSON.stringify({ walletId: 'a/b c' }),
       },
     ])

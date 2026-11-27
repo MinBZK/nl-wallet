@@ -623,7 +623,7 @@ pub struct CheckWalletResponse {
 
 async fn check_wallet(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     request: Result<Json<CheckWalletRequest>, JsonRejection>,
 ) -> Result<Json<CheckWalletResponse>, WalletApiError> {
     let Json(request) = request.map_err(WalletApiError::InvalidRequest)?;
@@ -704,7 +704,7 @@ pub struct CheckRecoveryCodeRequest {
 /// proposed HTTP QUERY method, but that is not yet widely available.
 async fn check_recovery_code(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     request: Result<Json<CheckRecoveryCodeRequest>, JsonRejection>,
 ) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
     let Json(request) = request.map_err(RecoveryCodeApiError::InvalidRequest)?;
@@ -947,7 +947,7 @@ mod http_tests {
 
     use super::*;
     use crate::test_support::TestState;
-    use crate::test_support::post_json_request;
+    use crate::test_support::post_json_request_with_csrf;
     use crate::test_support::setup_state;
 
     async fn setup_state_with_database_errors() -> TestState {
@@ -1267,7 +1267,7 @@ mod http_tests {
         let state = setup_state().await;
         check_wallet(
             State(Arc::clone(&state)),
-            AuthenticatedAdminUser(LoggedInUser {
+            CsrfProtectedAdminUser(LoggedInUser {
                 user_id: "alice".to_owned(),
                 display_name: "Alice".to_owned(),
                 privileges,
@@ -1294,9 +1294,14 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn check_recovery_code_response_status(#[case] body: Value, #[case] status: StatusCode) {
-        let (state, jar, _) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
+        let (state, jar, session) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
 
-        let request = post_json_request("/recovery-codes/check", &session_cookie_header(&jar), &body);
+        let request = post_json_request_with_csrf(
+            "/recovery-codes/check",
+            &session_cookie_header(&jar),
+            session.csrf_token.as_ref(),
+            &body,
+        );
         let response = router(Arc::clone(&state)).oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), status);
