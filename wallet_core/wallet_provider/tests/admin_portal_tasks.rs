@@ -85,12 +85,6 @@ async fn test_admin_portal_app() -> (Router, Repositories, TestState) {
     )
 }
 
-/// Inserts a session for `user`, authorized for `privileges`, and returns the session cookie header value.
-async fn seed_session_cookie(repositories: &Repositories, user: &TestUser, privileges: &[TaskType]) -> String {
-    let session_id = seed_session(repositories, user, privileges).await;
-    format!("{SESSION_ID_COOKIE}={session_id}")
-}
-
 async fn seed_session(repositories: &Repositories, user: &TestUser, privileges: &[TaskType]) -> String {
     let session_id = Uuid::new_v4().to_string();
     repositories
