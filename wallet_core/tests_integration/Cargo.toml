@@ -246,7 +246,6 @@ performance_test = [
     "dep:tempfile",
     "dep:url",
     "dep:utils",
-    "dep:verification_server",
     "fake_auth",
     "logging",
     "openid4vc_server/disclosure",
