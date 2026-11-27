@@ -849,7 +849,7 @@ pub fn mock_issuance_session(
             .times(1)
             .return_once(|_max_copy_count| {
                 // This mock function only ever returns one credential copy, so we can ignore `max_copy_count`.
-                Ok(credentials_with_metadata)
+                Ok(credentials_with_metadata.try_into().unwrap())
             });
     }
 

@@ -1,6 +1,7 @@
 import { TaskActionType } from '@/types/task-action.ts'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 import type { TaskPayload } from '@/types/task-payload.ts'
+import { formatUserCount } from '@/utils/userCount.ts'
 import { formatWalletIdCount } from '@/utils/walletIdCount.ts'
 
 export interface TaskPayloadRows {
@@ -13,17 +14,31 @@ export interface TaskPayloadRows {
 /**
  * Resolves a short description of what [payload] targets.
  *
- * Block and unblock tasks do not expose their target yet, so these resolve to null.
- * TODO(Anyone): derive the target summary from the task parameters, see PVW-6177 and PVW-6176.
+ * Unblock tasks do not expose their target yet, so these resolve to null.
+ * TODO(Anyone): derive the target summary from the task parameters, see PVW-6177.
  */
 export function taskTargetSummary(payload: TaskPayload): string | null {
   switch (payload.taskType) {
     case TaskActionType.RevokeWallet:
       return formatWalletIdCount(payload.taskParameters.walletIds.length)
+    case TaskActionType.BlockUser:
+      return formatUserCount(payload.taskParameters.recoveryCodes.length)
     case TaskActionType.RevokeSolution:
       return 'Alle wallets'
     default:
       return null
+  }
+}
+
+/** Resolves the rows listing everything [payload] targets; these depend on the task type. */
+function taskSelectionRows(payload: TaskPayload): TaskDetailRow[] {
+  switch (payload.taskType) {
+    case TaskActionType.RevokeWallet:
+      return [{ label: "Wallet-ID's", value: payload.taskParameters.walletIds }]
+    case TaskActionType.BlockUser:
+      return [{ label: 'Herstelcodes', value: payload.taskParameters.recoveryCodes }]
+    default:
+      return []
   }
 }
 
@@ -32,9 +47,6 @@ export function taskPayloadRows(payload: TaskPayload): TaskPayloadRows {
   const targetSummary = taskTargetSummary(payload)
   return {
     summaryRows: targetSummary === null ? [] : [{ label: 'Doel:', value: targetSummary }],
-    selectionRows:
-      payload.taskType === TaskActionType.RevokeWallet
-        ? [{ label: "Wallet-ID's", value: payload.taskParameters.walletIds }]
-        : [],
+    selectionRows: taskSelectionRows(payload),
   }
 }

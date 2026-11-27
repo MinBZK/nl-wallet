@@ -78,6 +78,45 @@ void main() {
       await screenMatchesGolden('success.renewable.light');
     });
 
+    testGoldens('ltc25 CardDetailLoadSuccess - renewable card - dark', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(isPidCard: true),
+        ),
+        brightness: Brightness.dark,
+      );
+      await screenMatchesGolden('success.renewable.dark');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess - renewable card - scaled', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(isPidCard: true),
+        ),
+        textScaleSize: 2,
+      );
+      await screenMatchesGolden('success.renewable.scaled');
+    });
+
+    testGoldens('ltc25 CardDetailLoadSuccess - renewable card - landscape', (tester) async {
+      await tester.pumpWidgetWithAppWrapper(
+        CardDetailScreen(
+          cardTitle: WalletMockData.card.title.testValue,
+        ).withState<CardDetailBloc, CardDetailState>(
+          MockCardSummaryBloc(),
+          cardDetailLoadSuccessMock(isPidCard: true),
+        ),
+        surfaceSize: iphoneXSizeLandscape,
+      );
+      await screenMatchesGolden('success.renewable.landscape');
+    });
+
     testGoldens('ltc25 CardDetailLoadInProgress light', (tester) async {
       await tester.pumpWidgetWithAppWrapper(
         CardDetailScreen(

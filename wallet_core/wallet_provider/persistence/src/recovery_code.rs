@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use sea_orm::ActiveValue::NotSet;
 use sea_orm::ColumnTrait;
 use sea_orm::ConnectionTrait;
@@ -93,19 +95,45 @@ where
         .map_err(PersistenceError::Execution)
 }
 
-pub async fn set_allowed<S, T>(db: &T, recovery_code: &RecoveryCode) -> Result<bool, PersistenceError>
+pub async fn set_allowed_many<S, T>(
+    db: &T,
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+) -> Result<u64, PersistenceError>
 where
     S: ConnectionTrait,
     T: PersistenceConnection<S>,
 {
     let result = recovery_code::Entity::update_many()
         .col_expr(recovery_code::Column::IsDenied, Expr::value(false))
-        .filter(recovery_code::Column::RecoveryCode.eq(recovery_code.as_ref()))
+        .filter(recovery_code::Column::IsDenied.eq(true))
+        .filter(recovery_code::Column::RecoveryCode.is_in(recovery_codes.iter().map(AsRef::as_ref)))
         .exec(db.connection())
         .await
         .map_err(PersistenceError::Execution)?;
 
-    Ok(result.rows_affected == 1)
+    Ok(result.rows_affected)
+}
+
+pub async fn find_denied_recovery_codes<S, T>(
+    db: &T,
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+) -> Result<HashSet<RecoveryCode>, PersistenceError>
+where
+    S: ConnectionTrait,
+    T: PersistenceConnection<S>,
+{
+    Ok(recovery_code::Entity::find()
+        .select_only()
+        .select_column(recovery_code::Column::RecoveryCode)
+        .filter(recovery_code::Column::IsDenied.eq(true))
+        .filter(recovery_code::Column::RecoveryCode.is_in(recovery_codes.iter().map(AsRef::as_ref)))
+        .into_tuple::<String>()
+        .all(db.connection())
+        .await
+        .map_err(PersistenceError::Execution)?
+        .into_iter()
+        .map(Into::into)
+        .collect::<HashSet<RecoveryCode>>())
 }
 
 pub async fn list<S, T>(db: &T) -> Result<Vec<RecoveryCode>, PersistenceError>

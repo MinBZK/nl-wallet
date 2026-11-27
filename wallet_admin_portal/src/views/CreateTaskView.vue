@@ -12,6 +12,18 @@
         @search="introError = null"
       />
 
+      <SelectRecoveryCodesStep
+        v-else-if="step === 'intro' && type === TaskActionType.BlockUser"
+        ref="recoveryCodesStep"
+        v-model="selectedRecoveryCodes"
+        :step-number="stepNumber"
+        :total-steps="totalSteps"
+        :title="action.header"
+        :description="action.description"
+        :error="introError"
+        @search="introError = null"
+      />
+
       <template v-else-if="step === 'intro'">
         <TaskStepHeader
           :step-number="stepNumber"
@@ -62,7 +74,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch, watchEffect } from 'vue'
+import { computed, onBeforeUnmount, ref, useTemplateRef, watch, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { usePageTitle } from '@/composables/pageTitle.ts'
 import { useNavigation } from '@/composables/navigation.ts'
@@ -71,12 +83,14 @@ import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
 import AddReasonStep from '@/components/create-task/AddReasonStep.vue'
 import CheckTaskStep from '@/components/create-task/CheckTaskStep.vue'
 import SelectWalletsStep from '@/components/create-task/SelectWalletsStep.vue'
+import SelectRecoveryCodesStep from '@/components/create-task/SelectRecoveryCodesStep.vue'
 import TaskCreatedStep from '@/components/create-task/TaskCreatedStep.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import TaskCard from '@/components/tasks/TaskCard.vue'
 import { TASK_ACTION_INFO, TaskActionType } from '@/types/task-action.ts'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 import type { TaskPayload } from '@/types/task-payload.ts'
+import type { RecoveryCode } from '@/types/recovery-code.ts'
 import type { Wallet } from '@/types/wallet.ts'
 import { createTask } from '@/api/tasks.ts'
 import { taskPayloadRows } from '@/utils/taskPayloadRows.ts'
@@ -102,6 +116,8 @@ const { goBackOrHome, goHome } = useNavigation()
 const step = ref<WizardStep>('intro')
 const reason = ref('')
 const selectedWallets = ref<Wallet[]>([])
+const selectedRecoveryCodes = ref<RecoveryCode[]>([])
+const recoveryCodesStep = useTemplateRef('recoveryCodesStep')
 const introError = ref<string | null>(null)
 const taskId = ref<string | null>(null)
 const isCreatingTask = ref(false)
@@ -123,6 +139,16 @@ const taskDraft = computed((): TaskDraft => {
       introStepError:
         walletIds.length === 0
           ? 'Om verder te gaan, moet je minimaal één wallet toevoegen aan de lijst.'
+          : null,
+    }
+  }
+  if (type.value === TaskActionType.BlockUser) {
+    const recoveryCodes = selectedRecoveryCodes.value.map((recoveryCode) => recoveryCode.code)
+    return {
+      payload: { taskType: TaskActionType.BlockUser, taskParameters: { recoveryCodes } },
+      introStepError:
+        recoveryCodes.length === 0
+          ? 'Om verder te gaan, moet je minimaal één gebruiker toevoegen aan de lijst.'
           : null,
     }
   }
@@ -157,7 +183,7 @@ watchEffect(() => {
   if (!action.value) return
   setPageTitle(pageTitle.value)
 })
-watch(selectedWallets, () => {
+watch([selectedWallets, selectedRecoveryCodes], () => {
   introError.value = null
 })
 onBeforeUnmount(resetPageTitle)
@@ -189,7 +215,10 @@ async function handleNext() {
   }
   if (step.value === 'intro') {
     introError.value = taskDraft.value.introStepError
-    if (introError.value) return
+    if (introError.value) {
+      recoveryCodesStep.value?.focus()
+      return
+    }
   }
   step.value = STEP_ORDER[STEP_ORDER.indexOf(step.value) + 1]!
 }

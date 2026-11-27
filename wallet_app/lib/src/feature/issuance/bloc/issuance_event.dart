@@ -48,17 +48,33 @@ class IssuanceShareRequestedAttributesDeclined extends IssuanceEvent {
   const IssuanceShareRequestedAttributesDeclined();
 }
 
+/// The PIN was validated and the attributes were disclosed, [result] holds the outcome.
 class IssuancePinForDisclosureConfirmed extends IssuanceEvent {
+  final DiscloseForIssuanceResult result;
+
+  const IssuancePinForDisclosureConfirmed({required this.result});
+
+  @override
+  List<Object?> get props => [result];
+}
+
+class IssuancePinForIssuanceConfirmed extends IssuanceEvent {
+  const IssuancePinForIssuanceConfirmed();
+}
+
+/// The PIN was validated and the cards were retrieved from an issuer that does not provide previews.
+class IssuancePinToRetrieveCardsConfirmed extends IssuanceEvent {
   final List<WalletCard> cards;
 
-  const IssuancePinForDisclosureConfirmed({required this.cards});
+  const IssuancePinToRetrieveCardsConfirmed({required this.cards});
 
   @override
   List<Object?> get props => [cards];
 }
 
-class IssuancePinForIssuanceConfirmed extends IssuanceEvent {
-  const IssuancePinForIssuanceConfirmed();
+/// The user accepted the cards that were retrieved from an issuer that does not provide previews.
+class IssuanceRetrievedCardsApproved extends IssuanceEvent {
+  const IssuanceRetrievedCardsApproved();
 }
 
 class IssuanceApproveCards extends IssuanceEvent {

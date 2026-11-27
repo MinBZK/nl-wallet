@@ -1,9 +1,9 @@
-import '../../model/attribute/attribute.dart';
+import '../../model/issuance/continue_pid_issuance_result.dart';
 import '../../model/result/result.dart';
 import '../wallet_usecase.dart';
 
-typedef PreviewAttributes = List<Attribute>;
+export '../../model/issuance/continue_pid_issuance_result.dart';
 
 abstract class ContinuePidIssuanceUseCase extends WalletUseCase {
-  Future<Result<PreviewAttributes>> invoke(String uri);
+  Future<Result<ContinuePidIssuanceResult>> invoke(String uri);
 }

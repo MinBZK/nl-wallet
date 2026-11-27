@@ -18,6 +18,7 @@ use wallet_provider_domain::model::admin_task::TaskListView;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
+use wallet_provider_domain::model::admin_task::UnblockUserParameters;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::repository::PersistenceError;
 use wallet_provider_persistence::admin_task;
@@ -65,7 +66,14 @@ fn task_payload(task_type: TaskType) -> TaskPayload {
             ]
             .into(),
         }),
-        TaskType::UnblockUser => TaskPayload::UnblockUser {},
+        TaskType::UnblockUser => TaskPayload::UnblockUser(UnblockUserParameters {
+            recovery_codes: vec_nonempty![
+                "54aa94af2afc4da286967253a33a61410f0d069c0d77ff748fd83e9fc82c7526"
+                    .to_string()
+                    .into()
+            ]
+            .into(),
+        }),
         TaskType::RevokeSolution => TaskPayload::RevokeSolution {},
     }
 }
@@ -262,8 +270,17 @@ impl TestDatabase {
 
 #[rstest]
 #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
-async fn test_insert_and_find_task_by_id(#[future(awt)] db: TestDatabase) {
-    let create = task_create(&ALICE, minutes(0), TaskType::RevokeWallet);
+async fn test_insert_and_find_task_by_id(
+    #[future(awt)] db: TestDatabase,
+    #[values(
+        TaskType::RevokeWallet,
+        TaskType::BlockUser,
+        TaskType::UnblockUser,
+        TaskType::RevokeSolution
+    )]
+    task_type: TaskType,
+) {
+    let create = task_create(&ALICE, minutes(0), task_type);
 
     assert_eq!(db.find(create.id).await.expect("should query task"), None);
 

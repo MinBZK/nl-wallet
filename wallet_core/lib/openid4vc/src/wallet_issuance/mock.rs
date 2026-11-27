@@ -178,7 +178,7 @@ mockall::mock! {
         pub fn accept(
             &self,
             max_copy_count: NonZeroU8,
-        ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError>;
+        ) -> Result<VecNonEmpty<CredentialWithMetadata>, WalletIssuanceError>;
 
         pub fn credential_previews(&self) -> &MockIssuanceSessionCredentialPreviews;
 
@@ -193,7 +193,7 @@ impl IssuanceSession for MockIssuanceSession {
         _trust_anchors: AcceptIssuanceTrustAnchors<'a>,
         _wscd: &W,
         _time: &G,
-    ) -> Result<Vec<CredentialWithMetadata>, WalletIssuanceError> {
+    ) -> Result<VecNonEmpty<CredentialWithMetadata>, WalletIssuanceError> {
         self.accept(max_copy_count)
     }
 

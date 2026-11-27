@@ -44,7 +44,7 @@ impl From<wallet::IssuanceContinueResult> for IssuanceContinueResult {
 pub enum DisclosureBasedIssuanceResult {
     NoIssuableAttestations,
     Previews(Vec<AttestationPresentation>),
-    NoPreviews { issuer: Organization },
+    IssuedForReview(Vec<AttestationPresentation>),
 }
 
 impl From<wallet::DisclosureBasedIssuanceResult> for DisclosureBasedIssuanceResult {
@@ -56,9 +56,11 @@ impl From<wallet::DisclosureBasedIssuanceResult> for DisclosureBasedIssuanceResu
             wallet::DisclosureBasedIssuanceResult::Previews(attestations) => DisclosureBasedIssuanceResult::Previews(
                 attestations.into_iter().map(AttestationPresentation::from).collect(),
             ),
-            wallet::DisclosureBasedIssuanceResult::NoPreviews { issuer } => DisclosureBasedIssuanceResult::NoPreviews {
-                issuer: (*issuer).into(),
-            },
+            wallet::DisclosureBasedIssuanceResult::IssuedForReview(attestations) => {
+                DisclosureBasedIssuanceResult::IssuedForReview(
+                    attestations.into_iter().map(AttestationPresentation::from).collect(),
+                )
+            }
         }
     }
 }

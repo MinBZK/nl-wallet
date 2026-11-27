@@ -45,6 +45,19 @@
     "university_mdoc": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY}",
       "data": {
+        "default": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": { "type": "text", "value": "Demo University" },
+              "education": { "type": "text", "value": "BSc Computer Science" },
+              "graduation_date": { "type": "text", "value": "2020-07-01" },
+              "grade": { "type": "number", "value": 8 },
+              "cum_laude": { "type": "bool", "value": false }
+            }
+          }
+        ],
         "999991772": [
           {
             "format": "dc+sd-jwt",
@@ -91,6 +104,19 @@
     "university_sd_jwt": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_UNIVERSITY}",
       "data": {
+        "default": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "com.example.degree",
+            "attributes": {
+              "university": { "type": "text", "value": "Demo University" },
+              "education": { "type": "text", "value": "BSc Computer Science" },
+              "graduation_date": { "type": "text", "value": "2020-07-01" },
+              "grade": { "type": "number", "value": 8 },
+              "cum_laude": { "type": "bool", "value": false }
+            }
+          }
+        ],
         "999991772": [
           {
             "format": "dc+sd-jwt",
@@ -137,6 +163,35 @@
     "housing": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_HOUSING}",
       "data": {
+        "default": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "com.example.housing",
+            "attributes": {
+              "rent": { "type": "text", "value": "€ 750,00" },
+              "service_charges": { "type": "text", "value": "€ 45,00" },
+              "eligible_service_charges": { "type": "text", "value": "€ 30,00" },
+              "rental_object": { "type": "object", "value": {
+                "bag_id": { "type": "text", "value": "0000000000000000" },
+                "street_name": { "type": "text", "value": "Demostraat" },
+                "house_number": { "type": "text", "value": "10" },
+                "house_number_suffix": { "type": "null" },
+                "room_number": { "type": "null" },
+                "zip_code": { "type": "text", "value": "1234AB" },
+                "city": { "type": "text", "value": "Demodam" }
+              }},
+              "rental_contract": { "type": "object", "value": {
+                "start_date": { "type": "text", "value": "2025-12-01" },
+                "end_date": { "type": "null" },
+                "duration_in_months": { "type": "number", "value": 12 }
+              }},
+              "rental_organization": { "type": "object", "value": {
+                "name": { "type": "text", "value": "Demo Wonen" },
+                "kvk_number": { "type": "text", "value": "00000000" }
+              }}
+            }
+          }
+        ],
         "999991772": [
           {
             "format": "dc+sd-jwt",
@@ -204,6 +259,25 @@
     "dezi": {
       "client_id": "${DEMO_ISSUER_CLIENT_ID_DEZI}",
       "data": {
+        "default": [
+          {
+            "format": "dc+sd-jwt",
+            "attestation_type": "https://www.dezi.nl/vct/v1/deziVerklaringDcSdJwt",
+            "attributes": {
+              "loa_dezi": { "type": "text", "value": "http://eidas.europa.eu/LoA/high" },
+              "verklaring_id": { "type": "text", "value": "a53fcdef-395b-4c40-9cc2-b2dc00a0bf05" },
+              "dezi_nummer": { "type": "text", "value": "900000001" },
+              "voorletters": { "type": "text", "value": "D." },
+              "voorvoegsel": { "type": "null" },
+              "achternaam": { "type": "text", "value": "Demo" },
+              "abonnee_nummer": { "type": "text", "value": "90000001" },
+              "abonnee_naam": { "type": "text", "value": "Demo Zorg" },
+              "rol_code": { "type": "text", "value": "17.060" },
+              "rol_naam": { "type": "text", "value": "Ziekenhuisapotheker" },
+              "rol_code_bron": { "type": "text", "value": "http://www.dezi.nl/rol_code_bron/big" }
+            }
+          }
+        ],
         "950273089": [
           {
             "format": "dc+sd-jwt",

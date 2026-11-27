@@ -62,6 +62,7 @@ class GenericIssuanceTests : TestBase() {
         cardIssuanceScreen.continueIssuance()
         pinScreen.enterPin(DEFAULT_PIN)
 
+        cardIssuanceScreen.clickAddCardButton()
         cardIssuanceScreen.clickToDashboardButton()
         assertTrue(dashboardScreen.cardVisible(tasData.getLoyaltyDisplayName()), "Loyalty card not visible on dashboard")
         dashboardScreen.scrollToEndOfScreen()
@@ -89,6 +90,7 @@ class GenericIssuanceTests : TestBase() {
         cardIssuanceScreen.continueIssuance()
         pinScreen.enterPin(DEFAULT_PIN)
 
+        cardIssuanceScreen.clickAddCardButton()
         cardIssuanceScreen.clickToDashboardButton()
         dashboardScreen.scrollToEndOfScreen()
         assertTrue(dashboardScreen.cardVisible(tasData.getInsuranceDisplayName()), "Insurance card not visible on dashboard")

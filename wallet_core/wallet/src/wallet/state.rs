@@ -234,7 +234,9 @@ where
     }
 
     /// Checks the common preconditions for session (issuance/disclosure)-related operations: version not blocked,
-    /// configuration not expired, wallet registered, and wallet not locked.
+    /// configuration not expired, wallet registered, and wallet not locked. Only local state is checked, so this is
+    /// meant for operations that do not send an instruction to the Wallet Provider. Those that do use
+    /// [`Self::check_instruction_preconditions`] instead.
     pub(super) fn check_session_preconditions(&self) -> Result<(), CheckPreconditionsError>
     where
         CR: Repository<Arc<WalletConfiguration>>,
@@ -254,7 +256,11 @@ where
         Ok(())
     }
 
-    pub(super) async fn check_accept_session_preconditions(
+    /// Checks the preconditions for session (issuance/disclosure)-related operations that send an instruction to the
+    /// Wallet Provider. Performs the same checks as [`Self::check_session_preconditions`], and it fetches the latest
+    /// update policy, so that a blocked version is noticed before the instruction is sent. It returns the attested key,
+    /// registration data and configuration needed to send the instruction.
+    pub(super) async fn check_instruction_preconditions(
         &mut self,
     ) -> Result<AttestedKeyRegistrationDataAndConfig<AKH>, CheckPreconditionsError>
     where
@@ -744,7 +750,7 @@ mod tests {
     fn pid_issuance_session() -> Session<MockAuthorizationSession, MockIssuanceSession, MockDisclosureSession> {
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Authorization {
+            session_state: SessionState::AuthorizationStarted {
                 authorization_session: MockAuthorizationSession::new(),
             },
         })
@@ -766,7 +772,7 @@ mod tests {
         );
         Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Issuance {
+            session_state: SessionState::IssuanceAuthorized {
                 preview_attestations: Some(attestations),
                 protocol_state: pid_issuer,
             },
@@ -844,11 +850,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_check_accept_session_preconditions_config_expired() {
+    async fn test_check_instruction_preconditions_config_expired() {
         let mut wallet = wallet_with_expired_config().await;
 
         let error = wallet
-            .check_accept_session_preconditions()
+            .check_instruction_preconditions()
             .await
             .expect_err("checking accept session preconditions should fail when the configuration is expired");
 

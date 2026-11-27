@@ -126,7 +126,7 @@ where
                     self.session,
                     Some(Session::Issuance(WalletIssuanceSession::Pid {
                         purpose: PidIssuancePurpose::Enrollment,
-                        session_state: SessionState::Authorization { .. },
+                        session_state: SessionState::AuthorizationStarted { .. },
                     })),
                 ) =>
             {
@@ -137,7 +137,7 @@ where
                     self.session,
                     Some(Session::Issuance(WalletIssuanceSession::Pid {
                         purpose: PidIssuancePurpose::Renewal,
-                        session_state: SessionState::Authorization { .. },
+                        session_state: SessionState::AuthorizationStarted { .. },
                     })),
                 ) =>
             {
@@ -155,7 +155,7 @@ where
                 if matches!(
                     self.session,
                     Some(Session::Issuance(WalletIssuanceSession::Generic {
-                        session_state: SessionState::Authorization { .. },
+                        session_state: SessionState::AuthorizationStarted { .. },
                     })),
                 ) =>
             {
@@ -224,7 +224,7 @@ mod tests {
         // Set up an enrollment session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Enrollment,
-            session_state: SessionState::Authorization {
+            session_state: SessionState::AuthorizationStarted {
                 authorization_session: MockAuthorizationSession::new(),
             },
         }));
@@ -238,7 +238,7 @@ mod tests {
         // Set up a PID renewal session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Pid {
             purpose: PidIssuancePurpose::Renewal,
-            session_state: SessionState::Authorization {
+            session_state: SessionState::AuthorizationStarted {
                 authorization_session: MockAuthorizationSession::new(),
             },
         }));
@@ -251,7 +251,7 @@ mod tests {
 
         // Set up a general issuance session that will match the URI.
         wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
-            session_state: SessionState::Authorization {
+            session_state: SessionState::AuthorizationStarted {
                 authorization_session: MockAuthorizationSession::new(),
             },
         }));

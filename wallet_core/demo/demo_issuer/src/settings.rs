@@ -48,10 +48,10 @@ pub struct Server {
 #[serde(untagged)]
 pub enum Usecase {
     PreAuthorized {
-        data: IssuableDocumentTemplates,
+        data: VecNonEmpty<IssuableDocumentTemplate>,
     },
     DisclosureBased {
-        data: HashMap<String, IssuableDocumentTemplates>,
+        data: HashMap<String, Vec<IssuableDocumentTemplate>>,
         client_id: String,
         disclosed: Disclosed,
     },
@@ -65,8 +65,6 @@ pub enum Usecase {
         issuer_state: Option<String>,
     },
 }
-
-pub type IssuableDocumentTemplates = VecNonEmpty<IssuableDocumentTemplate>;
 
 #[derive(Deserialize, Clone, Validate, Into)]
 pub struct IssuableDocumentTemplate {

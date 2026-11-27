@@ -1,6 +1,6 @@
 {
     "@@locale": "nl",
-    "@@last_modified": "2026-09-25T10:18:32+02:00",
+    "@@last_modified": "2026-11-24T15:44:37+01:00",
     "aboutScreenDescription": "De NL Wallet wordt gemaakt door de Nederlandse overheid, zodat iedereen digitale diensten veilig en gemakkelijk kan gebruiken.\n\nJe kunt de ontwikkelingen volgen op {url}.",
     "aboutScreenPrivacyCta": "Privacyverklaring",
     "aboutScreenTitle": "Over de NL Wallet",
@@ -314,8 +314,16 @@
     "checkAgreementPageTitle": "Ken je de afspraken?",
     "checkAttributesScreenChangeCardCta": "Wissel kaart",
     "checkAttributesScreenDataIncorrectCta": "Kloppen je gegevens niet?",
-    "checkAttributesScreenSubtitle": "Kaart uitgegeven door {issuer}",
-    "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} gegeven uit {title}} other {{count} gegevens uit {title}}}",
+    "checkAttributesScreenSubtitle": "Kaart uitgegeven door {organization}.",
+    "@checkAttributesScreenSubtitle": {
+        "placeholders": {
+            "organization": {
+                "example": "Organisatie XYZ",
+                "type": "String"
+            }
+        }
+    },
+    "checkAttributesScreenTitle": "{checkAttributesScreenTitle, plural, one {{count} uit {title}} other {{count} uit {title}}}",
     "confirmAgreementPageCancelCta": "Nee",
     "confirmAgreementPageConfirmCta": "Ja, tekenen",
     "confirmAgreementPageDataIncorrectCta": "Klopt er iets niet?",
@@ -358,6 +366,8 @@
     "developerSettingsScreenDisclaimer": "Deze instellingen zijn alleen voor ontwikkelaars. Je hoeft deze instellingen niet te veranderen om NL Wallet te gebruiken.\n\nZe staan niet in de definitieve versie van de app.",
     "developerSettingsScreenError": "Deze instelling kon niet worden geladen of opgeslagen. Probeer het later opnieuw.",
     "developerSettingsScreenTitle": "Voor ontwikkelaars",
+    "developerSettingsScreenVerifyIssuerCertificates": "Uitgevercertificaten controleren",
+    "developerSettingsScreenVerifyIssuerCertificatesDescription": "Controleer het certificaat van de uitgever van ontvangen kaarten. Zet alleen uit voor uitgevers van wie het certificaat niet gecontroleerd kan worden.",
     "developerSettingsScreenWrprcStrictMode": "Strikte WRPRC-modus",
     "developerSettingsScreenWrprcStrictModeDescription": "Registratiecertificaat nodig bij delen op korte afstand. Zet uit voor lezers die dit niet meesturen.",
     "disclosureConfirmDataAttributesDisclaimer": "Deel alleen als je de organisatie en het verzoek vertrouwt.",
@@ -581,7 +591,21 @@
     "generalOkCta": "OK",
     "generalOsVersionText": "Besturingssysteem:",
     "generalPageChangeWCAGAnnouncement": "Pagina {current} van {total} wordt nu weergegeven.",
+    "generalPolicyAllTermsCta": "Alle voorwaarden",
+    "generalPolicyDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+    "generalPolicyDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
     "generalPolicyDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+    "generalPolicyDataRetentionDuration": "{days, plural, one {Gegevens worden {days} dag bewaard} other {Gegevens worden {days} dagen bewaard}}",
+    "@generalPolicyDataRetentionDuration": {
+        "placeholders": {
+            "days": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "generalPolicyDataWillBeShared": "Je gegevens worden gedeeld met andere organisaties",
+    "generalPolicyDataWillNotBeShared": "Je gegevens worden niet gedeeld met andere organisaties",
     "generalRetry": "Probeer opnieuw",
     "generalSeconds": "{seconds, plural, one {{seconds} seconde} other {{seconds} seconden}}",
     "@generalSeconds": {
@@ -783,16 +807,8 @@
     "issuanceAuthenticateExternallyTitle": "Ga verder in de browser",
     "issuanceConfirmIssuerPageAcceptCta": "Ja, verder",
     "issuanceConfirmIssuerPageDeclineCta": "Stoppen",
-    "issuanceConfirmIssuerPageDescription": "Je kaart(en) worden aan je NL Wallet toegevoegd nadat je bevestigt met je pincode.",
+    "issuanceConfirmIssuerPageDescription": "Ga verder om je kaart(en) te bekijken en de gegevens te controleren voordat je ze aan je NL Wallet toevoegt.",
     "issuanceConfirmIssuerPageTitle": "Wil je je kaart(en) ophalen bij {organization}?",
-    "@issuanceConfirmIssuerPageTitle": {
-        "placeholders": {
-            "organization": {
-                "example": "Organisatie XYZ",
-                "type": "String"
-            }
-        }
-    },
     "issuanceConfirmPinPageTitle": "Geef akkoord met pincode",
     "issuanceLoadingCardsDescription": "Kaarten worden opgehaald",
     "issuanceLoadingCardsTitle": "Even geduld",
@@ -846,7 +862,7 @@
             }
         }
     },
-    "issuanceReviewCardsPageAddAndRenewTitle": "{cards, plural, one {Wil je deze kaart toevoegen of bijwerken?} other {Wil je deze kaarten toevoegen of bijwerken?}}",
+    "issuanceReviewCardsPageAddAndRenewTitle": "{cards, plural, one {Controleer de gegevens van elke kaart voordat je die toevoegt of vervangt} other {Controleer de gegevens van elke kaart voordat je die toevoegt of vervangt}}",
     "@issuanceReviewCardsPageAddAndRenewTitle": {
         "placeholders": {
             "cards": {
@@ -856,7 +872,7 @@
         }
     },
     "issuanceReviewCardsPageDeclineCta": "Stop",
-    "issuanceReviewCardsPageRenewOnlyTitle": "{cards, plural, one {Wil je deze kaart bijwerken?} other {Wil je deze kaarten bijwerken?}}",
+    "issuanceReviewCardsPageRenewOnlyTitle": "{cards, plural, one {Controleer de gegevens van de kaart voordat je die vervangt} other {Controleer de gegevens van elke kaart voordat je die vervangt}}",
     "@issuanceReviewCardsPageRenewOnlyTitle": {
         "placeholders": {
             "cards": {
@@ -884,7 +900,7 @@
         }
     },
     "issuanceReviewCardsPageShowDetailsCta": "Bekijk details",
-    "issuanceReviewCardsPageSubtitle": "{cards, plural, one {Deze kaart is aangeboden door {organization}.} other {Deze kaarten zijn aangeboden door {organization}.}}",
+    "issuanceReviewCardsPageSubtitle": "{cards, plural, one {Kaart uitgegeven door {organization}.} other {Kaarten uitgegeven door {organization}.}}",
     "@issuanceReviewCardsPageSubtitle": {
         "placeholders": {
             "cards": {
@@ -897,7 +913,7 @@
             }
         }
     },
-    "issuanceReviewCardsPageTitle": "{cards, plural, one {Wil je deze kaart toevoegen?} other {Wil je deze kaarten toevoegen?}}",
+    "issuanceReviewCardsPageTitle": "{cards, plural, one {Controleer de gegevens van deze kaart voordat je die toevoegt} other {Controleer de gegevens van elke kaart voordat je die toevoegt}}",
     "@issuanceReviewCardsPageTitle": {
         "placeholders": {
             "cards": {
@@ -1115,6 +1131,54 @@
     "placeholderScreenContractDescription": "Hier komt het contract te staan.",
     "placeholderScreenGenericDescription": "Probeer het later opnieuw.",
     "placeholderScreenHeadline": "Helaas, aan deze pagina wordt nog gewerkt.",
+    "policyScreenDataCanBeDeleted": "Je kunt gegevens laten verwijderen",
+    "policyScreenDataCanBeDeletedDescription": "De organisatie biedt een manier om je gegevens te laten verwijderen.",
+    "policyScreenDataCanNotBeDeleted": "Je kunt gegevens niet laten verwijderen",
+    "policyScreenDataCanNotBeDeletedDescription": "De organisatie biedt geen manier om je gegevens te laten verwijderen.",
+    "policyScreenDataIsSignature": "Met ondertekenen maak je een afspraak definitief",
+    "policyScreenDataNotBeStored": "Je gegevens worden niet bewaard",
+    "policyScreenDataNotBeStoredDescription": "Je gegevens worden alleen gebruikt in deze sessie en niet verder opgeslagen.",
+    "policyScreenDataPurposeDescription": "De gegevens worden niet voor andere doelen gebruikt.",
+    "policyScreenDataRetentionDuration": "{months, plural, one {Gegevens worden {months} maand bewaard} other {Gegevens worden {months} maanden bewaard}}",
+    "@policyScreenDataRetentionDuration": {
+        "placeholders": {
+            "months": {
+                "example": "30",
+                "type": "int"
+            }
+        }
+    },
+    "policyScreenDataRetentionDurationDescription": "{months, plural, one {Je gegeven wordt {months} maand bewaard in je dossier. Daarna wordt het automatisch verwijderd.} other {Je gegevens worden {months} maanden bewaard in je dossier. Daarna worden ze automatisch verwijderd.}}",
+    "@policyScreenDataRetentionDurationDescription": {
+        "placeholders": {
+            "months": {
+                "example": "3",
+                "type": "int"
+            }
+        }
+    },
+    "policyScreenDataWillBeShared": "Gegevens worden gedeeld met andere organisaties",
+    "policyScreenDataWillBeSharedDescription": "Je gegevens worden gedeeld met andere bedrijven of organisaties.",
+    "policyScreenDataWillNotBeShared": "Gegevens worden niet gedeeld met andere organisaties",
+    "policyScreenDataWillNotBeSharedDescription": "Je gegevens worden niet gedeeld met andere bedrijven of organisaties",
+    "policyScreenPolicySectionPolicyCta": "privacyverklaring",
+    "policyScreenPolicySectionText": "Lees meer in het {policy} van {organization}. Hierin lees je meer over hoe {organization} je gegevens gaat gebruiken.",
+    "@policyScreenPolicySectionText": {
+        "placeholders": {
+            "organization": {
+                "example": "Municipality of Amsterdam",
+                "type": "String"
+            },
+            "policy": {
+                "example": "privacy policy",
+                "type": "String"
+            }
+        }
+    },
+    "policyScreenPolicySectionTitle": "Meer weten?",
+    "policyScreenReportIssueCta": "Wil je een probleem melden?",
+    "policyScreenSubtitle": "De volgende afspraken gelden alléén voor deze uitnodiging tot delen.",
+    "policyScreenTitle": "Afspraken",
     "privacySectionCta": "Lees hoe de organisatie jouw gegevens gebruikt",
     "privacySectionTitle": "Privacybeleid",
     "qrActionButtonSubtitle": "Scan QR of laat je QR-code zien",
@@ -1303,15 +1367,7 @@
     "settingsScreenShowRevocationCodeCta": "Bekijk je verwijder-code",
     "settingsScreenTitle": "Instellingen en beveiliging",
     "settingsScreenTransferWalletCta": "NL Wallet verplaatsen",
-    "setupBiometricsPageDescription": "Met {supportedBiometrics} open je NL Wallet sneller.\nJe gebruikt nog steeds je pincode als je gegevens deelt.",
-    "@setupBiometricsPageDescription": {
-        "placeholders": {
-            "supportedBiometrics": {
-                "example": "Face ID",
-                "type": "String"
-            }
-        }
-    },
+    "setupBiometricsPageDescription": "Met {supportedBiometrics} open je NL Wallet sneller.\n\nJe gebruikt nog steeds je pincode als je gegevens deelt.",
     "setupBiometricsPageEnableCta": "Zet aan",
     "setupBiometricsPageLocalizedReason": "Om de app te openen",
     "setupBiometricsPageSkipCta": "Overslaan",

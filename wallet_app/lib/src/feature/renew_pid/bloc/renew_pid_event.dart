@@ -20,6 +20,16 @@ class RenewPidContinuePidRenewal extends RenewPidEvent {
   List<Object?> get props => [authUrl];
 }
 
+/// The PID was retrieved, after entering the PIN, from an issuer that does not provide previews.
+class RenewPidPidRetrieved extends RenewPidEvent {
+  final List<Attribute> attributes;
+
+  const RenewPidPidRetrieved(this.attributes);
+
+  @override
+  List<Object?> get props => [attributes];
+}
+
 class RenewPidAttributesRejected extends RenewPidEvent {
   const RenewPidAttributesRejected();
 }

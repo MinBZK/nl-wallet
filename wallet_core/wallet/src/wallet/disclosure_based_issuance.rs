@@ -46,8 +46,11 @@ pub enum DisclosureBasedIssuanceError {
     #[error("disclosure failed: {0}")]
     Disclosure(#[from] DisclosureError),
 
-    #[error("retrieving attribute previews failed: {0}")]
+    #[error("issuance failed: {0}")]
     Issuance(#[source] IssuanceError),
+
+    #[error("issuing credentials for review failed: {0}")]
+    IssuanceForReview(#[source] IssuanceError),
 
     #[error("missing redirect URI from verifier response")]
     #[category(critical)]
@@ -66,9 +69,9 @@ pub enum DisclosureBasedIssuanceResult {
     /// Previews of the attestations on offer, to be accepted with [`Wallet::accept_issuance`].
     Previews(VecNonEmpty<AttestationPresentation>),
 
-    NoPreviews {
-        issuer: Box<Organization>,
-    },
+    /// The issued attestations of an issuer that does not provide previews, to be reviewed and stored with
+    /// [`Wallet::commit_issued_credentials`].
+    IssuedForReview(VecNonEmpty<AttestationPresentation>),
 }
 
 // This method requires the caller to be aware which flow it is in: ordinary disclosure
@@ -98,11 +101,15 @@ where
     ) -> Result<DisclosureBasedIssuanceResult, DisclosureBasedIssuanceError> {
         info!("Continuing disclosure based issuance");
 
-        let (attested_key, registration_data, config) = self.check_accept_session_preconditions().await?;
+        let (attested_key, registration_data, config) = self.check_instruction_preconditions().await?;
 
         info!("Checking if a disclosure session is present");
-        let Some(Session::Disclosure(session)) = self.session.take() else {
-            return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
+        let session = match self.session.take() {
+            Some(Session::Disclosure(session)) => session,
+            other => {
+                self.session = other;
+                return Err(DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState));
+            }
         };
 
         let organization = Box::new(session.protocol_state.organization().clone());
@@ -111,7 +118,7 @@ where
             .perform_disclosure(
                 session,
                 selected_indices,
-                pin,
+                pin.clone(),
                 RedirectUriPurpose::Issuance,
                 (
                     Arc::clone(&attested_key),
@@ -163,7 +170,19 @@ where
 
         match result {
             IssuanceContinueResult::Previews(previews) => Ok(DisclosureBasedIssuanceResult::Previews(previews)),
-            IssuanceContinueResult::NoPreviews { issuer } => Ok(DisclosureBasedIssuanceResult::NoPreviews { issuer }),
+            // Without previews, the user has nothing to review before issuance, so the PIN that was just used for the
+            // disclosure is reused to issue the attestations for review. As the disclosure cannot be repeated, this
+            // cannot be retried, so the issuance session is removed on an error. That way, every error after the
+            // disclosure leaves the wallet without a session.
+            IssuanceContinueResult::NoPreviews { .. } => {
+                let attestations = self
+                    .issue_credentials_for_review(pin)
+                    .await
+                    .inspect_err(|_| self.session = None)
+                    .map_err(DisclosureBasedIssuanceError::IssuanceForReview)?;
+
+                Ok(DisclosureBasedIssuanceResult::IssuedForReview(attestations))
+            }
         }
     }
 }
@@ -187,6 +206,7 @@ fn convert_and_enrich_error(error: WalletIssuanceError, organization: &Organizat
 #[cfg(test)]
 mod tests {
     use std::assert_matches;
+    use std::num::NonZeroU8;
     use std::sync::LazyLock;
 
     use attestation_data::disclosure_type::DisclosureType;
@@ -196,6 +216,7 @@ mod tests {
     use crypto::mock_remote::MockRemoteEcdsaKey;
     use crypto::server_keys::generate::Ca;
     use indexmap::IndexMap;
+    use itertools::Itertools;
     use mdoc::holder::disclosure::PartialMdoc;
     use oauth::errors::BoxedErrorWithCode;
     use oauth::errors::ErrorResponse;
@@ -210,12 +231,16 @@ mod tests {
     use openid4vc::errors::PostAuthResponseErrorCode;
     use openid4vc::errors::RemoteDisclosureErrorResponse;
     use openid4vc::verifier::PostAuthResponseError;
+    use openid4vc::wallet_issuance::WalletIssuanceError;
+    use openid4vc::wallet_issuance::credential::IssuedCredentialMetadata;
     use openid4vc::wallet_issuance::issuer_registration::IssuerRegistration;
+    use openid4vc::wallet_issuance::mock::MockAuthorizationSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSession;
     use openid4vc::wallet_issuance::mock::MockIssuanceSessionCredentialPreviews;
     use p256::ecdsa::SigningKey;
     use p256::elliptic_curve::Generate;
     use rstest::rstest;
+    use sd_jwt_vc_metadata::VerifiedTypeMetadataDocuments;
     use utils::generator::mock::MockTimeGenerator;
     use utils::vec_nonempty;
     use uuid::Uuid;
@@ -226,6 +251,9 @@ mod tests {
     use super::super::disclosure::RedirectUriPurpose;
     use super::super::disclosure::WalletDisclosureSession;
     use super::super::disclosure_based_issuance::DisclosureBasedIssuanceResult;
+    use super::super::issuance::IssuanceError;
+    use super::super::issuance::SessionState;
+    use super::super::issuance::WalletIssuanceSession;
     use super::super::test::WalletDeviceVendor;
     use super::super::test::create_example_pid_preview_data;
     use super::super::test::create_example_pid_sd_jwt;
@@ -233,6 +261,7 @@ mod tests {
     use crate::attestation::AttestationPresentation;
     use crate::storage::ChangePinData;
     use crate::storage::DisclosableAttestation;
+    use crate::storage::InstructionData;
     use crate::storage::PartialAttestation;
     use crate::storage::StoredAttestation;
     use crate::storage::StoredAttestationCopy;
@@ -240,6 +269,7 @@ mod tests {
     use crate::storage::WithKeyIdentifier;
     use crate::wallet::test::TestWalletMockStorage;
     use crate::wallet::test::create_example_pid_mdoc;
+    use crate::wallet::test::mock_issuance_session;
 
     static PIN: LazyLock<Pin> = LazyLock::new(|| "051097".into());
 
@@ -451,9 +481,9 @@ mod tests {
         assert_matches!(result, DisclosureBasedIssuanceResult::NoIssuableAttestations);
     }
 
-    #[tokio::test]
-    async fn test_wallet_continue_disclosure_based_issuance_without_previews() {
-        // Prepare a registered and unlocked wallet with an active disclosure session.
+    /// Prepares a registered and unlocked wallet with an active disclosure session, for which the verifier redirects to
+    /// a credential offer of `issuance_session`.
+    async fn wallet_for_disclosure_based_issuance(issuance_session: MockIssuanceSession) -> TestWalletMockStorage {
         let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
 
         // Setup wallet disclosure state
@@ -471,27 +501,29 @@ mod tests {
             .return_once(|_| Ok(Some(credential_offer_url)));
         wallet.session = Some(Session::Disclosure(disclosure_session));
 
-        // Setup wallet issuance state with an issuer that does not provide previews
         wallet
             .issuance_discovery
             .expect_start_pre_authorized_code_flow_sync()
-            .return_once(|_selection| {
-                let mut issuance_session = MockIssuanceSession::new();
-
-                issuance_session
-                    .expect_credential_previews()
-                    .return_const(MockIssuanceSessionCredentialPreviews::none());
-                issuance_session
-                    .expect_issuer()
-                    .return_const(IssuerRegistration::new_mock());
-
-                Ok(issuance_session)
-            });
+            .return_once(|_selection| Ok(issuance_session));
 
         wallet
             .mut_storage()
             .expect_fetch_data::<ChangePinData>()
             .returning(|| Ok(None));
+
+        wallet
+            .mut_storage()
+            .expect_fetch_data::<InstructionData>()
+            .returning(|| {
+                Ok(Some(InstructionData {
+                    instruction_sequence_number: 0,
+                }))
+            });
+
+        wallet
+            .mut_storage()
+            .expect_upsert_data::<InstructionData>()
+            .returning(|_| Ok(()));
 
         wallet
             .mut_storage()
@@ -510,17 +542,61 @@ mod tests {
             .expect_fetch_recent_wallet_events()
             .returning(move || Ok(vec![]));
 
+        wallet
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_without_previews() {
+        // Setup wallet issuance state with an issuer that does not provide previews, which issues an SD-JWT PID.
+        let (sd_jwt, normalized_metadata) = create_example_pid_sd_jwt();
+        let issued_attestation = WithKeyIdentifier {
+            key_identifier: "key_id".to_string(),
+            data: StoredAttestation::SdJwt(sd_jwt),
+        };
+        let issued_metadata = IssuedCredentialMetadata::TypeMetadata {
+            verified: VerifiedTypeMetadataDocuments::nl_pid_example(),
+            normalized: normalized_metadata,
+        };
+        let (mut issuance_session, expected_attestations) =
+            mock_issuance_session([(issued_attestation, issued_metadata)], Some(NonZeroU8::MAX));
+        issuance_session
+            .expect_credential_previews()
+            .return_const(MockIssuanceSessionCredentialPreviews::none());
+
+        let mut wallet = wallet_for_disclosure_based_issuance(issuance_session).await;
+
+        // Have the storage contain no attestations that the issued attestation renews.
+        wallet
+            .mut_storage()
+            .expect_fetch_unique_attestations_by_credential_kinds()
+            .times(1)
+            .returning(|_| Ok(vec![]));
+
+        // The issued attestation should not be stored yet (no expectation for `insert_credentials()`).
         let result = wallet
             .continue_disclosure_based_issuance(&[0], PIN.clone())
             .await
             .expect("continuing disclosure based issuance without previews should succeed");
 
-        assert_matches!(
-            result,
-            DisclosureBasedIssuanceResult::NoPreviews { issuer }
-                if &*issuer == IssuerRegistration::new_mock().organization()
+        let DisclosureBasedIssuanceResult::IssuedForReview(attestations) = result else {
+            panic!("expected attestations issued for review, got: {result:?}");
+        };
+        assert_eq!(
+            attestations
+                .iter()
+                .map(|attestation| &attestation.attestation_type)
+                .collect_vec(),
+            expected_attestations
+                .iter()
+                .map(|attestation| &attestation.attestation_type)
+                .collect_vec()
         );
-        assert_matches!(wallet.session, Some(Session::Issuance(_)));
+
+        // The issued attestation can be committed from the issuance session.
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::GenericReceived { .. }))
+        );
     }
 
     #[tokio::test]
@@ -544,5 +620,65 @@ mod tests {
                 found: RedirectUriPurpose::Issuance,
             })
         );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_error_session_state() {
+        // Prepare a registered and unlocked wallet with an active issuance session instead of a disclosure session.
+        let mut wallet = TestWalletMockStorage::new_registered_and_unlocked(WalletDeviceVendor::Apple).await;
+
+        wallet.session = Some(Session::Issuance(WalletIssuanceSession::Generic {
+            session_state: SessionState::AuthorizationStarted {
+                authorization_session: MockAuthorizationSession::new(),
+            },
+        }));
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
+            .await
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureBasedIssuanceError::Disclosure(DisclosureError::SessionState)
+        );
+
+        // The issuance session should be left intact.
+        assert_matches!(
+            wallet.session,
+            Some(Session::Issuance(WalletIssuanceSession::Generic {
+                session_state: SessionState::AuthorizationStarted { .. },
+            }))
+        );
+    }
+
+    #[tokio::test]
+    async fn test_wallet_continue_disclosure_based_issuance_without_previews_error_issuer() {
+        // Have an issuer that does not provide previews return an error upon accepting.
+        let mut issuance_session = MockIssuanceSession::new();
+        issuance_session
+            .expect_credential_previews()
+            .return_const(MockIssuanceSessionCredentialPreviews::none());
+        issuance_session
+            .expect_issuer()
+            .return_const(IssuerRegistration::new_mock());
+        issuance_session
+            .expect_accept()
+            .return_once(|_| Err(WalletIssuanceError::PublicKeyMismatch));
+
+        let mut wallet = wallet_for_disclosure_based_issuance(issuance_session).await;
+
+        let error = wallet
+            .continue_disclosure_based_issuance(&[0], PIN.clone())
+            .await
+            .expect_err("continuing disclosure based issuance should have resulted in an error");
+
+        assert_matches!(
+            error,
+            DisclosureBasedIssuanceError::IssuanceForReview(IssuanceError::IssuerServer { .. })
+        );
+
+        // As issuing cannot be retried, the issuance session should be removed.
+        assert!(wallet.session.is_none());
     }
 }

@@ -27,6 +27,10 @@ abstract class BluetoothPlatform extends PlatformInterface {
     throw UnimplementedError('isBluetoothEnabled() has not been implemented.');
   }
 
+  Stream<bool> observeBluetoothEnabled() {
+    throw UnimplementedError('observeBluetoothEnabled() has not been implemented.');
+  }
+
   Future<void> enableBluetooth() {
     throw UnimplementedError('enableBluetooth() has not been implemented.');
   }

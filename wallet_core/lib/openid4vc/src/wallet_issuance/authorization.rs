@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::num::NonZeroU8;
+use std::str::FromStr;
 
 use base64::Engine;
 use base64::prelude::BASE64_URL_SAFE_NO_PAD;
@@ -7,9 +8,13 @@ use error_category::ErrorCategory;
 use http_utils::reqwest::HttpClient;
 use itertools::Either;
 use itertools::Itertools;
+use jwt::nonce::Nonce;
 use oauth::authorization::AuthorizationResponse;
 use oauth::authorization::PushedAuthorizationRequest;
 use oauth::authorization::PushedAuthorizationResponse;
+use oauth::dpop::DPOP_HEADER_NAME;
+use oauth::dpop::Dpop;
+use oauth::dpop::DpopNonce;
 use oauth::errors::AuthorizationErrorCode;
 use oauth::errors::RemoteErrorCode;
 use oauth::errors::RemoteErrorResponse;
@@ -17,22 +22,30 @@ use oauth::issuer_identifier::IssuerIdentifier;
 use oauth::pkce::PkcePair;
 use oauth::pkce::S256PkcePair;
 use oauth::token::AuthorizationCode;
+use reqwest::Method;
+use reqwest::Response;
+use reqwest::StatusCode;
 use serde::Deserialize;
 use serde::Serialize;
 use url::Url;
 use wscd::payload::wia::WIA_HEADER_NAME;
 use wscd::payload::wia::WIA_POP_HEADER_NAME;
+use wscd::payload::wia::WiaDisclosure;
 use wscd::wia::WiaClient;
 
+use super::Attempt;
 use super::AuthorizationSession;
 use super::WalletIssuanceError;
 use super::authorization_endpoints::AuthorizationEndpoints;
 use super::credential_request_encryption::CredentialRequestEncryptionParameters;
+use super::dpop::DpopState;
+use super::dpop::nonce_from_headers;
 use super::issuance_session::HttpIssuanceSession;
 use super::issuance_session::HttpVcMessageClient;
 use super::issuer_registration::IssuerRegistration;
 use crate::authorization::VciAuthorizationRequest;
 use crate::client_auth::ClientAttestationChallengeMechanism;
+use crate::client_auth::attestation_challenge_from_headers;
 use crate::client_auth::fetch_client_auth_challenge;
 use crate::errors::ParErrorCode;
 use crate::metadata::issuer_metadata::CredentialConfiguration;
@@ -76,6 +89,140 @@ pub enum OAuthError {
     Denied,
 }
 
+pub type AuthorizationServerResponse<T> = Attempt<T, AuthorizationChallenge>;
+
+/// Each retryable PAR or token error requires its own challenge header.
+/// The authorization server can also rotate the other proof's challenge in the same response.
+#[derive(Debug)]
+pub enum AuthorizationChallenge {
+    UseDpopNonce {
+        /// `DPoP-Nonce`, used in the DPoP proof's `nonce` claim.
+        nonce: DpopNonce,
+        /// `OAuth-Client-Attestation-Challenge`, used in the WIA PoP's `challenge` claim.
+        attestation_challenge: Option<Nonce>,
+    },
+    UseAttestationChallenge {
+        attestation_challenge: Nonce,
+        nonce: Option<DpopNonce>,
+    },
+}
+
+impl AuthorizationChallenge {
+    pub(super) async fn from_http_error<E: FromStr + PartialEq>(
+        response: Response,
+        use_dpop_nonce: E,
+        use_attestation_challenge: E,
+        http_error: fn(reqwest::Error) -> WalletIssuanceError,
+        oauth_error: impl FnOnce(RemoteErrorResponse<E>) -> WalletIssuanceError,
+    ) -> Result<Self, WalletIssuanceError> {
+        let status = response.status();
+        let nonce = nonce_from_headers(response.headers());
+        let attestation_challenge = attestation_challenge_from_headers(response.headers())
+            .map_err(WalletIssuanceError::ClientAttestationChallengeMechanism);
+        let error = response.json::<RemoteErrorResponse<E>>().await.map_err(http_error)?;
+        match (status, &error.error) {
+            (StatusCode::BAD_REQUEST, RemoteErrorCode::Known(code)) if code == &use_dpop_nonce => {
+                if let Some(nonce) = nonce? {
+                    return Ok(Self::UseDpopNonce {
+                        nonce,
+                        attestation_challenge: attestation_challenge?,
+                    });
+                }
+            }
+            (StatusCode::BAD_REQUEST, RemoteErrorCode::Known(code)) if code == &use_attestation_challenge => {
+                if let Some(attestation_challenge) = attestation_challenge? {
+                    return Ok(Self::UseAttestationChallenge {
+                        attestation_challenge,
+                        nonce: nonce?,
+                    });
+                }
+            }
+            _ => {}
+        }
+        Err(oauth_error(error))
+    }
+}
+
+/// Proof parameters for a PAR or token request. DPoP uses the request endpoint as its `htu`.
+/// The WIA PoP uses the authorization server's issuer identifier as its `aud`.
+pub(super) struct AttestedRequest<'a> {
+    pub endpoint: &'a Url,
+    pub audience: &'a IssuerIdentifier,
+    pub challenge: ClientAttestationChallengeMechanism,
+}
+
+impl AttestedRequest<'_> {
+    /// Retry a PAR or token request once per challenge type. Either proof can be rejected first,
+    /// so satisfying both challenges can take three attempts.
+    ///
+    /// The server may already have consumed the previous WIA PoP or its challenge. Obtain a new WIA and PoP
+    /// from the Wallet Provider on each attempt. The caller resends the same request body, and the wallet signs the
+    /// new DPoP proof with the original key.
+    pub(super) async fn send_with_challenge_retry<T, ChallengeFut, RequestFut>(
+        mut self,
+        dpop: &mut DpopState,
+        wia_client: &impl WiaClient,
+        fetch_challenge: impl Fn(Url) -> ChallengeFut,
+        send: impl Fn(Dpop, WiaDisclosure) -> RequestFut,
+    ) -> Result<T, WalletIssuanceError>
+    where
+        ChallengeFut: Future<Output = Result<Nonce, WalletIssuanceError>>,
+        RequestFut: Future<Output = Result<AuthorizationServerResponse<T>, WalletIssuanceError>>,
+    {
+        let mut retried_dpop = false;
+        let mut retried_attestation = false;
+        loop {
+            let challenge = match &self.challenge {
+                ClientAttestationChallengeMechanism::ChallengeEndpoint(url) => {
+                    Some(fetch_challenge(url.clone()).await?)
+                }
+                ClientAttestationChallengeMechanism::Header(header)
+                | ClientAttestationChallengeMechanism::HeaderWithEndpoint { header, .. } => Some(header.clone()),
+                ClientAttestationChallengeMechanism::None => None,
+            };
+            let wia = wia_client
+                .issue_wia(self.audience.to_string(), challenge)
+                .await
+                .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
+            let proof = Dpop::new(
+                &dpop.signing_key,
+                self.endpoint.clone(),
+                &Method::POST,
+                None,
+                dpop.nonce.clone(),
+            )?;
+
+            let (nonce, attestation_challenge) = match send(proof, wia).await? {
+                Attempt::Success(response) => return Ok(response),
+                Attempt::Challenge(AuthorizationChallenge::UseDpopNonce {
+                    nonce,
+                    attestation_challenge,
+                }) => {
+                    if retried_dpop {
+                        return Err(WalletIssuanceError::DpopNonceRejected);
+                    }
+                    retried_dpop = true;
+                    (Some(nonce), attestation_challenge)
+                }
+                Attempt::Challenge(AuthorizationChallenge::UseAttestationChallenge {
+                    attestation_challenge,
+                    nonce,
+                }) => {
+                    if retried_attestation {
+                        return Err(WalletIssuanceError::AttestationChallengeRejected);
+                    }
+                    retried_attestation = true;
+                    (nonce, Some(attestation_challenge))
+                }
+            };
+            if let Some(nonce) = nonce {
+                dpop.nonce = Some(nonce);
+            }
+            self.challenge = self.challenge.after_response(attestation_challenge);
+        }
+    }
+}
+
 /// The state of an in-progress OAuth authorization code flow.
 #[derive(Debug)]
 pub struct HttpAuthorizationSession<P = S256PkcePair> {
@@ -94,6 +241,7 @@ pub struct HttpAuthorizationSession<P = S256PkcePair> {
     redirect_uri: Url,
     pkce_pair: P,
     state: String,
+    dpop: DpopState,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -111,6 +259,7 @@ pub struct HttpAuthorizationSessionData {
     redirect_uri: Url,
     code_verifier: String,
     state: String,
+    dpop: DpopState,
 }
 
 impl<P: PkcePair> HttpAuthorizationSession<P> {
@@ -165,46 +314,61 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             &pkce_pair,
         );
 
-        let challenge = if let Some(challenge_endpoint) = &auth_endpoints.challenge_endpoint {
-            let challenge = fetch_client_auth_challenge(&http_client, challenge_endpoint.clone())
+        let mut dpop = DpopState::generate();
+        let response = AttestedRequest {
+            endpoint: &auth_endpoints.par_endpoint,
+            audience: &authorization_server,
+            challenge: auth_endpoints.challenge_endpoint.clone().map_or(
+                ClientAttestationChallengeMechanism::None,
+                ClientAttestationChallengeMechanism::ChallengeEndpoint,
+            ),
+        }
+        .send_with_challenge_retry(
+            &mut dpop,
+            wia_client,
+            async |url| {
+                fetch_client_auth_challenge(&http_client, url)
+                    .await
+                    .map_err(WalletIssuanceError::ClientAttestationChallenge)
+            },
+            async |proof, wia| {
+                let response = http_client
+                    .post(auth_endpoints.par_endpoint.clone(), |builder| {
+                        builder
+                            .form(&par_request)
+                            .header(DPOP_HEADER_NAME, proof.to_string())
+                            .header(WIA_HEADER_NAME, wia.wia().serialization())
+                            .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
+                    })
+                    .await
+                    .map_err(WalletIssuanceError::ParHttp)?;
+                if response.status().is_success() {
+                    return Ok(Attempt::Success(response));
+                }
+                AuthorizationChallenge::from_http_error(
+                    response,
+                    ParErrorCode::UseDpopNonce,
+                    ParErrorCode::UseAttestationChallenge,
+                    WalletIssuanceError::ParHttp,
+                    |error| OAuthError::PushedAuthorizationRequest(Box::new(error)).into(),
+                )
                 .await
-                .map_err(WalletIssuanceError::ClientAttestationChallenge)?;
-            Some(challenge)
-        } else {
-            None
-        };
-
-        let wia = wia_client
-            .issue_wia(authorization_server.to_string(), challenge)
-            .await
-            .map_err(|e| WalletIssuanceError::WiaIssuance(e.into()))?;
-
-        let response = http_client
-            .post(auth_endpoints.par_endpoint, |builder| {
-                builder
-                    .form(&par_request)
-                    .header(WIA_HEADER_NAME, wia.wia().serialization())
-                    .header(WIA_POP_HEADER_NAME, wia.wia_pop().serialization())
-            })
-            .await
-            .map_err(WalletIssuanceError::ParHttp)?;
+                .map(Attempt::Challenge)
+            },
+        )
+        .await?;
+        // A successful PAR may rotate the nonce for the token request. Otherwise retain the nonce accepted at PAR.
+        if let Some(nonce) = nonce_from_headers(response.headers())? {
+            dpop.nonce = Some(nonce);
+        }
 
         let client_auth_challenge =
             ClientAttestationChallengeMechanism::try_new_acf(auth_endpoints.challenge_endpoint, &response)
                 .map_err(WalletIssuanceError::ClientAttestationChallengeMechanism)?;
-
-        let par_response = if response.status().is_success() {
-            response
-                .json::<PushedAuthorizationResponse>()
-                .await
-                .map_err(WalletIssuanceError::ParHttp)?
-        } else {
-            let error = response
-                .json::<RemoteErrorResponse<ParErrorCode>>()
-                .await
-                .map_err(WalletIssuanceError::ParHttp)?;
-            return Err(OAuthError::PushedAuthorizationRequest(Box::new(error)).into());
-        };
+        let par_response = response
+            .json::<PushedAuthorizationResponse>()
+            .await
+            .map_err(WalletIssuanceError::ParHttp)?;
 
         let auth_url = PushedAuthorizationRequest::from_par_response(client_id, &par_response)
             .into_authorization_url(auth_endpoints.authorization_endpoint);
@@ -224,6 +388,7 @@ impl<P: PkcePair> HttpAuthorizationSession<P> {
             redirect_uri,
             pkce_pair,
             state,
+            dpop,
         })
     }
 
@@ -282,6 +447,7 @@ impl HttpAuthorizationSession {
             redirect_uri: data.redirect_uri,
             pkce_pair: S256PkcePair::from_code_verifier(data.code_verifier),
             state: data.state,
+            dpop: data.dpop,
         }
     }
 }
@@ -313,6 +479,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             redirect_uri: self.redirect_uri.clone(),
             code_verifier: self.pkce_pair.code_verifier().to_string(),
             state: self.state.clone(),
+            dpop: self.dpop.clone(),
         }
     }
 
@@ -346,6 +513,7 @@ impl AuthorizationSession for HttpAuthorizationSession {
             token_request,
             wia_client,
             &self.authorization_server,
+            self.dpop,
         )
         .await
     }
@@ -387,13 +555,15 @@ mod tests {
     use super::super::WalletIssuanceError;
     use super::super::authorization_endpoints::AuthorizationEndpoints;
     use super::super::credential_request_encryption::CredentialRequestEncryptionParameters;
+    use super::super::dpop::DpopState;
+    use super::super::dpop::tests::request_nonce_matches;
+    use super::super::dpop::tests::wia_challenge_matches;
     use super::super::issuer_registration::IssuerRegistration;
     use super::super::mock::RecordingWiaClient;
     use super::HttpAuthorizationSession;
     use super::HttpAuthorizationSessionData;
     use super::OAuthError;
     use crate::client_auth::ClientAttestationChallengeMechanism;
-    use crate::client_auth::ClientAttestationChallengeMechanismError;
     use crate::metadata::issuer_metadata::CredentialConfigurationId;
     use crate::metadata::issuer_metadata::IssuerMetadata;
     use crate::mock::MOCK_WALLET_CLIENT_ID;
@@ -445,6 +615,7 @@ mod tests {
             redirect_uri: REDIRECT_URI.parse().unwrap(),
             pkce_pair,
             state: CSRF_TOKEN.to_string(),
+            dpop: DpopState::generate(),
         }
     }
 
@@ -496,13 +667,14 @@ mod tests {
     async fn test_auth_url(#[case] issuer_state: Option<&str>) {
         let server = MockServer::start_async().await;
 
-        server
+        let par_request = server
             .mock_async(|when, then| {
                 let when = when
                     .method(POST)
                     .path("/issuance/par")
                     .form_urlencoded_tuple("client_id", MOCK_WALLET_CLIENT_ID)
-                    .form_urlencoded_tuple("redirect_uri", REDIRECT_URI);
+                    .form_urlencoded_tuple("redirect_uri", REDIRECT_URI)
+                    .is_true(|request| request_nonce_matches(request, None));
 
                 match issuer_state {
                     None => {
@@ -569,6 +741,8 @@ mod tests {
         .await
         .unwrap();
 
+        par_request.assert_calls_async(1).await;
+        assert!(session.dpop.nonce.is_none());
         let params: HashMap<_, _> = session.auth_url.query_pairs().collect();
 
         // Auth URL after PAR carries only client_id + request_uri (RFC 9126 §4)
@@ -594,7 +768,7 @@ mod tests {
     #[case::none(false, false, ExpectedChallengeMechanism::None)]
     #[case::header(false, true, ExpectedChallengeMechanism::Header)]
     #[case::challenge_endpoint(true, false, ExpectedChallengeMechanism::ChallengeEndpoint)]
-    #[case::double_challenge_mechanism(true, true, ExpectedChallengeMechanism::Both)]
+    #[case::header_with_endpoint(true, true, ExpectedChallengeMechanism::Both)]
     #[tokio::test]
     #[serial(MockPkcePair)]
     async fn test_auth_url_client_auth_challenge_mechanism(
@@ -680,6 +854,7 @@ mod tests {
         let expected_challenge = challenge_endpoint_configured.then(|| Nonce::from(challenge.to_string()));
         assert_eq!(*wia_client.received_challenge.borrow(), Some(expected_challenge));
 
+        let expected_endpoint: Url = server.url(CHALLENGE_ENDPOINT).parse().unwrap();
         match expected {
             ExpectedChallengeMechanism::None => {
                 assert_matches!(
@@ -698,15 +873,14 @@ mod tests {
                 assert_matches!(
                     result.unwrap().client_attestation_challenge,
                     ClientAttestationChallengeMechanism::ChallengeEndpoint(url)
-                        if url == server.base_url().parse::<Url>().unwrap().join("/issuance/client_auth_challenge").unwrap()
+                        if url == expected_endpoint
                 );
             }
             ExpectedChallengeMechanism::Both => {
                 assert_matches!(
-                    result.unwrap_err(),
-                    WalletIssuanceError::ClientAttestationChallengeMechanism(
-                        ClientAttestationChallengeMechanismError::DoubleChallengeMechanism
-                    )
+                    result.unwrap().client_attestation_challenge,
+                    ClientAttestationChallengeMechanism::HeaderWithEndpoint { header, endpoint }
+                        if header.as_ref() == "header-challenge" && endpoint == expected_endpoint
                 );
             }
         }
@@ -871,6 +1045,7 @@ mod tests {
             code_verifier: "verifier".to_string(),
             state: CSRF_TOKEN.to_string(),
             authorization_server: ISSUER_URL.parse().unwrap(),
+            dpop: DpopState::generate(),
         };
 
         let session = HttpAuthorizationSession {
@@ -887,6 +1062,7 @@ mod tests {
             redirect_uri: persisted.redirect_uri.clone(),
             pkce_pair: S256PkcePair::from_code_verifier(persisted.code_verifier.clone()),
             state: persisted.state.clone(),
+            dpop: persisted.dpop.clone(),
             authorization_server: ISSUER_URL.parse().unwrap(),
         };
 
@@ -925,6 +1101,15 @@ mod tests {
         assert_eq!(restored_persisted.redirect_uri, persisted.redirect_uri);
         assert_eq!(restored_persisted.code_verifier, persisted.code_verifier);
         assert_eq!(restored_persisted.state, persisted.state);
+        assert_eq!(
+            restored_persisted.dpop.signing_key.verifying_key(),
+            persisted.dpop.signing_key.verifying_key()
+        );
+        assert_eq!(restored_persisted.dpop.nonce, persisted.dpop.nonce);
+
+        let mut without_dpop = serde_json::to_value(restored_persisted).unwrap();
+        without_dpop.as_object_mut().unwrap().remove("dpop");
+        assert!(serde_json::from_value::<HttpAuthorizationSessionData>(without_dpop).is_err());
     }
 
     #[rstest]
@@ -938,5 +1123,268 @@ mod tests {
     ) {
         let url = url_with_query_pairs(url, &query_pairs);
         assert_eq!(url, expected);
+    }
+
+    #[rstest]
+    #[case::missing_nonce(400, "use_dpop_nonce", None)]
+    #[case::invalid_nonce(400, "use_dpop_nonce", Some("invalid nonce"))]
+    #[case::wrong_error(400, "invalid_request", Some("retry_nonce"))]
+    #[case::wrong_status(401, "use_dpop_nonce", Some("retry_nonce"))]
+    #[tokio::test]
+    async fn test_par_does_not_retry_invalid_challenges(
+        #[case] status: u16,
+        #[case] error_code: &str,
+        #[case] nonce: Option<&str>,
+    ) {
+        use oauth::dpop::DPOP_NONCE_HEADER_NAME;
+
+        let server = MockServer::start_async().await;
+        let par = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/par");
+                let then = then.status(status);
+                let then = match nonce {
+                    Some(nonce) => then.header(DPOP_NONCE_HEADER_NAME, nonce),
+                    None => then,
+                };
+                then.json_body(json!({"error": error_code}));
+            })
+            .await;
+        let issuer_metadata = IssuerMetadata::new_mock(
+            server.base_url().parse().unwrap(),
+            vec![(
+                "config_id".to_string().into(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
+        let mut endpoints = authorization_endpoints(&server.base_url().parse().unwrap());
+        endpoints.challenge_endpoint = None;
+        let error = HttpAuthorizationSession::<S256PkcePair>::create(
+            HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap(),
+            issuer_metadata.credential_configurations_supported,
+            issuer_metadata.credential_issuer.clone(),
+            issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
+            batch_size,
+            None,
+            endpoints,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            REDIRECT_URI.parse().unwrap(),
+            None,
+            &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
+        )
+        .await
+        .unwrap_err();
+        if nonce == Some("invalid nonce") {
+            assert_matches!(error, WalletIssuanceError::DpopNonce(_));
+        } else {
+            assert_matches!(
+                error,
+                WalletIssuanceError::OAuth(OAuthError::PushedAuthorizationRequest(_))
+            );
+        }
+        par.assert_calls_async(1).await;
+    }
+
+    #[rstest]
+    #[case::repeated_par_challenge("use_dpop_nonce", true, false, false)]
+    #[case::keep_both_challenges("use_dpop_nonce", false, false, false)]
+    #[case::rotate_dpop_nonce("use_dpop_nonce", false, true, false)]
+    #[case::rotate_wia_challenge("use_dpop_nonce", false, false, true)]
+    #[case::par_attestation_challenge("use_attestation_challenge", false, false, true)]
+    #[tokio::test]
+    async fn test_par_challenge_retry_and_key_continuity(
+        #[case] par_error: &str,
+        #[case] repeated_challenge: bool,
+        #[case] rotate_nonce_on_success: bool,
+        #[case] rotate_wia_on_token_retry: bool,
+    ) {
+        use std::sync::Arc;
+        use std::sync::Mutex;
+
+        use crypto::keys::PublicKey;
+        use oauth::dpop::DPOP_HEADER_NAME;
+        use oauth::dpop::DPOP_NONCE_HEADER_NAME;
+        use oauth::dpop::Dpop;
+        use reqwest::Method;
+
+        use crate::errors::VciTokenErrorCode;
+
+        let server = MockServer::start_async().await;
+        let first_proof = Arc::new(Mutex::new(None::<Dpop>));
+        let captured_proof = Arc::clone(&first_proof);
+        let par_challenge = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/par").is_true(move |request| {
+                    if !request_nonce_matches(request, None) || !wia_challenge_matches(request, None) {
+                        return false;
+                    }
+                    let proof = request
+                        .headers()
+                        .get(DPOP_HEADER_NAME)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .parse()
+                        .unwrap();
+                    *captured_proof.lock().unwrap() = Some(proof);
+                    true
+                });
+                then.status(400)
+                    .header(DPOP_NONCE_HEADER_NAME, "par_nonce")
+                    .header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "par_retry_challenge")
+                    .json_body(json!({"error":par_error}));
+            })
+            .await;
+        let par_retry = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/par").is_true(|request| {
+                    request_nonce_matches(request, Some("par_nonce"))
+                        && wia_challenge_matches(request, Some("par_retry_challenge"))
+                });
+                if repeated_challenge {
+                    then.status(400)
+                        .header(DPOP_NONCE_HEADER_NAME, "another_nonce")
+                        .json_body(json!({"error":"use_dpop_nonce"}));
+                } else {
+                    let then = then
+                        .status(201)
+                        .header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "token_challenge");
+                    let then = if rotate_nonce_on_success {
+                        then.header(DPOP_NONCE_HEADER_NAME, "token_nonce")
+                    } else {
+                        then
+                    };
+                    then.json_body(json!({"request_uri":PAR_REQUEST_URI, "expires_in":60}));
+                }
+            })
+            .await;
+        let issuer_metadata = IssuerMetadata::new_mock(
+            server.base_url().parse().unwrap(),
+            vec![(
+                "config_id".to_string().into(),
+                CredentialKind::new(Format::SdJwt, "test".to_string()),
+            )],
+        );
+        let batch_size = issuer_metadata.batch_size().try_into().unwrap();
+        let client = HttpClient::try_new(httpmock_reqwest_client_builder()).unwrap();
+        let mut endpoints = authorization_endpoints(&server.base_url().parse().unwrap());
+        endpoints.challenge_endpoint = None;
+        let session = HttpAuthorizationSession::<S256PkcePair>::create(
+            client.clone(),
+            issuer_metadata.credential_configurations_supported,
+            issuer_metadata.credential_issuer.clone(),
+            issuer_metadata.endpoints,
+            IssuerRegistration::new_mock(),
+            batch_size,
+            None,
+            endpoints,
+            MOCK_WALLET_CLIENT_ID.to_string(),
+            REDIRECT_URI.parse().unwrap(),
+            None,
+            &MockWiaClient::new(),
+            issuer_metadata.credential_issuer,
+        )
+        .await;
+        par_challenge.assert_calls_async(1).await;
+        par_retry.assert_calls_async(1).await;
+        if repeated_challenge {
+            assert_matches!(session, Err(WalletIssuanceError::DpopNonceRejected));
+            return;
+        }
+        let session = session.unwrap();
+        let session = HttpAuthorizationSession::restore(
+            client,
+            serde_json::from_value(serde_json::to_value(session.persist()).unwrap()).unwrap(),
+        );
+        let expected_nonce = if rotate_nonce_on_success {
+            "token_nonce"
+        } else {
+            "par_nonce"
+        };
+        assert_eq!(session.dpop.nonce.as_ref().unwrap().as_ref(), expected_nonce);
+        let key = PublicKey::from(*session.dpop.signing_key.verifying_key());
+        assert_eq!(
+            first_proof
+                .lock()
+                .unwrap()
+                .take()
+                .unwrap()
+                .verify(&server.url("/issuance/par").parse().unwrap(), &Method::POST, None,)
+                .unwrap(),
+            key,
+        );
+        let token_url: Url = server.url("/issuance/token").parse().unwrap();
+        let expected_key = key.clone();
+        let expected_url = token_url.clone();
+        let token_challenge = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token").is_true(move |request| {
+                    let headers = request.headers();
+                    let proof: Dpop = headers
+                        .get(DPOP_HEADER_NAME)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .parse()
+                        .unwrap();
+                    wia_challenge_matches(request, Some("token_challenge"))
+                        && proof
+                            .verify_expecting_key(expected_key.clone(), &expected_url, &Method::POST, None)
+                            .is_ok_and(|nonce| nonce.into_inner().is_some_and(|nonce| nonce.as_ref() == expected_nonce))
+                });
+                let then = if rotate_wia_on_token_retry {
+                    then.header(WIA_CLIENT_CHALLENGE_HEADER_NAME, "token_retry_challenge")
+                } else {
+                    then
+                };
+                then.status(400)
+                    .header(DPOP_NONCE_HEADER_NAME, "token_retry_nonce")
+                    .json_body(json!({"error":"use_dpop_nonce"}));
+            })
+            .await;
+        let token_retry = server
+            .mock_async(|when, then| {
+                when.method(POST).path("/issuance/token").is_true(move |request| {
+                    let headers = request.headers();
+                    let proof: Dpop = headers
+                        .get(DPOP_HEADER_NAME)
+                        .unwrap()
+                        .to_str()
+                        .unwrap()
+                        .parse()
+                        .unwrap();
+                    let expected_wia_challenge = if rotate_wia_on_token_retry {
+                        "token_retry_challenge"
+                    } else {
+                        "token_challenge"
+                    };
+                    wia_challenge_matches(request, Some(expected_wia_challenge))
+                        && proof
+                            .verify_expecting_key(key.clone(), &token_url, &Method::POST, None)
+                            .is_ok_and(|nonce| {
+                                nonce
+                                    .into_inner()
+                                    .is_some_and(|nonce| nonce.as_ref() == "token_retry_nonce")
+                            })
+                });
+                // Stop after token processing, without having to set up metadata and credential issuance.
+                then.status(400).json_body(json!({"error":"invalid_grant"}));
+            })
+            .await;
+        let redirect = url_with_query_pairs(
+            REDIRECT_URI.parse().unwrap(),
+            &[("code", CODE), ("state", session.state())],
+        );
+        let error = session
+            .start_issuance(&redirect, &MockWiaClient::new())
+            .await
+            .unwrap_err();
+        assert_matches!(error, WalletIssuanceError::VciTokenRequest(response)
+            if response.error == RemoteErrorCode::Known(VciTokenErrorCode::InvalidGrant));
+        token_challenge.assert_calls_async(1).await;
+        token_retry.assert_calls_async(1).await;
     }
 }

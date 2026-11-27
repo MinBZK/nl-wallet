@@ -10,7 +10,7 @@ class ContinuePidIssuanceUseCaseImpl extends ContinuePidIssuanceUseCase {
   ContinuePidIssuanceUseCaseImpl(this._pidRepository);
 
   @override
-  Future<Result<PreviewAttributes>> invoke(String uri) async {
+  Future<Result<ContinuePidIssuanceResult>> invoke(String uri) async {
     return tryCatch(
       () async => _pidRepository.continuePidIssuance(uri),
       'Failed to continue pid issuance',

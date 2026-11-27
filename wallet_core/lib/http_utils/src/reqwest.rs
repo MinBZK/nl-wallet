@@ -203,6 +203,7 @@ pub fn default_reqwest_client_builder() -> ClientBuilder {
         .min_tls_version(Version::TLS_1_2)
         // Force `rustls`, which only supports strong ciphers <https://docs.rs/rustls/latest/rustls/crypto/ring/cipher_suite/index.html>
         .use_rustls_tls()
+        .user_agent("eudi-wallet")
 }
 
 /// Create a [`ClientBuilder`] with sensible defaults that is TLS-only.

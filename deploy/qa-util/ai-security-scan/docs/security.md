@@ -8,14 +8,14 @@
 
 ## What the skills can and cannot do
 
-Each skill's `SKILL.md` declares an explicit tool allowlist: `Read`, `Glob`,
-`Grep`, `Write`, subagents, and a narrow set of Bash commands (`git`, `rg`,
-`jq`, `find`, and `python3 .claude/skills/_lib/checkpoint.py` for state I/O).
-`.claude/settings.json` enforces the same allowlist for every run with
-`defaultMode: default` (not `bypassPermissions`), so anything off the list —
-`kubectl`, `curl`, `env`, arbitrary `python3` — is denied. The safety
-property that matters is **no execution of target code**: the wallet's own
-sources are never compiled, run, or imported during a scan.
+`.claude/settings.json` declares the tool rules for every run. The skills do
+not declare `allowed-tools`: Claude Code adds those rules to the settings,
+also in `dontAsk` mode, so a broad rule in a skill opens the allowlist. The
+rules permit writes to the output files and state directories only,
+`git diff`, `git log`, `git show`, `git rev-parse`, some file inspection
+commands (`grep`, `ls`, `wc`, `head`, `file`, `cat`), and
+`python3 .claude/skills/_lib/checkpoint.py` for state I/O. The skills
+never compile, run or import the wallet's own sources.
 
 The upstream project also shipped an autonomous pipeline that *does* execute
 target code (to reproduce crashes under ASAN) and therefore required a gVisor
@@ -36,11 +36,11 @@ network access beyond the Claude API. Consequences:
 - Be more suspicious when scanning third-party/vendored code than when
   scanning our own tree.
 
-**Credentials on the scan machine.** The scan process can read whatever the
-user running it can read. On CI, run it in an ephemeral job with only the
-`CLAUDE_CODE_OAUTH_TOKEN` it needs; don't mount other secrets into the job.
-Locally, the standing advice for any agent applies: don't run it in a shell
-session holding credentials it doesn't need.
+**Credentials on the scan machine.** The scan process can read the files
+that the user who runs it can read. In CI, the job receives all unprotected
+project and group CI variables. `run-skill.sh` starts the agent with only the
+variables that Claude Code needs. Locally, the agent gets the environment of
+your shell. Do not run it in a shell that holds credentials it does not need.
 
 **Output handling.** `VULN-FINDINGS*`/`TRIAGE*` files describe potential
 vulnerabilities in this codebase. Until fixed, treat them like any other
@@ -49,10 +49,44 @@ not in public places.
 
 ## Permissions configuration
 
-`.claude/settings.json` pre-approves the read-only commands the skills use
-(`allow` list) and runs with `defaultMode: default` — it does **not** use
-`bypassPermissions`. A tool that is neither on the allowlist nor approved is
-denied, so the agent cannot run `kubectl`, `curl`, `env`, or arbitrary
-`python3` even in an unattended CI run. Keep the allowlist read-only: adding
-a command that reaches the network or executes target code would undermine
-the isolation the scan jobs rely on (see the README's Isolation section).
+In CI, `run-skill.sh` starts Claude Code with `--permission-mode dontAsk`.
+Claude Code then denies each tool call that the rules do not allow. Locally,
+`defaultMode: default` applies: Claude Code asks you before it runs other
+tool calls, for example the write of `THREAT_MODEL.md` into the target
+directory.
+
+The `allow` list is a list of prefixes. A `Bash(<prefix>:*)` rule allows
+each command that starts with the prefix, with all arguments after it. Many
+commands have options that run other commands or write files.
+
+With the current rules, Claude Code denies commands like the following:
+
+- `Bash(git -C:*)`. This rule matches each git command that starts with
+  `-C <dir>`, with all global options and subcommands after it. For example,
+  `git -C . -c alias.x='!cmd' x` sets an alias with a `-c` config override,
+  and git runs `cmd` in a shell. Rules for a subcommand, such as
+  `Bash(git log:*)`, do not match a command with options before the
+  subcommand, so the skills run `git log` without `-C`.
+- `Bash(rg:*)`, because `rg --pre <cmd>` runs a command for each file.
+- `Bash(find:*)`, because `-exec`, `-execdir` and `-ok` run commands, and
+  `-delete` and `-fprint` change files.
+- `Bash(jq:*)`, because `jq -n '$ENV'` prints the environment.
+- `Write` without a path, because the agent can then write files outside the
+  repository. A changed `~/.gitconfig`, for example, can make the next git
+  command run a command.
+- `Read` without a path, because the agent can then read files outside the
+  repository, for example `~/.ssh`. Reads in the working directories,
+  subagents and questions to the user need no rule.
+
+The allowed `git diff`, `git log` and `git show` accept `--output=<file>`,
+which writes a file. The `deny` rule `Bash(git * --output*)` blocks it.
+
+Claude Code itself blocks `find -exec`, reads of `/proc/*/environ`, and
+writes into `.git/` and `.claude/`.
+
+When you change the rules or `CLAUDE_CODE_VERSION`, test the rules again.
+Make a scratch git repository with a copy of `.claude/settings.json`, and ask
+`claude -p --permission-mode dontAsk --output-format json` to run commands
+like the ones above. The `permission_denials` field of the output shows which
+tool calls Claude Code denied. Also make sure that the command did not run,
+for example with a marker file.

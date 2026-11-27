@@ -58,7 +58,7 @@ sonar-flutter:
       -Dsonar.projectKey=nl-wallet-demo-app
       -Dsonar.qualitygate.wait=$QUALITY_GATE_WAIT
       -Dsonar.sources=.
-      -Dsonar.exclusions=**/android/**,**/ios/**,test/**,packages/wallet_core/lib/src/**,**/*.freezed.dart,**/*.g.dart,**/*.yaml
+      -Dsonar.exclusions=**/android/**,**/ios/**,test/**,packages/wallet_core/lib/src/**,**/*.freezed.dart,**/*.g.dart,**/*.yaml,**/theme/tabs/*.dart
       -Dsonar.coverage.exclusions=packages/wallet_mock/**
       -Dsonar.tests=test/
       -Dsonar.dependencyCheck.htmlReportPath=../dependency-check-report.html

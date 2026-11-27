@@ -23,6 +23,7 @@ use crate::models::disclosure::AcceptDisclosureResult;
 use crate::models::disclosure::CloseProximityDisclosureFlutterUpdate;
 use crate::models::disclosure::StartDisclosureResult;
 use crate::models::instruction::DisclosureBasedIssuanceInstructionResult;
+use crate::models::instruction::IssueCredentialsResult;
 use crate::models::instruction::PidIssuanceResult;
 use crate::models::instruction::RevocationCodeResult;
 use crate::models::instruction::WalletInstructionResult;
@@ -393,16 +394,6 @@ pub async fn start_issuance_from_offer(offer_uri: String) -> anyhow::Result<Issu
     Ok(issuance_start_result.into())
 }
 
-// TODO remove this function (PVW-5927)
-#[flutter_api_error]
-pub async fn cancel_issuance() -> anyhow::Result<()> {
-    let mut wallet = wallet().write().await;
-
-    wallet.cancel_session().await?;
-
-    Ok(())
-}
-
 #[flutter_api_error]
 pub async fn continue_issuance(uri: String) -> anyhow::Result<IssuanceContinueResult> {
     let url = Url::parse(&uri)?;
@@ -428,6 +419,37 @@ pub async fn accept_pid_issuance(pin: String) -> anyhow::Result<PidIssuanceResul
     let mut wallet = wallet().write().await;
 
     let result = wallet.accept_issuance(pin.into()).await.try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn issue_credentials_for_review(pin: String) -> anyhow::Result<IssueCredentialsResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet
+        .issue_credentials_for_review(pin.into())
+        .await
+        .map(Vec::from)
+        .try_into()?;
+
+    Ok(result)
+}
+
+#[flutter_api_error]
+pub async fn commit_issued_credentials() -> anyhow::Result<()> {
+    let mut wallet = wallet().write().await;
+
+    wallet.commit_issued_credentials().await?;
+
+    Ok(())
+}
+
+#[flutter_api_error]
+pub async fn commit_issued_pid(pin: String) -> anyhow::Result<PidIssuanceResult> {
+    let mut wallet = wallet().write().await;
+
+    let result = wallet.commit_issued_pid(pin.into()).await.try_into()?;
 
     Ok(result)
 }
@@ -470,16 +492,6 @@ pub async fn continue_close_proximity_disclosure() -> anyhow::Result<StartDisclo
 
 #[flutter_api_error]
 pub async fn cancel_session() -> anyhow::Result<Option<String>> {
-    let mut wallet = wallet().write().await;
-
-    let return_url = wallet.cancel_session().await?.map(String::from);
-
-    Ok(return_url)
-}
-
-// TODO remove this function (PVW-5927)
-#[flutter_api_error]
-pub async fn cancel_disclosure() -> anyhow::Result<Option<String>> {
     let mut wallet = wallet().write().await;
 
     let return_url = wallet.cancel_session().await?.map(String::from);

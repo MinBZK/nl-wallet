@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import '../../domain/usecase/biometrics/get_available_biometrics_usecase.dart';
 
 // The amount of steps in the onboarding flow *without* the biometrics step
-const _kDefaultNrOfSteps = 9;
+const _kDefaultNrOfSteps = 10;
 
 /// A utility class to manage and calculate the total number of steps
 /// required in the user onboarding process.

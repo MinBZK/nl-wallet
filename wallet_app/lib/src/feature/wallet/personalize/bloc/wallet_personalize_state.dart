@@ -1,5 +1,10 @@
 part of 'wallet_personalize_bloc.dart';
 
+// The last steps of the onboarding are based on the flow without previews: DigiD (-4), provide the PIN to retrieve the
+// PID (-3), review the retrieved PID (-2), provide the PIN to add it to the wallet (-1) and success (0). The states of
+// the flow with previews are mapped onto the same steps, so the stepper never exceeds the total while that flow is
+// still supported. See also [OnboardingHelper].
+// TODO(PVW-6531): remove the mapping of the preview states once the previews are removed.
 sealed class WalletPersonalizeState extends Equatable {
   FlowProgress? get stepperProgress => null;
 
@@ -21,7 +26,7 @@ class WalletPersonalizeInitial extends WalletPersonalizeState {
 
   @override
   FlowProgress get stepperProgress =>
-      FlowProgress(currentStep: OnboardingHelper.totalSteps - 3, totalSteps: OnboardingHelper.totalSteps);
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 4, totalSteps: OnboardingHelper.totalSteps);
 }
 
 class WalletPersonalizeLoadingIssuanceUrl extends WalletPersonalizeState {
@@ -41,26 +46,46 @@ class WalletPersonalizeAuthenticating extends WalletPersonalizeState {
   const WalletPersonalizeAuthenticating();
 }
 
+/// Asks for the PIN to retrieve the PID from an issuer that does not provide previews.
+class WalletPersonalizeConfirmPinToRetrieve extends WalletPersonalizeState {
+  const WalletPersonalizeConfirmPinToRetrieve();
+
+  @override
+  FlowProgress get stepperProgress =>
+      FlowProgress(currentStep: OnboardingHelper.totalSteps - 3, totalSteps: OnboardingHelper.totalSteps);
+}
+
 class WalletPersonalizeCheckData extends WalletPersonalizeState {
   final List<Attribute> availableAttributes;
   @override
   final bool didGoBack;
 
-  const WalletPersonalizeCheckData({required this.availableAttributes, this.didGoBack = false});
+  /// True when [availableAttributes] are of the issued PID instead of a preview, in which case the PID is only added
+  /// to the wallet after the user accepts it and confirms with their PIN again.
+  final bool issuedForReview;
+
+  const WalletPersonalizeCheckData({
+    required this.availableAttributes,
+    this.didGoBack = false,
+    this.issuedForReview = false,
+  });
 
   @override
   FlowProgress get stepperProgress =>
       FlowProgress(currentStep: OnboardingHelper.totalSteps - 2, totalSteps: OnboardingHelper.totalSteps);
 
   @override
-  List<Object?> get props => [availableAttributes, ...super.props];
+  List<Object?> get props => [availableAttributes, issuedForReview, ...super.props];
 }
 
 class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
   /// Used to return to [WalletPersonalizeCheckData] when user presses back
   final List<Attribute> attributes;
 
-  const WalletPersonalizeConfirmPin(this.attributes);
+  /// True when the PID was already issued for review, so confirming with the PIN commits it to the wallet.
+  final bool issuedForReview;
+
+  const WalletPersonalizeConfirmPin(this.attributes, {this.issuedForReview = false});
 
   @override
   FlowProgress get stepperProgress =>
@@ -70,7 +95,7 @@ class WalletPersonalizeConfirmPin extends WalletPersonalizeState {
   bool get canGoBack => true;
 
   @override
-  List<Object?> get props => [attributes, ...super.props];
+  List<Object?> get props => [attributes, issuedForReview, ...super.props];
 }
 
 class WalletPersonalizeSuccess extends WalletPersonalizeState {

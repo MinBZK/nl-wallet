@@ -153,6 +153,14 @@ workspace "Name" "NL-Wallet" {
             tags "External"
         }
 
+        trustLists = softwareSystem "Trusted Lists" {
+            tags "External"
+        }
+
+        lotes = softwareSystem "LoTEs" {
+            tags "External"
+        } 
+
         issuerPid -> digid "User authentication"
         u -> ws "Uses"
         u -> ws.revokeUi "Revoke wallet"
@@ -194,6 +202,8 @@ workspace "Name" "NL-Wallet" {
 
         ws.walletBackend -> ws.walletHsm "[I-403] Call HSM for assisted operation"
         ws.walletBackend -> ws.statusList "[I-402] Publish WIA statuslist"
+        ws.walletBackend -> lotes "[E-108] Retrieve LoTE trust lists"
+        ws.walletBackend -> trustLists "[E-109] Retrieve Trusted Lists"
 
 
         ws.walletApp -> issuerPb "[E-301] Perform disclosure based issuance, [E-302] Retrieve Status List"
@@ -259,11 +269,20 @@ workspace "Name" "NL-Wallet" {
             include u ws verifier issuerPid issuerPb platformServices ua iam
         }
 
+        systemContext ws "AD3NL-Wallet" {
+            include u ws verifier issuerPid issuerPb platformServices ua iam trustLists lotes
+        }
+        
         systemContext ws "B1PID-Issuer" {
             include u issuerPid ws verifier
         }
 
         container ws "D2NL-WalletSystem" {
+            include * platformServices
+            exclude lotes trustLists
+        }
+
+        container ws "D3NL-WalletSystem" {
             include * platformServices
         }
 

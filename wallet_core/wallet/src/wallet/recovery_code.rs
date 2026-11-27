@@ -46,7 +46,7 @@ pub enum RecoveryCodeError {
 
 /// A disclosure of just the recovery code of the issued PID, whose recovery code matches that of the stored PID, if
 /// any.
-#[derive(derive_more::Into)]
+#[derive(Debug, Clone, derive_more::Into)]
 pub(super) struct CheckedRecoveryCodeDisclosure(UnverifiedSdJwt);
 
 impl<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC> Wallet<CR, UR, S, AKH, APC, CID, DCC, CPC, SLC>
@@ -63,7 +63,7 @@ where
     /// the Wallet Provider revoke all wallets of both persons.
     pub(super) async fn checked_recovery_code_disclosure(
         &self,
-        credentials: &[CredentialWithMetadata],
+        credentials: &VecNonEmpty<CredentialWithMetadata>,
         pid_config: &PidAttributesConfiguration,
     ) -> Result<CheckedRecoveryCodeDisclosure, RecoveryCodeError> {
         // Since the recovery code is the same in all copies, just find the first credential that is in SD-JWT format

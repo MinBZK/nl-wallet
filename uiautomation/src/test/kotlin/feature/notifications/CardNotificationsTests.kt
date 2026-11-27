@@ -76,6 +76,7 @@ class CardNotificationsTests : TestBase() {
         cardIssuanceScreen.switchToNativeContext()
         cardIssuanceScreen.continueIssuance()
         pinScreen.enterPin(DEFAULT_PIN)
+        cardIssuanceScreen.clickAddCardButton()
         cardIssuanceScreen.clickToDashboardButton()
 
         dashboardScreen.clickMenuButton()

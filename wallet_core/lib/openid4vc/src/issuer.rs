@@ -247,6 +247,9 @@ pub enum CredentialRequestError {
     #[error("unauthorized: incorrect access token")]
     Unauthorized,
 
+    #[error("a DPoP nonce is required")]
+    MissingDpopNonce,
+
     #[error("could not check DPoP nonce against nonce storage: {0}")]
     DpopNonceStore(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 
@@ -1424,9 +1427,7 @@ impl Session<AccessTokenIssued> {
             )
             .map_err(|err| CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(err)))?
             .into_inner()
-            .ok_or(CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(
-                DpopError::IncorrectNonce,
-            )))?;
+            .ok_or(CredentialRequestError::MissingDpopNonce)?;
 
         // Only consume the nonce after verifying the proof and its binding to this access token. The store checks
         // expiry and removes it atomically, so concurrent requests cannot reuse the same nonce.
@@ -1839,8 +1840,11 @@ mod tests {
     use crate::token::VciTokenRequest;
     use crate::token::VciTokenResponse;
     use crate::wallet_issuance::AcceptIssuanceTrustAnchors;
+    use crate::wallet_issuance::Attempt;
     use crate::wallet_issuance::IssuanceSession;
     use crate::wallet_issuance::WalletIssuanceError;
+    use crate::wallet_issuance::authorization::AuthorizationServerResponse;
+    use crate::wallet_issuance::dpop::DpopState;
     use crate::wallet_issuance::issuance_session::CredentialRequestBody;
     use crate::wallet_issuance::issuance_session::HttpIssuanceSession;
     use crate::wallet_issuance::issuance_session::VcMessageClient;
@@ -2104,7 +2108,7 @@ mod tests {
             token_request: &VciTokenRequest,
             dpop_header: &Dpop,
             wia: &WiaDisclosure,
-        ) -> Result<(VciTokenResponse, Option<DpopNonce>), WalletIssuanceError> {
+        ) -> Result<AuthorizationServerResponse<(VciTokenResponse, Option<DpopNonce>)>, WalletIssuanceError> {
             let wia = self.wia_override.as_ref().unwrap_or(wia);
             let token_response = self
                 .issuer
@@ -2115,7 +2119,7 @@ mod tests {
 
                     WalletIssuanceError::VciTokenRequest(Box::new(error_response.into()))
                 })?;
-            Ok((token_response, None))
+            Ok(AuthorizationServerResponse::Success((token_response, None)))
         }
 
         async fn request_challenge(&self, _url: Url) -> Result<Nonce, WalletIssuanceError> {
@@ -2154,7 +2158,7 @@ mod tests {
             credential_request: CredentialRequestBody<'a>,
             dpop_header: &Dpop,
             access_token: &AccessToken,
-        ) -> Result<CredentialResponse, WalletIssuanceError> {
+        ) -> Result<Attempt<CredentialResponse, DpopNonce>, WalletIssuanceError> {
             let CredentialRequestBody::Encrypted(credential_request_jwe) = credential_request else {
                 panic!("credential request should be encrypted");
             };
@@ -2167,6 +2171,7 @@ mod tests {
                     &MockTimeGenerator::default(),
                 )
                 .await
+                .map(Attempt::Success)
                 .map_err(|error| {
                     let error_response = ErrorResponse::<CredentialErrorCode>::from(error);
 
@@ -2237,6 +2242,7 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(code),
             &MockWiaClient::from_ca(wptl_ca),
             &oauth_metadata.oauth_metadata.issuer,
+            DpopState::generate(),
         )
         .await
         .unwrap();
@@ -2309,6 +2315,7 @@ mod tests {
             VciTokenRequest::new_mock_with_pre_authorized_code(session_token),
             wia_client,
             &oauth_metadata.oauth_metadata.issuer,
+            DpopState::generate(),
         )
         .await
         .err()
@@ -2875,7 +2882,6 @@ mod tests {
 
     #[rstest]
     #[case(CredentialRequestFailure::WrongDpopNonce)]
-    #[case(CredentialRequestFailure::MissingDpopNonce)]
     #[case(CredentialRequestFailure::ProofNonceAsDpopNonce)]
     #[tokio::test]
     async fn test_process_credential_request_error_dpop_invalid(#[case] failure: CredentialRequestFailure) {
@@ -2893,6 +2899,21 @@ mod tests {
             error,
             CredentialRequestError::IssuanceError(IssuanceError::DpopInvalid(DpopError::IncorrectNonce))
         );
+    }
+
+    #[tokio::test]
+    async fn test_missing_dpop_nonce_requires_challenge_before_processing_credential_proof() {
+        let (issuer, _, access_token, dpop, _, credential_request) = setup_mock_issuer_and_credential_request(
+            Format::SdJwt,
+            NonZeroUsize::MIN,
+            CredentialRequestFailure::MissingDpopNonce,
+        );
+        let error = issuer
+            .process_credential_request(&access_token, dpop, &credential_request, &MockTimeGenerator::default())
+            .await
+            .unwrap_err();
+        assert_eq!(error.error_code(), CredentialErrorCode::UseDpopNonce);
+        assert_matches!(error, CredentialRequestError::MissingDpopNonce);
     }
 
     #[tokio::test]

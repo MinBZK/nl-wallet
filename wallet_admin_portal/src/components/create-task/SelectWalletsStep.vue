@@ -75,7 +75,6 @@ import WalletRow from './WalletRow.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import TaskCard from '@/components/tasks/TaskCard.vue'
 import { findWallet } from '@/api/wallets.ts'
-import { UnauthorizedError } from '@/api/request.ts'
 import type { Wallet } from '@/types/wallet.ts'
 
 const props = defineProps<{
@@ -135,9 +134,8 @@ async function search() {
     if (isOutdated()) return
     foundWallet.value = wallet
     notFound.value = wallet === null
-  } catch (error) {
-    // An expired session is already redirected to the login page.
-    if (!isOutdated() && !(error instanceof UnauthorizedError)) searchFailed.value = true
+  } catch {
+    if (!isOutdated()) searchFailed.value = true
   } finally {
     isSearching.value = false
   }

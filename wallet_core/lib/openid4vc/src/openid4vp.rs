@@ -66,6 +66,7 @@ use serde_with::DeserializeFromStr;
 use serde_with::SerializeAs;
 use serde_with::SerializeDisplay;
 use serde_with::TryFromIntoRef;
+use serde_with::rust::unwrap_or_skip;
 use serde_with::serde_as;
 use serde_with::skip_serializing_none;
 use token_status_list::verification::client::StatusListClient;
@@ -339,11 +340,14 @@ pub struct VpFormatsSupported {
 
 /// Alg values for mso_mdoc.
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.2.2>
+#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MsoMdocAlgValues {
     /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
+    #[serde(default, with = "unwrap_or_skip")]
     pub issuerauth_alg_values: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
     /// OPTIONAL. A non-empty array containing cryptographic algorithm identifiers.
+    #[serde(default, with = "unwrap_or_skip")]
     pub deviceauth_alg_values: Option<VecNonEmpty<CoseAlgorithmIdentifier>>,
 }
 
@@ -353,33 +357,34 @@ impl MsoMdocAlgValues {
     /// OpenID4VP treats ES256 (-7) used with a P-256 key as matching metadata containing either ES256 or fully
     /// specified ESP256 (-9). See
     /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0-final.html#appendix-B.2.2-2.1>.
-    pub fn contains_ecdsa_p256(&self) -> bool {
+    pub fn supports_ecdsa_p256(&self) -> bool {
         let contains_ecdsa_p256 =
             |alg: &VecNonEmpty<CoseAlgorithmIdentifier>| alg.iter().any(CoseAlgorithmIdentifier::is_ecdsa_p256);
-        self.issuerauth_alg_values.as_ref().is_some_and(contains_ecdsa_p256)
-            && self.deviceauth_alg_values.as_ref().is_some_and(contains_ecdsa_p256)
+        self.issuerauth_alg_values.as_ref().is_none_or(contains_ecdsa_p256)
+            && self.deviceauth_alg_values.as_ref().is_none_or(contains_ecdsa_p256)
     }
 }
 
 /// Alg values for dc+sd-jwt.
 /// <https://openid.net/specs/openid-4-verifiable-presentations-1_0.html#appendix-B.3.4>
+#[skip_serializing_none]
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SdJwtAlgValues {
     /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for an
     /// Issuer-signed JWT of an SD-JWT.
-    #[serde(rename = "sd-jwt_alg_values")]
+    #[serde(rename = "sd-jwt_alg_values", default, with = "unwrap_or_skip")]
     pub sd_jwt_alg_values: Option<VecNonEmpty<JwsAlgorithm>>,
     /// OPTIONAL. A non-empty array containing fully-specified identifiers of cryptographic algorithms supported for a
     /// Key Binding JWT (KB-JWT).
-    #[serde(rename = "kb-jwt_alg_values")]
+    #[serde(rename = "kb-jwt_alg_values", default, with = "unwrap_or_skip")]
     pub kb_jwt_alg_values: Option<VecNonEmpty<JwsAlgorithm>>,
 }
 
 impl SdJwtAlgValues {
-    pub fn contains_es_256(&self) -> bool {
+    pub fn supports_es256(&self) -> bool {
         let contains_es_256 = |alg: &VecNonEmpty<JwsAlgorithm>| alg.iter().contains(&JwsAlgorithm::ES256);
-        self.sd_jwt_alg_values.as_ref().is_some_and(contains_es_256)
-            && self.kb_jwt_alg_values.as_ref().is_some_and(contains_es_256)
+        self.sd_jwt_alg_values.as_ref().is_none_or(contains_es_256)
+            && self.kb_jwt_alg_values.as_ref().is_none_or(contains_es_256)
     }
 }
 
@@ -3056,5 +3061,18 @@ mod tests {
                 kb_jwt_alg_values: vec_nonempty![JwsAlgorithm::ES256].into(),
             })
         );
+    }
+
+    #[rstest]
+    #[case("mso_mdoc", "issuerauth_alg_values")]
+    #[case("mso_mdoc", "deviceauth_alg_values")]
+    #[case("dc+sd-jwt", "sd-jwt_alg_values")]
+    #[case("dc+sd-jwt", "kb-jwt_alg_values")]
+    fn vp_formats_reject_invalid_algorithm_lists(
+        #[case] format: &str,
+        #[case] field: &str,
+        #[values(json!(null), json!([]))] value: serde_json::Value,
+    ) {
+        assert!(serde_json::from_value::<VpFormatsSupported>(json!({format: {field: value}})).is_err());
     }
 }

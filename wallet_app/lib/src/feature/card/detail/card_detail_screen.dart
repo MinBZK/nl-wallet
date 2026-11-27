@@ -23,6 +23,7 @@ import '../../common/widget/animated_fade_in.dart';
 import '../../common/widget/button/button_content.dart';
 import '../../common/widget/button/list_button.dart';
 import '../../common/widget/button/primary_button.dart';
+import '../../common/widget/button/tertiary_button.dart';
 import '../../common/widget/card/status/card_status_info_text.dart';
 import '../../common/widget/card/wallet_card_item.dart';
 import '../../common/widget/centered_loading_indicator.dart';
@@ -345,23 +346,38 @@ class CardDetailScreen extends StatelessWidget {
       children: [
         const Divider(),
         if (showRenewPidButton)
-          Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, top: 24, bottom: 12),
-            child: PrimaryButton(
-              text: Text.rich(context.l10n.cardDetailScreenRenewPidCta.toTextSpan(context)),
-              icon: const Icon(Icons.arrow_forward_outlined),
-              onPressed: () => Navigator.of(context).pushNamed(WalletRoutes.renewPidRoute),
-            ),
+          _buildRenewPidButtons(context)
+        else
+          ListButton(
+            onPressed: () => Navigator.maybePop(context),
+            icon: const Icon(Icons.arrow_back),
+            mainAxisAlignment: MainAxisAlignment.center,
+            iconPosition: IconPosition.start,
+            dividerSide: DividerSide.none,
+            text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
           ),
-        ListButton(
-          onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(Icons.arrow_back),
-          mainAxisAlignment: MainAxisAlignment.center,
-          iconPosition: IconPosition.start,
-          dividerSide: DividerSide.none,
-          text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
-        ),
       ],
+    );
+  }
+
+  Widget _buildRenewPidButtons(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: context.isLandscape ? 8 : 24),
+      child: Column(
+        children: [
+          PrimaryButton(
+            text: Text.rich(context.l10n.cardDetailScreenRenewPidCta.toTextSpan(context)),
+            icon: const Icon(Icons.arrow_forward_outlined),
+            onPressed: () => Navigator.of(context).pushNamed(WalletRoutes.renewPidRoute),
+          ),
+          const SizedBox(height: 12),
+          TertiaryButton(
+            onPressed: () => Navigator.maybePop(context),
+            icon: const Icon(Icons.arrow_back),
+            text: Text.rich(context.l10n.generalBottomBackCta.toTextSpan(context)),
+          ),
+        ],
+      ),
     );
   }
 }
