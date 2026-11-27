@@ -14,6 +14,7 @@ nl-wallet-acf-demo-issuer
 nl-wallet-acf-demo-issuer-migrations
 nl-wallet-pid-issuer
 nl-wallet-pid-issuer-migrations
+nl-wallet-verify-wallet-config
 nl-wallet-revocation-portal
 nl-wallet-admin-portal
 nl-wallet-update-policy-server

@@ -365,6 +365,17 @@ build-acf-demo-issuer-binary:
       - wallet_core/wallet_server/acf_demo_issuer/assets
       - wallet_core/target/x86_64-unknown-linux-musl/release/acf_demo_issuer
 
+build-verify-wallet-config-binary:
+  extends: .build-binary
+  script:
+    - cargo build --locked --target x86_64-unknown-linux-musl --release --package "wallet_configuration" --bin
+      verify_wallet_config --features verify
+  artifacts:
+    name: verify_wallet_config
+    paths:
+      - wallet_core/verify_wallet_config/assets
+      - wallet_core/target/x86_64-unknown-linux-musl/release/verify_wallet_config
+
 build-revocation-portal-binary:
   extends: .build-binary
   needs:
