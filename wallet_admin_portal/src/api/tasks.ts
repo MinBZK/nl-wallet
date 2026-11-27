@@ -7,7 +7,8 @@ import { TASK_ACTION_INFO } from '@/types/task-action.ts'
 import { dateTimeFormatter } from '@/utils/dateFormatters.ts'
 import { formatCreatedBy } from '@/utils/taskFormatters.ts'
 import { taskPayloadRows, taskTargetSummary } from '@/utils/taskPayloadRows.ts'
-import { postJson, request } from '@/api/request.ts'
+import { postJsonWithCsrfToken } from '@/api/csrf.ts'
+import { request } from '@/api/request.ts'
 
 type TaskListView = 'open' | 'history' | 'reviewable'
 
@@ -59,7 +60,9 @@ function fetchTasks(view: TaskListView): Promise<TaskResponse[]> {
 
 /** Creates a task for [payload] with [reason]; the creator is the logged in user. */
 export async function createTask(payload: TaskPayload, reason: string): Promise<Task> {
-  return toTask(await postJson<TaskResponse>('/tasks', { ...payload, taskReason: reason }))
+  return toTask(
+    await postJsonWithCsrfToken<TaskResponse>('/tasks', { ...payload, taskReason: reason }),
+  )
 }
 
 /**
@@ -113,7 +116,7 @@ export async function fetchTaskDetail(id: string): Promise<TaskDetail> {
 /** Withdraws the task with [id] for [reason], which is only allowed for the creator while the task is still open. */
 export async function withdrawTask(id: string, reason: string): Promise<TaskHistoryEntry> {
   return toHistoryEntry(
-    await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/withdraw`, {
+    await postJsonWithCsrfToken<TaskResponse>(`/tasks/${encodeURIComponent(id)}/withdraw`, {
       withdrawalComment: reason,
     }),
   )
@@ -122,7 +125,7 @@ export async function withdrawTask(id: string, reason: string): Promise<TaskHist
 /** Approves the task with [id] and returns it; the backend does not allow reviewing your own task. */
 export async function approveTask(id: string): Promise<TaskHistoryEntry> {
   return toHistoryEntry(
-    await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/review`, {
+    await postJsonWithCsrfToken<TaskResponse>(`/tasks/${encodeURIComponent(id)}/review`, {
       verdict: 'approve',
       reviewComment: '',
     }),
@@ -132,7 +135,7 @@ export async function approveTask(id: string): Promise<TaskHistoryEntry> {
 /** Rejects the task with [id] for [reason] and returns it; the backend does not allow reviewing your own task. */
 export async function rejectTask(id: string, reason: string): Promise<TaskHistoryEntry> {
   return toHistoryEntry(
-    await postJson<TaskResponse>(`/tasks/${encodeURIComponent(id)}/review`, {
+    await postJsonWithCsrfToken<TaskResponse>(`/tasks/${encodeURIComponent(id)}/review`, {
       verdict: 'reject',
       reviewComment: reason,
     }),

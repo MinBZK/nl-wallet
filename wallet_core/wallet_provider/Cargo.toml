@@ -85,7 +85,7 @@ spki.workspace = true
 strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["rt-multi-thread", "net", "sync"] }
-tower-http = { workspace = true, features = ["trace"] }
+tower-http = { workspace = true, features = ["set-header", "trace"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "json"] }
 url = { workspace = true, features = ["serde"] }
@@ -122,5 +122,6 @@ rstest.workspace = true
 serial_test.workspace = true
 tempfile.workspace = true
 tower = { workspace = true, features = ["util"] }
+tokio = { workspace = true, features = ["macros", "rt"] }
 
 http_utils = { path = "../lib/http_utils", features = ["test"] }

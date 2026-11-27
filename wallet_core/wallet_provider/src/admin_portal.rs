@@ -7,10 +7,15 @@ use axum::Router;
 use axum::extract::FromRequestParts;
 use axum::extract::Path;
 use axum::extract::Query;
+use axum::extract::Request;
 use axum::extract::State;
 use axum::extract::rejection::JsonRejection;
+use axum::http::HeaderValue;
 use axum::http::StatusCode;
+use axum::http::header::CACHE_CONTROL;
 use axum::http::request::Parts;
+use axum::middleware;
+use axum::middleware::Next;
 use axum::response::IntoResponse;
 use axum::response::Redirect;
 use axum::response::Response;
@@ -21,12 +26,14 @@ use axum_extra::extract::cookie::Cookie;
 use axum_extra::extract::cookie::SameSite;
 use chrono::DateTime;
 use chrono::Utc;
+use http::HeaderName;
 use http_utils::reqwest::ReqwestTrustAnchor;
 use http_utils::reqwest::tls_pinned_client_builder;
 use http_utils::urls::BaseUrl;
 use itertools::Itertools;
 use serde::Deserialize;
 use serde::Serialize;
+use tower_http::set_header::SetResponseHeaderLayer;
 use tracing::warn;
 use url::Url;
 use utils::generator::TimeGenerator;
@@ -40,6 +47,7 @@ use wallet_provider_domain::model::wallet_user::WalletId;
 use wallet_provider_persistence::repositories::Repositories;
 use wallet_provider_service::admin_portal::AdminPortalConfig;
 use wallet_provider_service::admin_portal::AdminPortalService;
+use wallet_provider_service::admin_portal::AuthenticatedSession;
 use wallet_provider_service::admin_portal::LoggedInUser;
 use wallet_provider_service::admin_portal::UuidV7Generator;
 use wallet_provider_service::admin_portal::task::CreateTaskError;
@@ -57,7 +65,9 @@ use wallet_provider_service::admin_portal::wallet_lookup::WalletRevocationState;
 use crate::router_state::ProductionUserState;
 use crate::settings::AdminPortalSettings;
 
-const SESSION_ID_COOKIE: &str = "sid";
+/// The `__Host-` prefix makes browsers reject this cookie unless it is `Secure`, has `Path=/` and no `Domain`, so a
+/// sibling subdomain cannot set or overwrite it.
+pub const SESSION_ID_COOKIE: &str = "__Host-Http-sid";
 
 /// Failure of a `/tasks` endpoint, mapped to the matching HTTP status code.
 #[derive(Debug)]
@@ -192,13 +202,13 @@ impl AdminPortalState {
     }
 }
 
-// TODO (PVW-6427): Add CSRF protection
 pub fn router(state: Arc<AdminPortalState>) -> Router {
-    Router::new()
+    // Routes that are only reached from our own origin.
+    let same_origin = Router::new()
         .route("/auth/login", get(login))
-        .route("/auth/callback", get(callback))
         .route("/auth/logout", get(logout))
         .route("/api/me", get(me))
+        .route("/api/csrf-token", get(csrf_token))
         .nest(
             "/tasks",
             Router::new()
@@ -209,6 +219,18 @@ pub fn router(state: Arc<AdminPortalState>) -> Router {
         )
         .route("/wallets/check", post(check_wallet))
         .route("/recovery-codes/check", post(check_recovery_code))
+        .layer(middleware::from_fn(fetch_metadata));
+
+    // Keycloak redirects the browser here, so this is a cross-site navigation by design.
+    let oidc_callback = Router::new().route("/auth/callback", get(callback));
+
+    same_origin
+        .merge(oidc_callback)
+        // Admin portal responses carry personal data, secrets or session cookies: never store them in any cache.
+        .layer(SetResponseHeaderLayer::if_not_present(
+            CACHE_CONTROL,
+            HeaderValue::from_static("no-store"),
+        ))
         .with_state(state)
 }
 
@@ -326,6 +348,12 @@ impl From<LoggedInUser> for MeResponse {
     }
 }
 
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct CsrfTokenResponse {
+    csrf_token: String,
+}
+
 async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
     Json(MeResponse::from(user)).into_response()
 }
@@ -335,7 +363,9 @@ async fn me(AuthenticatedAdminUser(user): AuthenticatedAdminUser) -> Response {
 #[derive(Debug)]
 pub struct AuthenticatedAdminUser(pub LoggedInUser);
 
-impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
+struct AuthenticatedAdminSession(AuthenticatedSession);
+
+impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminSession {
     type Rejection = Response;
 
     async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
@@ -347,14 +377,63 @@ impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
             return Err(StatusCode::UNAUTHORIZED.into_response());
         };
 
-        match state.service.authenticated_user(session_id).await {
-            Ok(Some(user)) => Ok(AuthenticatedAdminUser(user)),
+        match state.service.authenticated_session(session_id).await {
+            Ok(Some(user)) => Ok(AuthenticatedAdminSession(user)),
             Ok(None) => Err(StatusCode::UNAUTHORIZED.into_response()),
             Err(error) => {
                 warn!("session lookup failed: {error}");
                 Err(StatusCode::INTERNAL_SERVER_ERROR.into_response())
             }
         }
+    }
+}
+
+impl FromRequestParts<Arc<AdminPortalState>> for AuthenticatedAdminUser {
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
+        let AuthenticatedAdminSession(session) = AuthenticatedAdminSession::from_request_parts(parts, state).await?;
+        Ok(Self(session.user))
+    }
+}
+
+/// The request header in which task mutations must supply the session's CSRF token.
+pub const CSRF_TOKEN_HEADER: HeaderName = HeaderName::from_static("x-csrf-token");
+
+/// A logged-in user whose request explicitly supplied the session's CSRF token.
+#[derive(Debug)]
+struct CsrfProtectedAdminUser(LoggedInUser);
+
+impl FromRequestParts<Arc<AdminPortalState>> for CsrfProtectedAdminUser {
+    type Rejection = Response;
+
+    async fn from_request_parts(parts: &mut Parts, state: &Arc<AdminPortalState>) -> Result<Self, Self::Rejection> {
+        let AuthenticatedAdminSession(session) = AuthenticatedAdminSession::from_request_parts(parts, state).await?;
+        let valid = parts
+            .headers
+            .get(&CSRF_TOKEN_HEADER)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|supplied| session.csrf_token.verify(supplied));
+        if !valid {
+            return Err(StatusCode::FORBIDDEN.into_response());
+        }
+        Ok(Self(session.user))
+    }
+}
+
+/// Returns the session's CSRF token.
+async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSession) -> Json<CsrfTokenResponse> {
+    Json(CsrfTokenResponse {
+        csrf_token: session.csrf_token.into(),
+    })
+}
+
+pub async fn fetch_metadata(req: Request, next: Next) -> Result<Response, StatusCode> {
+    match req.headers().get("sec-fetch-site").map(AsRef::as_ref) {
+        // old browser, same-origin or user originated: allowed
+        None | Some(b"same-origin") | Some(b"none") => Ok(next.run(req).await),
+        // same-site or cross-site: forbidden
+        Some(_) => Err(StatusCode::FORBIDDEN),
     }
 }
 
@@ -428,7 +507,7 @@ impl From<(&LoggedInUser, AdminTask)> for TaskResponse {
 
 async fn create_task(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     request: Result<Json<CreateTaskRequest>, JsonRejection>,
 ) -> Result<impl IntoResponse, TaskApiError> {
     let Json(request) = request.map_err(TaskApiError::InvalidRequest)?;
@@ -449,7 +528,7 @@ async fn create_task(
 
 async fn withdraw_task(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     Path(task_id): Path<Uuid>,
     request: Result<Json<WithdrawTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
@@ -465,7 +544,7 @@ async fn withdraw_task(
 
 async fn review_task(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     Path(task_id): Path<Uuid>,
     request: Result<Json<ReviewTaskRequest>, JsonRejection>,
 ) -> Result<Json<TaskResponse>, TaskApiError> {
@@ -545,7 +624,7 @@ pub struct CheckWalletResponse {
 
 async fn check_wallet(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     request: Result<Json<CheckWalletRequest>, JsonRejection>,
 ) -> Result<Json<CheckWalletResponse>, WalletApiError> {
     let Json(request) = request.map_err(WalletApiError::InvalidRequest)?;
@@ -626,7 +705,7 @@ pub struct CheckRecoveryCodeRequest {
 /// proposed HTTP QUERY method, but that is not yet widely available.
 async fn check_recovery_code(
     State(state): State<Arc<AdminPortalState>>,
-    AuthenticatedAdminUser(user): AuthenticatedAdminUser,
+    CsrfProtectedAdminUser(user): CsrfProtectedAdminUser,
     request: Result<Json<CheckRecoveryCodeRequest>, JsonRejection>,
 ) -> Result<Json<CheckRecoveryCodeResponse>, RecoveryCodeApiError> {
     let Json(request) = request.map_err(RecoveryCodeApiError::InvalidRequest)?;
@@ -820,12 +899,47 @@ mod tests {
     fn recovery_code_api_error_status_codes(#[case] error: RecoveryCodeApiError, #[case] status: StatusCode) {
         assert_eq!(error.into_response().status(), status);
     }
+
+    /// Sends a GET request to `/` through a router that applies [fetch_metadata], with the optional
+    /// `Sec-Fetch-Site` header set to `sec_fetch_site`, and returns the response status.
+    async fn fetch_metadata_status(sec_fetch_site: Option<&str>) -> StatusCode {
+        let router = Router::new()
+            .route("/", get(|| async { StatusCode::OK }))
+            .layer(middleware::from_fn(fetch_metadata));
+
+        let mut request = axum::http::Request::builder().uri("/");
+        if let Some(value) = sec_fetch_site {
+            request = request.header("sec-fetch-site", value);
+        }
+        let request = request.body(axum::body::Body::empty()).unwrap();
+
+        tower::ServiceExt::oneshot(router, request).await.unwrap().status()
+    }
+
+    #[rstest]
+    #[case::no_header_from_old_browser(None)]
+    #[case::same_origin(Some("same-origin"))]
+    #[case::user_initiated_navigation(Some("none"))]
+    #[tokio::test]
+    async fn fetch_metadata_allows_same_origin_and_user_initiated_requests(#[case] sec_fetch_site: Option<&str>) {
+        assert_eq!(fetch_metadata_status(sec_fetch_site).await, StatusCode::OK);
+    }
+
+    #[rstest]
+    #[case::same_site("same-site")]
+    #[case::cross_site("cross-site")]
+    #[case::unknown_value("some-future-value")]
+    #[tokio::test]
+    async fn fetch_metadata_rejects_same_site_and_cross_site_requests(#[case] sec_fetch_site: &str) {
+        assert_eq!(fetch_metadata_status(Some(sec_fetch_site)).await, StatusCode::FORBIDDEN);
+    }
 }
 
 #[cfg(all(test, feature = "db_test", feature = "hsm_test"))]
 mod http_tests {
     use axum::body::Body;
     use axum::body::to_bytes;
+    use axum::http::HeaderValue;
     use axum::http::Request;
     use axum::http::header;
     use chrono::TimeDelta;
@@ -834,12 +948,13 @@ mod http_tests {
     use serde_json::json;
     use tower::ServiceExt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_portal_session::CsrfToken;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::AdminPortalRepository;
 
     use super::*;
     use crate::test_support::TestState;
-    use crate::test_support::post_json_request;
+    use crate::test_support::post_json_request_with_csrf;
     use crate::test_support::setup_state;
 
     async fn setup_state_with_database_errors() -> TestState {
@@ -848,29 +963,30 @@ mod http_tests {
         state
     }
 
-    async fn setup_state_with_valid_user() -> (TestState, CookieJar) {
+    async fn setup_state_with_valid_user() -> (TestState, CookieJar, AdminPortalUserSession) {
         setup_state_with_user_roles(vec!["privilege_admin".to_string(), "offline_access".to_string()]).await
     }
 
-    async fn setup_state_with_user_roles(roles: Vec<String>) -> (TestState, CookieJar) {
+    /// Sets up the state with a stored session for a user with `roles`. Returns the state, a cookie jar holding the
+    /// session cookie, and the stored session.
+    async fn setup_state_with_user_roles(roles: Vec<String>) -> (TestState, CookieJar, AdminPortalUserSession) {
         let state = setup_state().await;
         let session_id = random_string(12);
+        let session = AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
+            user_id: "user_id".to_string(),
+            display_name: "Jane Doe".to_string(),
+            roles,
+            id_token: "the-id-token".to_string(),
+            expires_at: Utc::now() + TimeDelta::minutes(5),
+        };
         state
             .repositories
-            .insert_user_session(
-                session_id.clone(),
-                AdminPortalUserSession {
-                    user_id: "user_id".to_string(),
-                    display_name: "Jane Doe".to_string(),
-                    roles,
-                    id_token: "the-id-token".to_string(),
-                    expires_at: Utc::now() + TimeDelta::minutes(5),
-                },
-            )
+            .insert_user_session(session_id.clone(), session.clone())
             .await
             .unwrap();
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, session_id));
-        (state, jar)
+        (state, jar, session)
     }
 
     #[serial_test::serial(hsm)]
@@ -909,7 +1025,7 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn callback_without_state_but_with_session_redirects_to_frontend_entry() {
-        let (state, jar) = setup_state_with_valid_user().await;
+        let (state, jar, _) = setup_state_with_valid_user().await;
 
         let response = callback(
             State(Arc::clone(&state)),
@@ -1018,10 +1134,65 @@ mod http_tests {
         assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
     }
 
+    /// Returns the request parts for [jar], supplying [csrf_token] in the CSRF token header, if any.
+    fn request_parts_with_csrf_token(jar: &CookieJar, csrf_token: Option<HeaderValue>) -> Parts {
+        let mut parts = request_parts(jar);
+        if let Some(csrf_token) = csrf_token {
+            parts.headers.insert(CSRF_TOKEN_HEADER, csrf_token);
+        }
+        parts
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn csrf_protected_admin_user_accepts_the_session_csrf_token() {
+        let (state, jar, session) = setup_state_with_valid_user().await;
+        let csrf_token = HeaderValue::from_str(session.csrf_token.as_ref()).unwrap();
+        let mut parts = request_parts_with_csrf_token(&jar, Some(csrf_token));
+
+        let CsrfProtectedAdminUser(user) = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect("the session's CSRF token should be accepted");
+
+        assert_eq!(user.user_id, "user_id");
+    }
+
+    #[rstest::rstest]
+    #[case::missing(None)]
+    #[case::invalid(Some(HeaderValue::from_static("invalid")))]
+    #[case::other_session(Some(HeaderValue::from_str(CsrfToken::generate().as_ref()).unwrap()))]
+    #[case::not_visible_ascii(Some(HeaderValue::from_bytes(b"\xff").unwrap()))]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn csrf_protected_admin_user_rejects_other_csrf_tokens_with_403(#[case] csrf_token: Option<HeaderValue>) {
+        let (state, jar, _) = setup_state_with_valid_user().await;
+        let mut parts = request_parts_with_csrf_token(&jar, csrf_token);
+
+        let response = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("a request without the session's CSRF token should be rejected");
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn csrf_protected_admin_user_without_session_is_rejected_with_401() {
+        let state = setup_state().await;
+        let csrf_token = HeaderValue::from_str(CsrfToken::generate().as_ref()).unwrap();
+        let mut parts = request_parts_with_csrf_token(&CookieJar::new(), Some(csrf_token));
+
+        let response = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
+            .await
+            .expect_err("a request without a session should be rejected");
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn me_with_valid_session_reports_logged_in_user() {
-        let (state, jar) = setup_state_with_valid_user().await;
+        let (state, jar, _) = setup_state_with_valid_user().await;
         let mut parts = request_parts(&jar);
         let AuthenticatedAdminUser(user) = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
             .await
@@ -1061,9 +1232,18 @@ mod http_tests {
     }
 
     async fn create_task_from_body(body: Value) -> Response {
-        let (state, jar) = setup_state_with_user_roles(vec!["privilege_revoke_wallet".to_string()]).await;
-        let request = post_json_request("/tasks", &session_cookie_header(&jar), &body);
-        router(Arc::clone(&state)).oneshot(request).await.unwrap()
+        let state = setup_state().await;
+        create_task(
+            State(Arc::clone(&state)),
+            CsrfProtectedAdminUser(LoggedInUser {
+                user_id: "alice".to_owned(),
+                display_name: "Alice".to_owned(),
+                privileges: vec![TaskType::RevokeWallet.to_string()],
+            }),
+            Json::from_bytes(&serde_json::to_vec(&body).unwrap()),
+        )
+        .await
+        .into_response()
     }
 
     #[rstest::rstest]
@@ -1094,7 +1274,7 @@ mod http_tests {
         let state = setup_state().await;
         check_wallet(
             State(Arc::clone(&state)),
-            AuthenticatedAdminUser(LoggedInUser {
+            CsrfProtectedAdminUser(LoggedInUser {
                 user_id: "alice".to_owned(),
                 display_name: "Alice".to_owned(),
                 privileges,
@@ -1121,9 +1301,14 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn check_recovery_code_response_status(#[case] body: Value, #[case] status: StatusCode) {
-        let (state, jar) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
+        let (state, jar, session) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
 
-        let request = post_json_request("/recovery-codes/check", &session_cookie_header(&jar), &body);
+        let request = post_json_request_with_csrf(
+            "/recovery-codes/check",
+            &session_cookie_header(&jar),
+            session.csrf_token.as_ref(),
+            &body,
+        );
         let response = router(Arc::clone(&state)).oneshot(request).await.unwrap();
 
         assert_eq!(response.status(), status);
@@ -1143,5 +1328,58 @@ mod http_tests {
         let response = check_wallet_with("wallet-1", vec![TaskType::RevokeWallet.to_string()]).await;
 
         assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    }
+
+    /// Asserts the headers that the admin portal router adds to every response.
+    fn assert_security_headers(response: &Response) {
+        assert_eq!(response.headers()[header::CACHE_CONTROL], "no-store");
+    }
+
+    fn with_sec_fetch_site(mut request: Request<Body>, sec_fetch_site: &'static str) -> Request<Body> {
+        request
+            .headers_mut()
+            .insert("sec-fetch-site", HeaderValue::from_static(sec_fetch_site));
+        request
+    }
+
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn cross_site_oidc_callback_is_not_blocked_by_fetch_metadata() {
+        let state = setup_state().await;
+        let request = Request::builder().uri("/auth/callback").body(Body::empty()).unwrap();
+
+        let response = router(Arc::clone(&state))
+            .oneshot(with_sec_fetch_site(request, "cross-site"))
+            .await
+            .unwrap();
+
+        // Reaching the handler shows the request got past Fetch Metadata; it then rejects the missing `state`.
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            response.headers().get(header::LOCATION).unwrap(),
+            "https://portal.example.org/error?reason=invalid_state"
+        );
+        assert_security_headers(&response);
+    }
+
+    /// Every route except the OIDC callback must reject cross-site requests. No session is supplied, so without
+    /// Fetch Metadata each handler would answer with 401 (or a redirect for login/logout): a 403 can only come from
+    /// the Fetch Metadata layer.
+    #[rstest::rstest]
+    #[case::login("GET", "/auth/login")]
+    #[case::csrf_token("GET", "/api/csrf-token")]
+    #[serial_test::serial(hsm)]
+    #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+    async fn cross_site_requests_are_forbidden(#[case] method: &str, #[case] uri: &str) {
+        let state = setup_state().await;
+        let request = Request::builder().method(method).uri(uri).body(Body::empty()).unwrap();
+
+        let response = router(Arc::clone(&state))
+            .oneshot(with_sec_fetch_site(request, "cross-site"))
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::FORBIDDEN);
+        assert_security_headers(&response);
     }
 }

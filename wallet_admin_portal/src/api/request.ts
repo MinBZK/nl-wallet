@@ -3,6 +3,7 @@ import router from '@/router'
 const BASE_PATH = '/admin-portal'
 
 export const HTTP_UNAUTHORIZED = 401
+export const HTTP_FORBIDDEN = 403
 export const HTTP_NOT_FOUND = 404
 
 /** Thrown on a non-OK response, carrying the HTTP [status] so callers can handle specific codes. */
@@ -40,11 +41,18 @@ export async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>
 }
 
-/** POSTs [body] as JSON to `${BASE_PATH}${path}` and parses the response as JSON; see {@link request}. */
-export function postJson<T>(path: string, body?: unknown): Promise<T> {
+/**
+ * POSTs [body] as JSON to `${BASE_PATH}${path}`, with any extra [headers], and parses the response as JSON;
+ * see {@link request}.
+ */
+export function postJson<T>(
+  path: string,
+  body?: unknown,
+  headers?: Record<string, string>,
+): Promise<T> {
   return request<T>(path, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...headers },
     body: body === undefined ? undefined : JSON.stringify(body),
   })
 }

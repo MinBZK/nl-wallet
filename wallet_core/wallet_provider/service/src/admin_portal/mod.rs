@@ -39,6 +39,7 @@ use utils::generator::TimeGenerator;
 use uuid::Uuid;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
 use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+use wallet_provider_domain::model::admin_portal_session::CsrfToken;
 use wallet_provider_domain::model::admin_task::TaskType;
 use wallet_provider_domain::repository::AdminPortalRepository;
 use wallet_provider_domain::repository::PersistenceError;
@@ -116,6 +117,26 @@ impl LoggedInUser {
     /// The task types this user may create and review, i.e. the privileges that name a [`TaskType`].
     pub fn authorized_task_types(&self) -> impl Iterator<Item = TaskType> {
         self.privileges.iter().filter_map(|privilege| privilege.parse().ok())
+    }
+}
+
+/// The identity and CSRF secret read together from one authenticated login session.
+#[derive(Debug)]
+pub struct AuthenticatedSession {
+    pub user: LoggedInUser,
+    pub csrf_token: CsrfToken,
+}
+
+impl From<AdminPortalUserSession> for AuthenticatedSession {
+    fn from(source: AdminPortalUserSession) -> Self {
+        Self {
+            user: LoggedInUser {
+                user_id: source.user_id,
+                display_name: source.display_name,
+                privileges: to_privileges(&source.roles),
+            },
+            csrf_token: source.csrf_token,
+        }
     }
 }
 
@@ -489,6 +510,7 @@ where
             .insert_user_session(
                 session_id.clone(),
                 AdminPortalUserSession {
+                    csrf_token: CsrfToken::generate(),
                     user_id: id_token.sub,
                     display_name: id_token.name,
                     roles,
@@ -519,11 +541,14 @@ where
         }
     }
 
-    /// Reports the logged-in user for `session_id`, not extending the session's expiry.
+    /// Reports the logged-in user and CSRF token for `session_id`, not extending the session's expiry.
     ///
     /// Returns `Ok(None)` if there is no matching session, and `Err` if the session store could
     /// not be reached, so callers can distinguish "not logged in" from a backend failure.
-    pub async fn authenticated_user(&self, session_id: &str) -> Result<Option<LoggedInUser>, PersistenceError> {
+    pub async fn authenticated_session(
+        &self,
+        session_id: &str,
+    ) -> Result<Option<AuthenticatedSession>, PersistenceError> {
         self.cleanup_expired().await;
 
         let session = self
@@ -531,11 +556,7 @@ where
             .await
             .inspect_err(|error| warn!("failed to extend admin portal session: {error}"))?;
 
-        Ok(session.map(|session| LoggedInUser {
-            user_id: session.user_id,
-            display_name: session.display_name,
-            privileges: to_privileges(&session.roles),
-        }))
+        Ok(session.map(Into::into))
     }
 }
 
@@ -616,6 +637,7 @@ mod tests {
     use utils::generator::TimeGenerator;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalLoginAttempt;
     use wallet_provider_domain::model::admin_portal_session::AdminPortalUserSession;
+    use wallet_provider_domain::model::admin_portal_session::CsrfToken;
     use wallet_provider_domain::model::admin_task::TaskType;
     use wallet_provider_domain::repository::PersistenceError;
     use wallet_provider_persistence::repositories::mock::MockAdminPortalRepository;
@@ -756,6 +778,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
     fn user_session(roles: impl IntoIterator<Item = String>) -> AdminPortalUserSession {
         AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
             user_id: "user_id".to_string(),
             display_name: "Jane Doe".to_string(),
             roles: roles.into_iter().collect(),
@@ -1195,6 +1218,7 @@ yP3ST1F3e7Cha7l54e71Lg==
 
         let (captured_session_id, session) = captured.lock().unwrap().take().unwrap();
         assert_eq!(captured_session_id, session_id);
+        assert!(!session.csrf_token.verify(&session_id));
         assert_eq!(session.display_name, "Jane Doe");
         assert_eq!(
             session.roles,
@@ -1290,7 +1314,7 @@ yP3ST1F3e7Cha7l54e71Lg==
     }
 
     #[tokio::test]
-    async fn authenticated_user_returns_none_for_unknown_session() {
+    async fn authenticated_session_returns_none_for_unknown_session() {
         let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository.expect_fetch_user_session().returning(|_, _, _| Ok(None));
@@ -1298,11 +1322,11 @@ yP3ST1F3e7Cha7l54e71Lg==
         let keycloak_url = BaseUrl::from_str("https://keycloak.example.org").unwrap();
         let service = service_with_repository(&keycloak_url, repository);
 
-        assert_matches!(service.authenticated_user("session").await, Ok(None));
+        assert_matches!(service.authenticated_session("session").await, Ok(None));
     }
 
     #[tokio::test]
-    async fn authenticated_user_propagates_storage_error() {
+    async fn authenticated_session_propagates_storage_error() {
         let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
         repository
@@ -1313,13 +1337,13 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = service_with_repository(&keycloak_url, repository);
 
         assert_matches!(
-            service.authenticated_user("session").await,
+            service.authenticated_session("session").await,
             Err(PersistenceError::NoRowsUpdated)
         );
     }
 
     #[tokio::test]
-    async fn authenticated_user_reports_display_name_and_stripped_privileges() {
+    async fn authenticated_session_reports_display_name_and_stripped_privileges() {
         let mut repository = MockAdminPortalRepository::new();
         expect_cleanup(&mut repository);
 
@@ -1329,6 +1353,7 @@ yP3ST1F3e7Cha7l54e71Lg==
             "offline_access".to_string(),
         ]);
         let display_name = user_session.display_name.clone();
+        let csrf_token = user_session.csrf_token.clone();
 
         repository
             .expect_fetch_user_session()
@@ -1338,12 +1363,13 @@ yP3ST1F3e7Cha7l54e71Lg==
         let service = service_with_repository(&keycloak_url, repository);
 
         let user = service
-            .authenticated_user("session")
+            .authenticated_session("session")
             .await
             .expect("no errors")
             .expect("session found");
 
-        assert_eq!(user.display_name, display_name);
-        assert_eq!(user.privileges, vec!["admin".to_string(), "support".to_string()]);
+        assert!(user.csrf_token.verify(csrf_token.as_ref()));
+        assert_eq!(user.user.display_name, display_name);
+        assert_eq!(user.user.privileges, vec!["admin".to_string(), "support".to_string()]);
     }
 }

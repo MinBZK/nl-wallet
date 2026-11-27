@@ -1,5 +1,5 @@
 import type { CheckRecoveryCodeResponse, RecoveryCode } from '@/types/recovery-code.ts'
-import { postJson } from '@/api/request.ts'
+import { postJsonWithCsrfToken } from '@/api/csrf.ts'
 
 /**
  * Looks up the wallets registered with recovery code [code].
@@ -8,7 +8,7 @@ import { postJson } from '@/api/request.ts'
  * not an error: it resolves with the `notKnown` status and zero counts.
  */
 export async function checkRecoveryCode(code: string): Promise<RecoveryCode> {
-  const response = await postJson<CheckRecoveryCodeResponse>('/recovery-codes/check', {
+  const response = await postJsonWithCsrfToken<CheckRecoveryCodeResponse>('/recovery-codes/check', {
     recoveryCode: code,
   })
   return {

@@ -4,6 +4,7 @@ use std::time::Duration;
 use audit_log::model::DbAuditLog;
 use audit_log::repository::PostgresAuditLogRepository;
 use axum::body::Body;
+use axum::http::HeaderValue;
 use axum::http::Request;
 use axum::http::header;
 use crypto::keys::EcdsaKey;
@@ -43,6 +44,7 @@ use wallet_provider_service::wia_issuer::WiaIssuer;
 use wscd::payload::wia::WiaWalletInfo;
 
 use crate::admin_portal::AdminPortalState;
+use crate::admin_portal::CSRF_TOKEN_HEADER;
 use crate::settings::AdminPortalSettings;
 
 /// Keep the concrete HTTP state's database, token directory, and published files alive together.
@@ -75,6 +77,15 @@ pub fn post_json_request(uri: &str, cookie: &str, body: &impl Serialize) -> Requ
         .header(header::CONTENT_TYPE, "application/json")
         .body(Body::from(serde_json::to_string(body).unwrap()))
         .unwrap()
+}
+
+/// Builds a JSON POST request authenticated with the provided cookie header value and CSRF token.
+pub fn post_json_request_with_csrf(uri: &str, cookie: &str, csrf_token: &str, body: &impl Serialize) -> Request<Body> {
+    let mut request = post_json_request(uri, cookie, body);
+    request
+        .headers_mut()
+        .insert(CSRF_TOKEN_HEADER, HeaderValue::from_str(csrf_token).unwrap());
+    request
 }
 
 pub async fn setup_state() -> TestState {

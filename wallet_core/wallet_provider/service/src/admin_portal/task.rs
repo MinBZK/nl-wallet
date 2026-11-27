@@ -1375,7 +1375,11 @@ mod tests {
     }
 
     #[rstest]
-    #[case::unblocked(Ok(2), true, "unblocked 2 recovery code(s)")]
+    #[case::unblocked(
+        Ok(2),
+        true,
+        "unblocked 2 recovery code(s) excluding those that were already allowed"
+    )]
     #[case::storage_error(Err(PersistenceError::NoRowsUpdated), false, "persistence error")]
     #[tokio::test]
     async fn execute_task_stores_unblock_user_result(
