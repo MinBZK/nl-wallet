@@ -420,8 +420,7 @@ impl FromRequestParts<Arc<AdminPortalState>> for CsrfProtectedAdminUser {
     }
 }
 
-/// Returns the session's CSRF token. Like every admin portal response, it is sent with `Cache-Control: no-store`
-/// (see [router]), so the token is never written to any cache.
+/// Returns the session's CSRF token.
 async fn csrf_token(AuthenticatedAdminSession(session): AuthenticatedAdminSession) -> Json<CsrfTokenResponse> {
     Json(CsrfTokenResponse {
         csrf_token: session.csrf_token.into(),
