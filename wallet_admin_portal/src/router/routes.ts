@@ -109,7 +109,7 @@ export const routes: RouteRecordRaw[] = [
     component: CreateTaskView,
     meta: {
       title: 'Taak aanmaken',
-      description: 'Deze pagina is nog in ontwikkeling.',
+      description: 'Je maakt de taak in 3 stappen aan.',
       hideCreateTaskButton: true,
     },
   },

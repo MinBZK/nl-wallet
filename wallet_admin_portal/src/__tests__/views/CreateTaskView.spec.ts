@@ -232,6 +232,70 @@ describe('CreateTaskView', () => {
     })
   })
 
+  describe('revoke solution', () => {
+    beforeEach(() => {
+      mockLoggedInUser([Privilege.RevokeSolution])
+    })
+
+    it('shows the information step with the consequences and the acknowledgement', async () => {
+      const wrapper = await mountAt('/create-task/revoke_solution')
+
+      expect(wrapper.text()).toContain('Stap 1 van 3')
+      expect(wrapper.text()).toContain('Lees dit voordat je de taak aanmaakt')
+      expect(wrapper.text()).toContain('Wanneer gebruik je dit?')
+      expect(wrapper.text()).toContain(
+        'Alle gebruikers kunnen NL Wallet meteen niet meer gebruiken.',
+      )
+      expect(wrapper.text()).toContain('Regels')
+    })
+
+    it('stays on step 1 with an error until the acknowledgement is checked', async () => {
+      const wrapper = await mountAt('/create-task/revoke_solution')
+
+      await nextButton(wrapper).trigger('click')
+
+      expect(wrapper.text()).toContain('Stap 1 van 3')
+      expect(wrapper.get('.error').text()).toBe('Dit veld is verplicht.')
+
+      await wrapper.get('input[type="checkbox"]').setValue(true)
+
+      expect(wrapper.find('.error').exists()).toBe(false)
+
+      await nextButton(wrapper).trigger('click')
+
+      expect(wrapper.text()).toContain('Stap 2 van 3')
+    })
+
+    it('keeps the acknowledgement when going back from the reason step', async () => {
+      const wrapper = await mountAt('/create-task/revoke_solution')
+      await wrapper.get('input[type="checkbox"]').setValue(true)
+      await nextButton(wrapper).trigger('click')
+
+      await buttonByText(wrapper, 'Vorige')!.trigger('click')
+
+      expect(wrapper.get<HTMLInputElement>('input[type="checkbox"]').element.checked).toBe(true)
+    })
+
+    it('creates the task without parameters and shows the confirmation step', async () => {
+      const wrapper = await mountAt('/create-task/revoke_solution')
+      await wrapper.get('input[type="checkbox"]').setValue(true)
+      await nextButton(wrapper).trigger('click')
+      await wrapper.get('.reason-input').setValue('Because reasons')
+      await nextButton(wrapper).trigger('click')
+
+      expect(wrapper.text()).toContain('Alle wallets')
+
+      await nextButton(wrapper).trigger('click')
+      await wrapper.vm.$nextTick()
+
+      expect(createTask).toHaveBeenCalledWith(
+        { taskType: 'revoke_solution', taskParameters: {} },
+        'Because reasons',
+      )
+      expect(wrapper.text()).toContain('Taak aangemaakt')
+    })
+  })
+
   it('disables the next button on the reason step until a reason is entered', async () => {
     const wrapper = await mountAt('/create-task/revoke_wallet')
     await addWallet(wrapper)
