@@ -829,7 +829,7 @@ BASE64_JWS_SIGNING_INPUT="${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}"
 DER_SIGNATURE=$(echo -n "$BASE64_JWS_SIGNING_INPUT" \
   | openssl dgst -sha256 -sign "${TARGET_DIR}/wallet_provider/config_signing.pem" -keyform PEM -binary \
   | openssl asn1parse -inform DER)
-RS=$(echo "${DER_SIGNATURE}" | awk -v len=64 'BEGIN { FS=":"; ORS=""; } /INTEGER/ { printf "%0" len "s", $4; }')
+RS=$(echo "${DER_SIGNATURE}" | awk -v len=64 'BEGIN { FS=":"; ORS=""; } /INTEGER/ { s = $4; while (length(s) < len) s = "0" s; print s }')
 BASE64_JWS_SIGNATURE=$(echo -n "${RS}" | xxd -p -r | base64_url_encode)
 
 echo -n "${BASE64_JWS_HEADER}.${BASE64_JWS_PAYLOAD}.${BASE64_JWS_SIGNATURE}" > "${TARGET_DIR}/wallet-config-jws-compact.txt"
