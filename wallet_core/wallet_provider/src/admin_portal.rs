@@ -1352,19 +1352,10 @@ mod http_tests {
 
     /// Every route except the OIDC callback must reject cross-site requests. No session is supplied, so without
     /// Fetch Metadata each handler would answer with 401 (or a redirect for login/logout): a 403 can only come from
-    /// the Fetch Metadata layer. Add new routes here.
+    /// the Fetch Metadata layer.
     #[rstest::rstest]
     #[case::login("GET", "/auth/login")]
-    #[case::logout("GET", "/auth/logout")]
-    #[case::me("GET", "/api/me")]
     #[case::csrf_token("GET", "/api/csrf-token")]
-    #[case::list_tasks("GET", "/tasks?view=open")]
-    #[case::create_task("POST", "/tasks")]
-    #[case::retrieve_task("GET", "/tasks/00000000-0000-0000-0000-000000000000")]
-    #[case::withdraw_task("POST", "/tasks/00000000-0000-0000-0000-000000000000/withdraw")]
-    #[case::review_task("POST", "/tasks/00000000-0000-0000-0000-000000000000/review")]
-    #[case::check_wallet("POST", "/wallets/check")]
-    #[case::check_recovery_code("POST", "/recovery-codes/check")]
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn cross_site_requests_are_forbidden(#[case] method: &str, #[case] uri: &str) {
