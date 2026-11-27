@@ -254,7 +254,7 @@ impl WalletUserRepository for Repositories {
     async fn find_wallet_user_ids_by_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_codes: &[RecoveryCode],
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
     ) -> Result<Vec<Uuid>, PersistenceError> {
         wallet_user::find_wallet_user_ids_by_recovery_codes(transaction, recovery_codes).await
     }
@@ -689,6 +689,15 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
+    async fn find_denied_recovery_codes(
+        &self,
+        transaction: &Self::TransactionType,
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+    ) -> Result<HashSet<RecoveryCode>, PersistenceError> {
+        recovery_code::find_denied_recovery_codes(transaction, recovery_codes).await
+    }
+
+    #[measure(name = "nlwallet_db_operations", "service" => "database")]
     async fn list_denied_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
@@ -697,12 +706,12 @@ impl WalletUserRepository for Repositories {
     }
 
     #[measure(name = "nlwallet_db_operations", "service" => "database")]
-    async fn allow_recovery_code(
+    async fn allow_recovery_codes(
         &self,
         transaction: &Self::TransactionType,
-        recovery_code: &RecoveryCode,
-    ) -> Result<bool, PersistenceError> {
-        recovery_code::set_allowed(transaction, recovery_code).await
+        recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+    ) -> Result<u64, PersistenceError> {
+        recovery_code::set_allowed_many(transaction, recovery_codes).await
     }
 }
 
@@ -891,7 +900,7 @@ pub mod mock {
             async fn find_wallet_user_ids_by_recovery_codes(
                 &self,
                 transaction: &MockTransaction,
-                recovery_codes: &[RecoveryCode],
+                recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
             ) -> Result<Vec<Uuid>, PersistenceError>;
 
             async fn find_wallet_user_states_by_recovery_code(
@@ -1134,13 +1143,19 @@ pub mod mock {
                 recovery_code: &RecoveryCode,
             ) -> Result<bool, PersistenceError>;
 
-            async fn list_denied_recovery_codes(&self, transaction: &MockTransaction) -> Result<Vec<RecoveryCode>, PersistenceError>;
-
-            async fn allow_recovery_code(
+            async fn find_denied_recovery_codes(
                 &self,
                 transaction: &MockTransaction,
-                recovery_code: &RecoveryCode,
-            ) -> Result<bool, PersistenceError>;
+                recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+            ) -> Result<HashSet<RecoveryCode>, PersistenceError>;
+
+            async fn list_denied_recovery_codes(&self, transaction: &MockTransaction) -> Result<Vec<RecoveryCode>, PersistenceError>;
+
+            async fn allow_recovery_codes(
+                &self,
+                transaction: &MockTransaction,
+                recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+            ) -> Result<u64, PersistenceError>;
         }
 
         impl TransactionStarter for TransactionalWalletUserRepository {
@@ -1294,7 +1309,7 @@ pub mod mock {
         async fn find_wallet_user_ids_by_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_codes: &[RecoveryCode],
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
         ) -> Result<Vec<Uuid>, PersistenceError> {
             Ok(vec![uuid!("d944f36e-ffbd-402f-b6f3-418cf4c49e08")])
         }
@@ -1629,6 +1644,14 @@ pub mod mock {
             Ok(false)
         }
 
+        async fn find_denied_recovery_codes(
+            &self,
+            _transaction: &Self::TransactionType,
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+        ) -> Result<HashSet<RecoveryCode>, PersistenceError> {
+            Ok(Default::default())
+        }
+
         async fn list_denied_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
@@ -1636,12 +1659,12 @@ pub mod mock {
             Ok(vec![])
         }
 
-        async fn allow_recovery_code(
+        async fn allow_recovery_codes(
             &self,
             _transaction: &Self::TransactionType,
-            _recovery_code: &RecoveryCode,
-        ) -> Result<bool, PersistenceError> {
-            Ok(false)
+            _recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+        ) -> Result<u64, PersistenceError> {
+            Ok(0)
         }
     }
 

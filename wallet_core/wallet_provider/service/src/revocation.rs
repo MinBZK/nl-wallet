@@ -170,7 +170,7 @@ where
 
     let wallet_user_ids = user_state
         .repositories
-        .find_wallet_user_ids_by_recovery_codes(&tx, recovery_codes.as_slice())
+        .find_wallet_user_ids_by_recovery_codes(&tx, recovery_codes)
         .await?;
 
     let revoked = user_state
@@ -336,13 +336,35 @@ where
     R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
 {
     let tx = user_state.repositories.begin_transaction().await?;
-    let removed = user_state.repositories.allow_recovery_code(&tx, recovery_code).await?;
+    let removed = user_state
+        .repositories
+        .allow_recovery_codes(&tx, &vec_nonempty![recovery_code.clone()].into())
+        .await?;
 
     tx.commit().await?;
 
-    if !removed {
+    if removed != 1 {
         return Err(RevocationError::RecoveryCodeNotFound(recovery_code.to_owned()));
     }
 
     Ok(())
+}
+
+pub async fn remove_denied_recovery_codes<T, R, F, H>(
+    user_state: &UserState<R, F, H, impl SecureEcdsaKey, impl StatusListService>,
+    recovery_codes: &VecNonEmptyUnique<RecoveryCode>,
+) -> Result<u64, RevocationError>
+where
+    T: Committable,
+    R: TransactionStarter<TransactionType = T> + WalletUserRepository<TransactionType = T>,
+{
+    let tx = user_state.repositories.begin_transaction().await?;
+    let unblocked = user_state
+        .repositories
+        .allow_recovery_codes(&tx, recovery_codes)
+        .await?;
+
+    tx.commit().await?;
+
+    Ok(unblocked)
 }

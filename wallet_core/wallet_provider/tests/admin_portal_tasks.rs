@@ -46,6 +46,7 @@ use wallet_provider_domain::model::admin_task::RevokeWalletParameters;
 use wallet_provider_domain::model::admin_task::TaskPayload;
 use wallet_provider_domain::model::admin_task::TaskStatus;
 use wallet_provider_domain::model::admin_task::TaskType;
+use wallet_provider_domain::model::admin_task::UnblockUserParameters;
 use wallet_provider_domain::model::admin_task::WithdrawAdminTask;
 use wallet_provider_domain::model::wallet_user::RecoveryCode;
 use wallet_provider_domain::model::wallet_user::WalletId;
@@ -116,6 +117,30 @@ fn block_user_payload(recovery_codes: &[String]) -> TaskPayload {
     TaskPayload::BlockUser(BlockUserParameters {
         recovery_codes: recovery_codes.try_into().unwrap(),
     })
+}
+
+fn unblock_user_payload(recovery_codes: &[String]) -> TaskPayload {
+    let recovery_codes = recovery_codes
+        .iter()
+        .map(|recovery_code| RecoveryCode::from(recovery_code.clone()))
+        .collect::<Vec<_>>();
+
+    TaskPayload::UnblockUser(UnblockUserParameters {
+        recovery_codes: recovery_codes.try_into().unwrap(),
+    })
+}
+
+/// Denies `recovery_code`, as approving a block user task does.
+async fn deny_recovery_code(repositories: &Repositories, recovery_code: &str) {
+    let transaction = repositories.begin_transaction().await.unwrap();
+    repositories
+        .deny_recovery_codes(
+            &transaction,
+            &vec_nonempty![RecoveryCode::from(recovery_code.to_string())].into(),
+        )
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
 }
 
 /// Inserts a wallet user with a unique wallet id and `recovery_code`, and returns that wallet id.
@@ -452,6 +477,69 @@ async fn test_block_user_task_approval_revokes_wallet() {
     assert_eq!(body.status(), RecoveryCodeStatus::Denied);
     assert_eq!(body.active_wallet_count(), 0);
     assert_eq!(body.inactive_wallet_count(), 1);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_create_unblock_user_task_accepts_denied_recovery_code() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let cookie = seed_session(&repositories, &alice, &[TaskType::UnblockUser]).await;
+    let recovery_code = new_recovery_code();
+    deny_recovery_code(&repositories, &recovery_code).await;
+    let payload = unblock_user_payload(std::slice::from_ref(&recovery_code));
+
+    let request = post_json_request(
+        "/tasks",
+        &cookie,
+        &CreateTaskRequest {
+            payload: payload.clone(),
+            task_reason: "integration test".to_string(),
+        },
+    );
+
+    let response = app.oneshot(request).await.unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Created);
+    assert_eq!(task.payload, payload);
+}
+
+#[serial_test::serial(hsm)]
+#[tokio::test(flavor = "multi_thread", worker_threads = 1)]
+async fn test_unblock_user_task_approval_allows_recovery_code() {
+    let (app, repositories, _db_setup) = test_admin_portal_app().await;
+    let alice = TestUser::new("alice");
+    let bob = TestUser::new("bob");
+    let cookie = seed_session(&repositories, &bob, &[TaskType::UnblockUser]).await;
+    let recovery_code = new_recovery_code();
+    deny_recovery_code(&repositories, &recovery_code).await;
+    let task_id = seed_task_with_payload(
+        &repositories,
+        &alice,
+        unblock_user_payload(std::slice::from_ref(&recovery_code)),
+    )
+    .await;
+
+    let response = app
+        .oneshot(review_request(task_id, &cookie, ReviewVerdict::Approve))
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    let task: TaskResponse = json_body(response).await;
+    assert_eq!(task.status, TaskStatus::Approved);
+    assert_eq!(task.execution_successful, Some(true));
+    assert_eq!(task.execution_details, Some("unblocked 1 recovery code(s)".to_string()));
+
+    let transaction = repositories.begin_transaction().await.unwrap();
+    let is_denied = repositories
+        .find_recovery_code_is_denied(&transaction, &RecoveryCode::from(recovery_code))
+        .await
+        .unwrap();
+    transaction.commit().await.unwrap();
+    assert!(!is_denied);
 }
 
 #[serial_test::serial(hsm)]
