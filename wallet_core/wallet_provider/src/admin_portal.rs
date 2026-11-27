@@ -956,30 +956,30 @@ mod http_tests {
         state
     }
 
-    async fn setup_state_with_valid_user() -> (TestState, CookieJar) {
+    async fn setup_state_with_valid_user() -> (TestState, CookieJar, AdminPortalUserSession) {
         setup_state_with_user_roles(vec!["privilege_admin".to_string(), "offline_access".to_string()]).await
     }
 
-    async fn setup_state_with_user_roles(roles: Vec<String>) -> (TestState, CookieJar) {
+    /// Sets up the state with a stored session for a user with `roles`. Returns the state, a cookie jar holding the
+    /// session cookie, and the stored session.
+    async fn setup_state_with_user_roles(roles: Vec<String>) -> (TestState, CookieJar, AdminPortalUserSession) {
         let state = setup_state().await;
         let session_id = random_string(12);
+        let session = AdminPortalUserSession {
+            csrf_token: CsrfToken::generate(),
+            user_id: "user_id".to_string(),
+            display_name: "Jane Doe".to_string(),
+            roles,
+            id_token: "the-id-token".to_string(),
+            expires_at: Utc::now() + TimeDelta::minutes(5),
+        };
         state
             .repositories
-            .insert_user_session(
-                session_id.clone(),
-                AdminPortalUserSession {
-                    csrf_token: CsrfToken::generate(),
-                    user_id: "user_id".to_string(),
-                    display_name: "Jane Doe".to_string(),
-                    roles,
-                    id_token: "the-id-token".to_string(),
-                    expires_at: Utc::now() + TimeDelta::minutes(5),
-                },
-            )
+            .insert_user_session(session_id.clone(), session.clone())
             .await
             .unwrap();
         let jar = CookieJar::new().add(Cookie::new(SESSION_ID_COOKIE, session_id));
-        (state, jar)
+        (state, jar, session)
     }
 
     #[serial_test::serial(hsm)]
@@ -1018,7 +1018,7 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn callback_without_state_but_with_session_redirects_to_frontend_entry() {
-        let (state, jar) = setup_state_with_valid_user().await;
+        let (state, jar, _) = setup_state_with_valid_user().await;
 
         let response = callback(
             State(Arc::clone(&state)),
@@ -1139,9 +1139,7 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn csrf_protected_admin_user_accepts_the_session_csrf_token() {
-        let (state, jar) = setup_state_with_valid_user().await;
-        let session_id = jar.get(SESSION_ID_COOKIE).unwrap().value();
-        let session = state.service.authenticated_session(session_id).await.unwrap().unwrap();
+        let (state, jar, session) = setup_state_with_valid_user().await;
         let csrf_token = HeaderValue::from_str(session.csrf_token.as_ref()).unwrap();
         let mut parts = request_parts_with_csrf_token(&jar, Some(csrf_token));
 
@@ -1160,7 +1158,7 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn csrf_protected_admin_user_rejects_other_csrf_tokens_with_403(#[case] csrf_token: Option<HeaderValue>) {
-        let (state, jar) = setup_state_with_valid_user().await;
+        let (state, jar, _) = setup_state_with_valid_user().await;
         let mut parts = request_parts_with_csrf_token(&jar, csrf_token);
 
         let response = CsrfProtectedAdminUser::from_request_parts(&mut parts, &state)
@@ -1187,7 +1185,7 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn me_with_valid_session_reports_logged_in_user() {
-        let (state, jar) = setup_state_with_valid_user().await;
+        let (state, jar, _) = setup_state_with_valid_user().await;
         let mut parts = request_parts(&jar);
         let AuthenticatedAdminUser(user) = AuthenticatedAdminUser::from_request_parts(&mut parts, &state)
             .await
@@ -1296,7 +1294,7 @@ mod http_tests {
     #[serial_test::serial(hsm)]
     #[tokio::test(flavor = "multi_thread", worker_threads = 1)]
     async fn check_recovery_code_response_status(#[case] body: Value, #[case] status: StatusCode) {
-        let (state, jar) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
+        let (state, jar, _) = setup_state_with_user_roles(vec!["privilege_block_user".to_string()]).await;
 
         let request = post_json_request("/recovery-codes/check", &session_cookie_header(&jar), &body);
         let response = router(Arc::clone(&state)).oneshot(request).await.unwrap();
