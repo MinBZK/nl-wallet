@@ -12,16 +12,14 @@ export interface TaskPayloadRows {
 }
 
 /**
- * Resolves a short description of what [payload] targets.
- *
- * Unblock tasks do not expose their target yet, so these resolve to null.
- * TODO(Anyone): derive the target summary from the task parameters, see PVW-6177.
+ * Resolves a short description of what [payload] targets, or null for a task type the portal does not know.
  */
 export function taskTargetSummary(payload: TaskPayload): string | null {
   switch (payload.taskType) {
     case TaskActionType.RevokeWallet:
       return formatWalletIdCount(payload.taskParameters.walletIds.length)
     case TaskActionType.BlockUser:
+    case TaskActionType.UnblockUser:
       return formatUserCount(payload.taskParameters.recoveryCodes.length)
     case TaskActionType.RevokeSolution:
       return 'Alle wallets'
@@ -36,6 +34,7 @@ function taskSelectionRows(payload: TaskPayload): TaskDetailRow[] {
     case TaskActionType.RevokeWallet:
       return [{ label: "Wallet-ID's", value: payload.taskParameters.walletIds }]
     case TaskActionType.BlockUser:
+    case TaskActionType.UnblockUser:
       return [{ label: 'Herstelcodes', value: payload.taskParameters.recoveryCodes }]
     default:
       return []

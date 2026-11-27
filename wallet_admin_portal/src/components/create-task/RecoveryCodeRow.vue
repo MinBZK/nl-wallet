@@ -1,7 +1,7 @@
 <template>
   <ItemRow
     :title="recoveryCode.code"
-    :warning="recoveryCode.status === 'notKnown' ? 'Status: onbekend' : undefined"
+    :warning="showWarning ? 'Status: onbekend' : undefined"
     :lines="lines"
     :action-label="actionLabel"
     @action="emit('action')"
@@ -28,11 +28,16 @@ const emit = defineEmits<{
   action: []
 }>()
 
+const showWarning = computed(() => props.recoveryCode.status === 'notKnown')
+
 const lines = computed(() => {
   const { status, activeWalletCount, inactiveWalletCount } = props.recoveryCode
-  if (status === 'denied') return [`Status: ${STATUS_LABELS[status]}`]
+  // A not known status is shown as the warning instead.
+  if (status === 'notKnown') return []
+  const statusLine = `Status: ${STATUS_LABELS[status]}`
+  if (status === 'denied') return [statusLine]
   return [
-    ...(status === 'notKnown' ? [] : [`Status: ${STATUS_LABELS[status]}`]),
+    statusLine,
     `Actieve Wallet-ID's: ${activeWalletCount}`,
     `Wallet-ID's die niet actief zijn: ${inactiveWalletCount}`,
     `Totaal aantal Wallet-ID's: ${activeWalletCount + inactiveWalletCount}`,

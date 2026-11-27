@@ -9,6 +9,14 @@ export enum TaskActionType {
   RevokeSolution = 'revoke_solution',
 }
 
+/** Task types that target users, selected by their recovery code. */
+export type RecoveryCodeTaskType = TaskActionType.BlockUser | TaskActionType.UnblockUser
+
+/** Whether [type] targets users, selected by their recovery code. */
+export function isRecoveryCodeTaskType(type: TaskActionType): type is RecoveryCodeTaskType {
+  return type === TaskActionType.BlockUser || type === TaskActionType.UnblockUser
+}
+
 /** Copy shown for a {@link TaskActionType} throughout the create-task wizard. */
 export interface TaskActionInfo {
   /** Title shown throughout the create-task wizard. */

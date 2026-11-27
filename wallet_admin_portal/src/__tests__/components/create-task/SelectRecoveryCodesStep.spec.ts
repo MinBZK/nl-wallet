@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import SelectRecoveryCodesStep from '../../../components/create-task/SelectRecoveryCodesStep.vue'
 import { checkRecoveryCode } from '@/api/recoveryCodes.ts'
 import type { RecoveryCode } from '@/types/recovery-code.ts'
+import { type RecoveryCodeTaskType, TaskActionType } from '@/types/task-action.ts'
 import { buttonByText } from '../../testUtils'
 
 vi.mock('@/api/recoveryCodes.ts', () => ({
@@ -41,13 +42,25 @@ beforeEach(() => {
   vi.mocked(checkRecoveryCode).mockResolvedValue(CODE)
 })
 
-function mountStep(modelValue: RecoveryCode[] = [], error: string | null = null) {
+const BLOCKED_CODE: RecoveryCode = {
+  code: '8172-2837-2911-0000',
+  status: 'denied',
+  activeWalletCount: 0,
+  inactiveWalletCount: 2,
+}
+
+function mountStep(
+  modelValue: RecoveryCode[] = [],
+  error: string | null = null,
+  taskType: RecoveryCodeTaskType = TaskActionType.BlockUser,
+) {
   return mount(SelectRecoveryCodesStep, {
     props: {
       stepNumber: 1,
       totalSteps: 3,
       title: 'Zoek een herstelcode',
       description: 'Beschrijving',
+      taskType,
       modelValue,
       error,
     },
@@ -203,5 +216,44 @@ describe('SelectRecoveryCodesStep', () => {
     await wrapper.get('[aria-label="Wis invoer"]').trigger('click')
 
     expect(wrapper.get<HTMLInputElement>('input[type="text"]').element.value).toBe('')
+  })
+
+  describe('when unblocking', () => {
+    it('shows a recovery code on the block list with its blocked status and adds it', async () => {
+      vi.mocked(checkRecoveryCode).mockResolvedValue(BLOCKED_CODE)
+      const wrapper = mountStep([], null, TaskActionType.UnblockUser)
+
+      await search(wrapper, BLOCKED_CODE.code)
+
+      expect(wrapper.text()).toContain('Gebruiker gevonden')
+      expect(wrapper.text()).toContain('Status: Geblokkeerd in de deny list')
+      expect(wrapper.text()).not.toContain("Wallet-ID's")
+
+      await buttonByText(wrapper, 'Voeg toe aan de lijst')!.trigger('click')
+
+      expect(wrapper.emitted('update:modelValue')).toEqual([[[BLOCKED_CODE]]])
+    })
+
+    it.each([CODE, UNKNOWN_CODE])(
+      'reports a $status recovery code as not found',
+      async (recoveryCode) => {
+        vi.mocked(checkRecoveryCode).mockResolvedValue(recoveryCode)
+        const wrapper = mountStep([], null, TaskActionType.UnblockUser)
+
+        await search(wrapper, recoveryCode.code)
+
+        expect(wrapper.text()).not.toContain('Gebruiker gevonden')
+        expect(wrapper.get('.error').text()).toBe(
+          'Geen gebruiker gevonden. Controleer de herstelcode. Probeer het daarna opnieuw.',
+        )
+      },
+    )
+
+    it('lists the selected users with their blocked status', () => {
+      const wrapper = mountStep([BLOCKED_CODE], null, TaskActionType.UnblockUser)
+
+      expect(wrapper.text()).toContain('1 gebruiker in de lijst')
+      expect(wrapper.text()).toContain('Status: Geblokkeerd in de deny list')
+    })
   })
 })

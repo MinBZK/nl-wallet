@@ -13,9 +13,10 @@
       />
 
       <SelectRecoveryCodesStep
-        v-else-if="step === 'intro' && type === TaskActionType.BlockUser"
+        v-else-if="step === 'intro' && isRecoveryCodeTaskType(type)"
         ref="recoveryCodesStep"
         v-model="selectedRecoveryCodes"
+        :task-type="type"
         :step-number="stepNumber"
         :total-steps="totalSteps"
         :title="action.header"
@@ -99,7 +100,7 @@ import SelectRecoveryCodesStep from '@/components/create-task/SelectRecoveryCode
 import TaskCreatedStep from '@/components/create-task/TaskCreatedStep.vue'
 import ErrorState from '@/components/ui/ErrorState.vue'
 import TaskCard from '@/components/tasks/TaskCard.vue'
-import { TASK_ACTION_INFO, TaskActionType } from '@/types/task-action.ts'
+import { isRecoveryCodeTaskType, TASK_ACTION_INFO, TaskActionType } from '@/types/task-action.ts'
 import type { TaskDetailRow } from '@/types/task-detail-row.ts'
 import type { TaskPayload } from '@/types/task-payload.ts'
 import type { RecoveryCode } from '@/types/recovery-code.ts'
@@ -155,10 +156,10 @@ const taskDraft = computed((): TaskDraft => {
           : null,
     }
   }
-  if (type.value === TaskActionType.BlockUser) {
+  if (isRecoveryCodeTaskType(type.value)) {
     const recoveryCodes = selectedRecoveryCodes.value.map((recoveryCode) => recoveryCode.code)
     return {
-      payload: { taskType: TaskActionType.BlockUser, taskParameters: { recoveryCodes } },
+      payload: { taskType: type.value, taskParameters: { recoveryCodes } },
       introStepError:
         recoveryCodes.length === 0
           ? 'Om verder te gaan, moet je minimaal één gebruiker toevoegen aan de lijst.'

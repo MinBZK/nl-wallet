@@ -12,7 +12,9 @@ function mountRow(status: RecoveryCodeStatus, activeWalletCount = 2, inactiveWal
     activeWalletCount,
     inactiveWalletCount,
   }
-  return mount(RecoveryCodeRow, { props: { recoveryCode, actionLabel: 'Voeg toe aan de lijst' } })
+  return mount(RecoveryCodeRow, {
+    props: { recoveryCode, actionLabel: 'Voeg toe aan de lijst' },
+  })
 }
 
 function lines(wrapper: ReturnType<typeof mountRow>) {
@@ -40,16 +42,11 @@ describe('RecoveryCodeRow', () => {
     expect(lines(wrapper)).toEqual(['Status: Geblokkeerd in de deny list'])
   })
 
-  it('warns about a not known status', () => {
+  it('shows only a warning for a not known status', () => {
     const wrapper = mountRow('notKnown', 0, 0)
 
     expect(wrapper.get('.warning').text()).toBe('Status: onbekend')
-    expect(lines(wrapper)).toEqual([
-      'Status: onbekend',
-      "Actieve Wallet-ID's: 0",
-      "Wallet-ID's die niet actief zijn: 0",
-      "Totaal aantal Wallet-ID's: 0",
-    ])
+    expect(lines(wrapper)).toEqual(['Status: onbekend'])
   })
 
   it('emits action when its action is clicked', async () => {

@@ -8,7 +8,7 @@ import { buttonByText } from '../testUtils'
 import { Privilege } from '@/types/privilege.ts'
 import { findWallet } from '@/api/wallets.ts'
 import { checkRecoveryCode } from '@/api/recoveryCodes.ts'
-import type { RecoveryCode } from '@/types/recovery-code.ts'
+import type { RecoveryCode, RecoveryCodeStatus } from '@/types/recovery-code.ts'
 import type { Wallet } from '@/types/wallet.ts'
 import { TaskActionType } from '@/types/task-action.ts'
 import type { Task } from '@/types/task.ts'
@@ -73,10 +73,14 @@ async function addWallet(wrapper: VueWrapper, id = '1920-HYS1-2020-11') {
 }
 
 // Searches for a recovery code and adds it to the list, so that the wizard can continue past step 1.
-async function addRecoveryCode(wrapper: VueWrapper, code = '8172-2837-2911-23FH') {
+async function addRecoveryCode(
+  wrapper: VueWrapper,
+  code = '8172-2837-2911-23FH',
+  status: RecoveryCodeStatus = 'allowed',
+) {
   vi.mocked(checkRecoveryCode).mockResolvedValueOnce({
     code,
-    status: 'allowed',
+    status,
     activeWalletCount: 2,
     inactiveWalletCount: 5,
   })
@@ -228,6 +232,60 @@ describe('CreateTaskView', () => {
           taskParameters: { recoveryCodes: ['8172-2837-2911-23FH', '2918-0192-3021-83HS'] },
         },
         'Verdachte activiteit',
+      )
+    })
+  })
+
+  describe('unblock user', () => {
+    beforeEach(() => {
+      mockLoggedInUser([Privilege.UnblockUser])
+    })
+
+    it('shows the recovery code search on step 1', async () => {
+      const wrapper = await mountAt('/create-task/unblock_user')
+
+      expect(wrapper.text()).toContain('Stap 1 van 3')
+      expect(wrapper.text()).toContain('Zoek een herstelcode en voeg die toe aan de lijst')
+      expect(wrapper.text()).toContain('Er staat nog geen gebruiker in de lijst')
+    })
+
+    it('shows an error, focuses the search and stays on step 1 when continuing without users', async () => {
+      const focus = vi.spyOn(HTMLInputElement.prototype, 'focus')
+      const wrapper = await mountAt('/create-task/unblock_user')
+
+      await nextButton(wrapper).trigger('click')
+
+      expect(wrapper.text()).toContain('Stap 1 van 3')
+      expect(wrapper.text()).toContain(
+        'Om verder te gaan, moet je minimaal één gebruiker toevoegen aan de lijst.',
+      )
+      expect(focus).toHaveBeenCalled()
+      focus.mockRestore()
+    })
+
+    it('shows the selected recovery codes on the check and done steps and passes them to createTask', async () => {
+      const wrapper = await mountAt('/create-task/unblock_user')
+      await addRecoveryCode(wrapper, '8172-2837-2911-23FH', 'denied')
+      await addRecoveryCode(wrapper, '2918-0192-3021-83HS', 'denied')
+      await nextButton(wrapper).trigger('click')
+      await wrapper.get('.reason-input').setValue('Per ongeluk aangemaakt')
+      await nextButton(wrapper).trigger('click')
+
+      expect(wrapper.text()).toContain('2 gebruikers')
+      expect(wrapper.text()).toContain('Herstelcodes')
+      expect(wrapper.text()).toContain('2918-0192-3021-83HS')
+
+      await nextButton(wrapper).trigger('click')
+      await flushPromises()
+
+      expect(wrapper.text()).toContain('Taak aangemaakt')
+      expect(wrapper.text()).toContain('2 gebruikers')
+      expect(createTask).toHaveBeenCalledWith(
+        {
+          taskType: 'unblock_user',
+          taskParameters: { recoveryCodes: ['8172-2837-2911-23FH', '2918-0192-3021-83HS'] },
+        },
+        'Per ongeluk aangemaakt',
       )
     })
   })
