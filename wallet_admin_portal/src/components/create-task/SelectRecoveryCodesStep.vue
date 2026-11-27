@@ -76,6 +76,7 @@ import RecoveryCodeRow from './RecoveryCodeRow.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 import TaskCard from '@/components/tasks/TaskCard.vue'
 import { checkRecoveryCode } from '@/api/recoveryCodes.ts'
+import { type RecoveryCodeTaskType, TaskActionType } from '@/types/task-action.ts'
 import type { RecoveryCode } from '@/types/recovery-code.ts'
 import { formatUserCount } from '@/utils/userCount.ts'
 
@@ -84,6 +85,8 @@ const props = defineProps<{
   totalSteps: number
   title: string
   description: string
+  /** The task the codes are selected for: unblocking only accepts codes on the block list. */
+  taskType: RecoveryCodeTaskType
   /** Set by the wizard when the user tries to continue without a valid selection. */
   error: string | null
 }>()
@@ -101,10 +104,13 @@ const searchErrorId = useId()
 const foundTitleId = useId()
 const query = ref('')
 const foundCode = ref<RecoveryCode | null>(null)
+const notFound = ref(false)
 const searchFailed = ref(false)
 const isSearching = ref(false)
 
 const errorMessage = computed(() => {
+  if (notFound.value)
+    return 'Geen gebruiker gevonden. Controleer de herstelcode. Probeer het daarna opnieuw.'
   if (searchFailed.value) return 'Zoeken is mislukt. Probeer het opnieuw.'
   return props.error
 })
@@ -118,6 +124,7 @@ defineExpose({ focus })
 
 function clearSearchResult() {
   foundCode.value = null
+  notFound.value = false
   searchFailed.value = false
 }
 
@@ -137,7 +144,12 @@ async function search() {
   try {
     const recoveryCode = await checkRecoveryCode(code)
     if (isOutdated()) return
-    foundCode.value = recoveryCode
+    // Unblocking only knows users on the block list, so any other code counts as not found.
+    if (props.taskType === TaskActionType.UnblockUser && !canAdd(recoveryCode)) {
+      notFound.value = true
+    } else {
+      foundCode.value = recoveryCode
+    }
   } catch {
     if (!isOutdated()) searchFailed.value = true
   } finally {
@@ -145,9 +157,13 @@ async function search() {
   }
 }
 
-/** A recovery code that is already denied cannot be blocked again. */
-function canAdd(recoveryCode: RecoveryCode) {
-  return recoveryCode.status !== 'denied'
+/**
+ * Whether [recoveryCode] can be added to the list: a user can only be blocked when not on the block list yet, and only
+ * be unblocked when on it.
+ */
+function canAdd(recoveryCode: RecoveryCode): boolean {
+  const isDenied = recoveryCode.status === 'denied'
+  return props.taskType === TaskActionType.UnblockUser ? isDenied : !isDenied
 }
 
 function add() {

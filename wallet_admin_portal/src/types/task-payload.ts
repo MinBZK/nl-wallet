@@ -1,4 +1,4 @@
-import type { TaskActionType } from './task-action.ts'
+import type { RecoveryCodeTaskType, TaskActionType } from './task-action.ts'
 
 /** What a task does and on what, mirroring the wallet_provider `TaskPayload`: each type has its own parameters. */
 export type TaskPayload =
@@ -7,10 +7,10 @@ export type TaskPayload =
       taskParameters: { walletIds: string[] }
     }
   | {
-      taskType: TaskActionType.BlockUser
+      taskType: RecoveryCodeTaskType
       taskParameters: { recoveryCodes: string[] }
     }
   | {
-      taskType: TaskActionType.UnblockUser | TaskActionType.RevokeSolution
+      taskType: TaskActionType.RevokeSolution
       taskParameters: Record<string, never>
     }
