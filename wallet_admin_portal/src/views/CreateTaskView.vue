@@ -24,6 +24,17 @@
         @search="introError = null"
       />
 
+      <RevokeSolutionIntroStep
+        v-else-if="step === 'intro' && type === TaskActionType.RevokeSolution"
+        v-model="acknowledged"
+        :step-number="stepNumber"
+        :total-steps="totalSteps"
+        :title="action.header"
+        :description="action.description"
+        :consequences="action.consequences"
+        :error="introError"
+      />
+
       <template v-else-if="step === 'intro'">
         <TaskStepHeader
           :step-number="stepNumber"
@@ -82,6 +93,7 @@ import TaskStepHeader from '@/components/create-task/TaskStepHeader.vue'
 import TaskWizardFooter from '@/components/create-task/TaskWizardFooter.vue'
 import AddReasonStep from '@/components/create-task/AddReasonStep.vue'
 import CheckTaskStep from '@/components/create-task/CheckTaskStep.vue'
+import RevokeSolutionIntroStep from '@/components/create-task/RevokeSolutionIntroStep.vue'
 import SelectWalletsStep from '@/components/create-task/SelectWalletsStep.vue'
 import SelectRecoveryCodesStep from '@/components/create-task/SelectRecoveryCodesStep.vue'
 import TaskCreatedStep from '@/components/create-task/TaskCreatedStep.vue'
@@ -118,6 +130,7 @@ const reason = ref('')
 const selectedWallets = ref<Wallet[]>([])
 const selectedRecoveryCodes = ref<RecoveryCode[]>([])
 const recoveryCodesStep = useTemplateRef('recoveryCodesStep')
+const acknowledged = ref(false)
 const introError = ref<string | null>(null)
 const taskId = ref<string | null>(null)
 const isCreatingTask = ref(false)
@@ -152,6 +165,12 @@ const taskDraft = computed((): TaskDraft => {
           : null,
     }
   }
+  if (type.value === TaskActionType.RevokeSolution) {
+    return {
+      payload: { taskType: TaskActionType.RevokeSolution, taskParameters: {} },
+      introStepError: acknowledged.value ? null : 'Dit veld is verplicht.',
+    }
+  }
   return {
     payload: { taskType: type.value, taskParameters: {} },
     introStepError: null,
@@ -183,7 +202,7 @@ watchEffect(() => {
   if (!action.value) return
   setPageTitle(pageTitle.value)
 })
-watch([selectedWallets, selectedRecoveryCodes], () => {
+watch([selectedWallets, selectedRecoveryCodes, acknowledged], () => {
   introError.value = null
 })
 onBeforeUnmount(resetPageTitle)
